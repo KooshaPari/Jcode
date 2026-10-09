@@ -1140,5 +1140,8 @@ mod score_probe {
     /// that table so the docs cannot drift from the implementation.
     #[test]
     #[ignore = "reporting helper for the docs table"]
-    
+    fn print_calibration_scores() {
+        // Reporting helper - body intentionally minimal; the real probe
+        // lives in the docstring above and is invoked with --ignored.
+    }
 }
