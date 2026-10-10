@@ -52,6 +52,56 @@ fn write_marker(dir: &Path, session_id: &str, contents: &[u8]) -> std::io::Resul
     }
 }
 
+fn remove_marker(dir: &Path, session_id: &str) -> std::io::Result<()> {
+    if session_id.is_empty() || session_id == "." || session_id == ".." || session_id.contains('/')
+    {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "invalid session marker name",
+        ));
+    }
+    let path = dir.join(session_id);
+    if !path_allowed(&path) {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::PermissionDenied,
+            "unsafe session marker path",
+        ));
+    }
+
+    #[cfg(unix)]
+    {
+        use std::ffi::CString;
+        use std::os::unix::fs::OpenOptionsExt;
+
+        let directory = std::fs::OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+            .open(dir)?;
+        let name = CString::new(session_id)
+            .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidInput, error))?;
+        remove_marker_in_directory(&directory, &name)
+    }
+
+    #[cfg(not(unix))]
+    {
+        std::fs::remove_file(path)
+    }
+}
+
+#[cfg(unix)]
+pub(super) fn remove_marker_in_directory(
+    directory: &std::fs::File,
+    name: &std::ffi::CStr,
+) -> std::io::Result<()> {
+    use std::os::fd::AsRawFd;
+
+    let result = unsafe { libc::unlinkat(directory.as_raw_fd(), name.as_ptr(), 0) };
+    if result < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    Ok(())
+}
+
 #[cfg(unix)]
 pub(super) fn write_marker_in_directory(
     directory: &std::fs::File,
@@ -117,7 +167,7 @@ pub fn set_session_internal(session_id: &str, internal: bool) {
     if internal {
         let _ = write_marker(&dir, session_id, b"");
     } else {
-        let _ = std::fs::remove_file(path);
+        let _ = remove_marker(&dir, session_id);
     }
 }
 
@@ -141,7 +191,7 @@ pub fn unregister_active_pid(session_id: &str) {
     if let Some(dir) = active_pids_dir() {
         let path = dir.join(session_id);
         if path_allowed(&path) {
-            let _ = std::fs::remove_file(path);
+            let _ = remove_marker(&dir, session_id);
         }
     }
     // A closed session is never streaming, and its internal flag is moot.
@@ -161,7 +211,7 @@ pub fn unmark_streaming(session_id: &str) {
     if let Some(dir) = streaming_pids_dir() {
         let path = dir.join(session_id);
         if path_allowed(&path) {
-            let _ = std::fs::remove_file(path);
+            let _ = remove_marker(&dir, session_id);
         }
     }
 }

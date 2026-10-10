@@ -232,3 +232,35 @@ fn active_pid_open_directory_handle_survives_namespace_replacement_race() {
     assert_eq!(std::fs::read(&sentinel).unwrap(), b"stable marker");
     assert!(!stable.join("session-race").exists());
 }
+
+#[cfg(unix)]
+#[test]
+fn remove_marker_uses_original_directory_after_namespace_replacement() {
+    use std::os::unix::fs::{OpenOptionsExt, symlink};
+
+    let temp = tempfile::tempdir().unwrap();
+    let active = temp.path().join("active_pids");
+    let moved = temp.path().join("original-active-pids");
+    let stable = temp.path().join("stable-active-pids");
+    std::fs::create_dir_all(&active).unwrap();
+    std::fs::create_dir_all(&stable).unwrap();
+    std::fs::write(active.join("session"), b"1234").unwrap();
+    let sentinel = stable.join("session");
+    std::fs::write(&sentinel, b"stable marker").unwrap();
+
+    let directory = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(&active)
+        .unwrap();
+    std::fs::rename(&active, &moved).unwrap();
+    symlink(&stable, &active).unwrap();
+
+    super::remove_marker_in_directory(
+        &directory,
+        std::ffi::CString::new("session").unwrap().as_c_str(),
+    )
+    .unwrap();
+    assert!(!moved.join("session").exists());
+    assert_eq!(std::fs::read(&sentinel).unwrap(), b"stable marker");
+}
