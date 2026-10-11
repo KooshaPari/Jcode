@@ -994,18 +994,22 @@ position.
 | Branch | Tip SHA | Doc commits |
 |---|---|---|
 | `origin/feature/herdr-plugin-manifest` (pre-rebase, on origin) | `6bb97aa07` | 1 (original SIGKILL doc; **+ 115 new commits from PR #27**) |
-| `feature/herdr-plugin-manifest` (pre-rebase, local-only cherry-picks) | `66f6b3c42` | 4 (cherry-picks: `56847c162`, `9960ab52d`, `99ce5c413`, `66f6b3c42`) |
-| `origin/feature/herdr-plugin-manifest-rebased` (rebased, on origin) | `abb1730b8` | 4 doc + 2 fmt (`df79591`, `abb1730b8`) |
-| `feature/herdr-plugin-manifest-rebased` (rebased, local) | `abb1730b8` | (same as origin, in sync) |
+| `feature/herdr-plugin-manifest` (pre-rebase, local-only cherry-picks) | `65fe47bf8` | 5 (cherry-picks: `56847c162`, `9960ab52d`, `99ce5c413`, `66f6b3c42`, `65fe47bf8`) |
+| `origin/feature/herdr-plugin-manifest-rebased` (rebased, on origin) | `d56ac2c43` | 4 doc + 2 fmt + 1 round-9 doc (`df79591`, `abb1730b8`, `d56ac2c43`) |
+| `feature/herdr-plugin-manifest-rebased` (rebased, local) | `d56ac2c43` | (same as origin, in sync) |
 | `origin/fix/issue-38-cargo-fmt` (new branch from rebased tip) | `abb1730b8` | (same tree as rebased; isolated branch) |
 
 Total doc commits on origin across both branches: 5
 (1 + 4). Total doc commits on local only: 1 (the
-`66f6b3c42` cherry-pick on the local pre-rebase branch).
+`66f6b3c42` cherry-pick on the local pre-rebase branch;
+the `65fe47bf8` round-9 cherry-pick could not be pushed
+because origin pre-rebase advanced 96 commits via PR #27
+merge and the local branch is not fast-forward-able).
 Cherry-pick SHAs differ from the rebased-branch
 cherry-picks, but file content is byte-identical (verified
 with `git diff` showing empty output between `9b4a9e44e`
-and `66f6b3c42`).
+and `66f6b3c42`; round-9 commit `65fe47bf8` also matches
+rebased branch `d56ac2c43` byte-for-byte).
 
 **Why the local and rebased branches share herdr SHAs:**
 The local `feature/herdr-plugin-manifest` and
