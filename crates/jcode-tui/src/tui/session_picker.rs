@@ -2200,6 +2200,9 @@ impl SessionPicker {
         if frame.area().width < 60 || frame.area().height < 20 {
             self.last_list_area = None;
             self.last_preview_area = None;
+            // Drop any in-flight preview load so its callback cannot touch the
+            // compact frame; the next normal render requests it again.
+            self.pending_preview_load = None;
             let text = self
                 .loading_message
                 .as_deref()
