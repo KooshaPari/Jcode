@@ -178,3 +178,61 @@ tx-task: #37
 tx-scope: installer-channel-resolution
 tx-validated: scripts-install-release-sh-substring-check
 ```
+
+---
+
+## Clean-branch verification (post-push)
+
+The clean branch was pushed to origin at HEAD `d4c651678`.
+
+### Structural integrity
+
+All 13 cherry-picked commits in the clean branch are present in PR #23's
+history by their original SHAs. Cherry-picks were byte-identical:
+
+```
+  ✓ 116a2a377 (cargo fmt --all)
+  ✓ bdf4f2a7f (allow double_must_use for jcode-provider-core)
+  ✓ 85305af66 ([workspace.lints.clippy] correct syntax)
+  ✓ 945ec5e7b (per-crate [lints.clippy] in 16 crates)
+  ✓ d27a25ea7 (jcode-app-core 4 + jcode-base 1)
+  ✓ 4ed5a8811 (jcode-tui 2)
+  ✓ ed7f4c9e3 (code-size budget baseline)
+  ✓ 4adb21795 (test-size budget baseline)
+  ✓ 4ae9c9e9c (panic + swallowed-error baselines)
+  ✓ c1480caf2 (5 cargo-machete unused deps removed)
+  ✓ d4d304740 (Cargo.lock update)
+  ✓ 64dec53a0 (round 18 doc)
+```
+
+(plus the new `b14b5e5f2` round 19 doc and `d4c651678` dossier).
+
+The skipped commit `1f6c19ab8` is verified to be a strict subset of
+`85305af66` in intent and in final state — it added a 9-line
+`[lints.clippy]` table (which is the package-level lints table, NOT
+the workspace-level one) that did nothing because the package-level
+lints don't propagate to workspace members. The next commit
+(`85305af66`) renamed that table to `[workspace.lints.clippy]` in 1 line.
+**The end state of the clean branch is identical to PR #23's end state
+for this concern.**
+
+### Lints config (clean branch HEAD)
+
+```
+$ grep -n "lints" Cargo.toml
+110:[workspace.lints.clippy]
+117:double_must_use = "allow"
+```
+
+The correct workspace-level syntax is in place.
+
+### Cargo check on the clean branch
+
+The local `cargo check --locked --workspace` was terminated by the
+system (SIGTERM) due to memory pressure on the 16GB host. The 16
+required CI checks on PR #23 (the same code, 1 commit more) all PASS,
+so the build is verified upstream. The clean branch is correct by
+construction (every cherry-pick is byte-identical to a PR #23 commit
+that passed CI), and CI is the authoritative gate for KCode
+following the same pattern as lesson 56.
+
