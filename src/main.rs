@@ -54,9 +54,8 @@ fn macos_startup_repair_requested(value: Option<&str>) -> bool {
 /// `docs/sessions/20261001-herdr-crash-persistence/10_SIGKILL_NON_TTY.md`.
 #[cfg(target_os = "macos")]
 fn maybe_repair_macos_code_signature() {
-    if !macos_startup_repair_requested(
-        std::env::var("KCODE_MACOS_STARTUP_REPAIR").ok().as_deref(),
-    ) {
+    if !macos_startup_repair_requested(std::env::var("KCODE_MACOS_STARTUP_REPAIR").ok().as_deref())
+    {
         return;
     }
 
@@ -359,14 +358,29 @@ mod tests {
     #[test]
     fn startup_repair_accepts_canonical_truthy_values() {
         for v in ["1", "true", "yes", "on", "TRUE", "Yes", "ON"] {
-            assert!(macos_startup_repair_requested(Some(v)), "value {v:?} should be truthy");
+            assert!(
+                macos_startup_repair_requested(Some(v)),
+                "value {v:?} should be truthy"
+            );
         }
     }
 
     #[test]
     fn startup_repair_rejects_anything_else() {
-        for v in ["0", "false", "no", "off", "nope", "1;rm -rf /", "2", "enable"] {
-            assert!(!macos_startup_repair_requested(Some(v)), "value {v:?} should be falsy");
+        for v in [
+            "0",
+            "false",
+            "no",
+            "off",
+            "nope",
+            "1;rm -rf /",
+            "2",
+            "enable",
+        ] {
+            assert!(
+                !macos_startup_repair_requested(Some(v)),
+                "value {v:?} should be falsy"
+            );
         }
     }
 
