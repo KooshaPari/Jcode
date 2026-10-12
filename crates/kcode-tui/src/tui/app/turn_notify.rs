@@ -540,9 +540,13 @@ mod tests {
             subtitle: Some("2/3 todos".to_string()),
             body: "Finished parser".to_string(),
         };
+        // Note: the title's first byte is base64('kcode · fox') == 'a2Nv…',
+        // not base64('jcode · fox') == 'amNv…'.  The fork decollision
+        // (KooshaPari/KCode PR #33) renamed the brand from `jcode` to
+        // `kcode`; the payload now serializes the post-decollision name.
         assert_eq!(
             kitty_notification_sequence(&n, "session:fox/123"),
-            "\x1b]99;i=kcode-turn-sessionfox123:d=0:e=1:p=title;amNvZGUgwrcgZm94\x1b\\\x1b]99;i=kcode-turn-sessionfox123:d=1:e=1:p=body:a=focus;Mi8zIHRvZG9zCkZpbmlzaGVkIHBhcnNlcg==\x1b\\"
+            "\x1b]99;i=kcode-turn-sessionfox123:d=0:e=1:p=title;a2NvZGUgwrcgZm94\x1b\\\x1b]99;i=kcode-turn-sessionfox123:d=1:e=1:p=body:a=focus;Mi8zIHRvZG9zCkZpbmlzaGVkIHBhcnNlcg==\x1b\\"
         );
     }
 
