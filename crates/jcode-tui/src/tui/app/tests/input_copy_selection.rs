@@ -109,8 +109,18 @@ fn test_input_composer_drag_selects_and_copies_typed_text() {
     );
     // Mouse-drag copy preserves the anchor and cursor (highlight stays
     // visible until the next click).  Keyboard-initiated copy clears them.
-    // This test exercises the drag path, so accept either state.
-    let _ = (app.copy_selection_anchor, app.copy_selection_cursor);
+    // This test exercises the drag path.  The implementation has flipped
+    // between the two behaviors over the branch's history, so assert the
+    // *invariant* (anchor and cursor must agree) instead of either specific
+    // outcome — that catches half-cleared-state regressions without forcing
+    // the test to track the current behavior.
+    let anchor = app.copy_selection_anchor;
+    let cursor = app.copy_selection_cursor;
+    assert!(
+        (anchor.is_some() && cursor.is_some()) || (anchor.is_none() && cursor.is_none()),
+        "drag-copy anchor and cursor must agree (both set or both cleared): \
+         anchor={anchor:?} cursor={cursor:?}"
+    );
 }
 
 #[test]

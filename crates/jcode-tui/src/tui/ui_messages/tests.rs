@@ -684,9 +684,13 @@ fn render_todos_message_shows_user_intention_when_understanding_is_unclear() {
             .any(|line| line.contains("Intent partial: This deliberately long assessment detail")),
         "wide={wide:?}"
     );
+    // Non-compact mode (width >= 72) wraps long objectives into multiple
+    // lines rather than ellipsizing.  The tail of the intent should appear
+    // on a later wrapped line; the first line carries the prefix.
     assert!(
-        wide.iter().any(|line| line.contains('…')),
-        "wide intent should remain on one ellipsized line: {wide:?}"
+        wide.iter()
+            .any(|line| line.contains("several rows in a narrow terminal window")),
+        "wide intent should be wrapped (not truncated): {wide:?}"
     );
     assert!(
         !narrow

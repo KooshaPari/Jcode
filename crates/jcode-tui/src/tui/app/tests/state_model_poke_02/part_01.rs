@@ -1024,7 +1024,7 @@ fn test_logout_clear_anthropic_accounts_removes_all_accounts_once() {
             .map(|account| account.label)
             .collect();
         // Account labels are assigned from a stable animal pool (see
-        // crates/kcode-base/src/auth/account_store.rs::canonical_account_label):
+        // crates/jcode-base/src/auth/account_store.rs::canonical_account_label):
         // the 1st account is "claude-otter", the 2nd is "claude-fox", etc.
         // The `requested-{index}` input labels are placeholders that
         // `upsert_account` rewrites; the test then activates the third.
