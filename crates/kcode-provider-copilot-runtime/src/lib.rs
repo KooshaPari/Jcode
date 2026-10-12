@@ -1054,8 +1054,7 @@ fn restrict_dev_machine_id_file(
     }
     #[cfg(windows)]
     {
-        kcode_base::storage::reject_dev_home_symlink_path(path)
-            .map_err(std::io::Error::other)?;
+        kcode_base::storage::reject_dev_home_symlink_path(path).map_err(std::io::Error::other)?;
         kcode_base::platform::set_permissions_owner_only(path)
     }
     #[cfg(not(any(unix, windows)))]

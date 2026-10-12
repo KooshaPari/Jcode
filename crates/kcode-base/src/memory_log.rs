@@ -51,7 +51,9 @@ impl MemoryLogger {
 }
 
 fn log_dir() -> Option<PathBuf> {
-    kcode_storage::kcode_dir().ok().map(|home| home.join("logs"))
+    kcode_storage::kcode_dir()
+        .ok()
+        .map(|home| home.join("logs"))
 }
 
 fn ensure_logger(date: &str) -> bool {
