@@ -351,6 +351,16 @@ fn persisted_headless_member(
 
 #[tokio::test]
 async fn background_task_wake_runs_live_session_immediately_when_idle() {
+    // KCode fork: take the test-env mutex so this test serializes with
+    // `external_background_task_wake_emits_request_without_starting_turn` (and
+    // any other test that mutates `JCODE_WAKE_MODE`). Without the lock, the
+    // external test can set `JCODE_WAKE_MODE=external` while this test is
+    // still running on a parallel `--test-threads>1` worker; the cache will
+    // hand us `WakeMode::External`, `emit_external_wake` will short-circuit
+    // `run_live_turn_if_idle`, and the asserted `TextDelta` never arrives.
+    // The mutex is the existing process-wide serialization point for
+    // env-mutating tests in this crate, so we use it here too.
+    let _env_lock = crate::storage::lock_test_env();
     let provider = Arc::new(StreamingMockProvider::default());
     provider.queue_response(vec![
         StreamEvent::TextDelta("Build result processed.".to_string()),
