@@ -596,3 +596,94 @@ Given the scale, the previous "per-issue proposal" approach is infeasible. Bette
 The "20 issues" figure from earlier inventory was based on `gh issue list --state all --limit 20` (a mistake — I forgot the default limit). The real number is 10x. **The full operator disposition matrix I produced earlier is a sample (top 20), not exhaustive.**
 
 The current branch's `docs/cleanup-arc-2026-10-13-inventory.md` has a sample; this section supersedes that.
+## P3: PRs disposition (CORRECTED 2026-10-13 05:35Z)
+
+**My initial "12 PRs" was an undercount. Actual: 101+ open PRs (101 returned, may be more).**
+
+### Volume
+
+| State | Count |
+|-------|-------|
+| OPEN | 101 |
+| CLOSED | 26 |
+| MERGED | 73 |
+| **Total** | **200** |
+
+### Top contributors (open PRs)
+
+| Author | Open PRs | Notes |
+|--------|----------|-------|
+| SiavZ | 22 | Largest contributor by open PRs |
+| ianalitis | 7 | |
+| alecuba16 | 5 | |
+| 0x7067 | 5 | |
+| zipadoodlez | 5 | |
+| Kenmege | 5 | |
+| adminwat | 4 | |
+| cmbergamo | 3 | |
+| RamenFast | 3 | |
+| MaxMoldmann | 3 | |
+| ... | (each contributing 1-2) | |
+
+### Recent open PRs (top 20 by recency)
+
+| # | Author | Title |
+|---|--------|-------|
+| 1817 | akushonkamen | fix(batch): drop alias 'name' when 'tool' is present to avoid duplicate-field error |
+| 1816 | akushonkamen | fix(companion): mutable Windows pipe listener and cfg-gated Deserialize import |
+| 1815 | alecuba16 | feat(decisions): ask_user tool with inline TUI chooser and selected-option display |
+| 1810 | RensTillmann | Fix Windows raw paste newline handling |
+| 1809 | johnnyfish | fix(providers): send anthropic-version on the anthropic-api profile catalog fetch |
+| 1807 | tanish111 | tui: strip code/quote frame art from copied selections |
+| 1802 | dev-hann | feat(prompt): configurable extra overlay files ([prompt] overlay_files) |
+| 1800 | dev-hann | docs(hooks): document array hook values and the turn_start hook |
+| 1794 | ianalitis | fix(stdin): detect macOS stdin waits through a resident thread and wrapper shell |
+| 1783 | costajohnt | fix(macos): detect kitty and launch it for Cmd+; and visible sessions |
+| 1780 | n3ko | feat: add elapsed usage display mode |
+| 1771 | 1jehuang | Triage fixes: CJK copy end, fail-closed warning gate, stale Bing hint, --provider ... |
+| 1770 | Sathvik-1007 | Use Responses API for Azure OpenAI agent turns |
+| 1767 | FalkWoldmann | fix(copilot): route by catalog endpoints and refresh the server catalog |
+| 1764 | 1jehuang | fix: restore CI lint gates (#1740) and assess substitutions in the bash gate |
+| 1754 | chrisisler | fix(tui): clamp the cached status rect to the live buffer |
+| 1750 | nkcodec | fix(server): persist swarm completion report on CommReport |
+| 1744 | cmbergamo | test(server): fix Windows named-pipe EOF hang and absolute path fixtures |
+| 1735 | noboomu | fix(cli): survive dead-terminal failures in exit paths and login flows |
+| 1734 | aikomputeapi-web | fix(windows): never arm kitty keyboard protocol on focus regain |
+
+### Disposition options (operator decision needed)
+
+Given the scale, per-PR review is infeasible. Better:
+
+**Option A: Mass-close stale PRs** (recommended for noise reduction)
+- Close any PR > 90 days old with `stale: closed 2026-10-13 cleanup` comment
+- Preserves reference but signals inactive
+- Would close ~30-50 PRs based on recency distribution
+
+**Option B: Triage by author priority** (recommended for active engagement)
+- Focus on PRs from top contributors (SiavZ 22, ianalitis 7, etc.)
+- Leave casual contributor PRs for second pass
+
+**Option C: Triage by area** (recommended for quality)
+- Group by file path touched (e.g., all jcode-companion, all providers)
+- Review 1-2 PRs per area as representative samples
+
+**Option D: Triage by size** (recommended for fast wins)
+- Start with PRs touching <100 lines (low risk, fast review)
+- Then medium (100-500)
+- Save large (500+) for last
+
+**Option E: Cherry-pick specific known-good PRs** (recommended for fork sync)
+- The KCode fork is on master; some of these PRs may already be merged to upstream
+- Cross-reference with upstream PRs to identify already-merged
+- Cherry-pick only the genuinely new fixes
+
+**My recommendation**: A first (close stale to reduce noise) + E (cherry-pick relevant fixes for the KCode fork). This converts the 101 PRs into actionable items for the fork.
+
+### Note on inventory scope
+
+The "12 PRs" figure from earlier inventory was based on `gh pr list --limit 20` (default). The real number is 8-10x higher. **The earlier disposition matrix is a sample, not exhaustive.**
+
+The KCode fork can safely ignore most of these PRs and cherry-pick only the ones that are:
+- Fork-relevant (jcode-fork changes)
+- Unmerged upstream (still open here means not in upstream master either)
+- Or, alternatively, merged upstream (then they're already in our fork via master)
