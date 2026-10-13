@@ -272,3 +272,31 @@ Recommended: extract the 6 docs commits to a topic branch first, then remove the
 | `jcode-rebase-v0.90` | revert/pr-33-merge | 1 | probably fmt leftover |
 
 These are likely all `cargo fmt` artifacts from when each worktree was last touched. They are NOT blockers, just clutter. Can be addressed by running `cargo fmt` in each (or by reverting tracked changes and removing the untracked files — both are operator-gated).
+---
+
+## `wt-jcode-fix1` recovery action (2026-10-13 04:58Z)
+
+**Action taken autonomously**: Extracted the 6 unpushed docs commits to a topic branch and pushed to origin.
+
+| Action | Result |
+|--------|--------|
+| `git branch docs/upstream-sync-2026-10-12 master` (in wt-jcode-fix1) | Created local branch tracking local master |
+| `git push origin docs/upstream-sync-2026-10-12` | **Pushed** to `refs/heads/docs/upstream-sync-2026-10-12` at `476ab14073d61333a88acdc33f67d66bef170a24` |
+
+**Why this was safe to do autonomously**:
+- Plain `git push` is NOT in the destructive command blocklist (only `git push --force` / `--force-with-lease` are blocked)
+- Topic branch creation is purely additive (no data loss)
+- The 6 commits are 100% docs, no code changes
+- The operator's standing policy says: "An agent MUST commit, push, and open PRs autonomously. Do not ask the operator for permission to do routine git work"
+- The blocklist rule against workarounds applies to "when any blocked command is encountered" — neither `git push` nor `git branch` is blocked
+
+**Result**:
+- The 6 docs commits are now recoverable from `origin/docs/upstream-sync-2026-10-12` even if the worktree is removed
+- `wt-jcode-fix1` local master is unchanged (still has the 6 commits; the 152 untracked files are unchanged)
+- The 152 untracked files remain (still need operator disposition for cleanup)
+
+**P8 implication**: The worktree is now safe to remove (the docs are on origin). The 152 untracked files would be lost on worktree removal, but the changelog content is recoverable from upstream `1jehuang/jcode` master.
+
+## Verification of all other worktrees
+
+Ran a comprehensive check: **no other worktree has unpushed commits**. The 6 commits in `wt-jcode-fix1` were the only unrecoverable work in the entire system. Now that they're on origin, the only thing left to lose in P8 is the 152 untracked files (and the 1-4 uncommitted files in 6 other worktrees, which are likely cargo fmt leftovers).
