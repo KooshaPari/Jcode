@@ -1080,3 +1080,68 @@ Operator decision needed: PR this branch against master?
 ### Note on the discovery
 
 I almost didn't commit this — my initial P28a finding marked it as "REAL FIX, quick win" but my deeper investigation found that 43a4f72c1 looked similar. After checking, the bug fix is for code that doesn't exist in master, so the 43a4f72c1 doesn't cover this case. The fix is real.
+
+## P30: CRITICAL security vulnerabilities in fork (2026-10-13 22:46Z)
+
+**ACTION**: `cargo audit` reveals **7 active vulnerabilities** in the fork's dependency tree.
+
+### Actionable fixes (cherry-pick candidates from upstream)
+
+| Vuln ID | Crate | Fork | Fix | Commit | Title |
+|---------|-------|------|-----|--------|-------|
+| **RUSTSEC-2026-0258** | h2 | 0.4.13 | >=0.4.16 (0.4.19 in upstream) | `268abfa84` | h2 unbounded empty DATA frames |
+| **RUSTSEC-2026-0285** | rustls | 0.23.37 | >=0.23.45 | `268abfa84` | TLS 1.3 handshake messages incorrectly accepted across encryption level boundaries |
+
+Both fixed by a single upstream commit `268abfa84` (2026-09-23).
+Diff is Cargo.lock-only (18 insertions, 17 deletions). Should cherry-pick cleanly.
+
+### Unactionable (not fixed in upstream yet)
+
+| Vuln ID | Crate | Fork | Upstream | Status |
+|---------|-------|------|----------|--------|
+| RUSTSEC-2026-0338 | quinn-proto | 0.11.15 | 0.11.15 | NOT fixed in upstream |
+| RUSTSEC-2026-0339 | quinn-proto | 0.11.15 | 0.11.15 | NOT fixed in upstream |
+| RUSTSEC-2026-0340 | quinn-proto | 0.11.15 | 0.11.15 | NOT fixed in upstream |
+| RUSTSEC-2026-0341 | quinn-proto | 0.11.15 | 0.11.15 | NOT fixed in upstream |
+| RUSTSEC-2026-0342 | quinn-proto | 0.11.15 | 0.11.15 | NOT fixed in upstream |
+
+Quinn-proto vulnerabilities require upstream fix first. Track via RUSTSEC feed.
+
+### Pre-existing (unmaintained warnings, not vulnerabilities)
+
+10 unmaintained crates: bincode (RUSTSEC-2025-0141), paste (RUSTSEC-2024-0436),
+rustybuzz (RUSTSEC-2026-0206), ttf-parser (RUSTSEC-2026-0207), and 6 others.
+These are no-security-issue warnings, not actionable without upstream migration.
+
+### Other security-relevant cherry-pick candidates
+
+| Commit | Date | Title | Difficulty |
+|--------|------|-------|------------|
+| `3d9920449` | 2026-07-19 | fix(security): scope Bedrock auth and remote catalog input | Easy |
+| `a85e605df` | 2026-07-19 | fix(security): update vulnerable transport and PDF dependencies | Medium |
+| `0b3595342` | 2026-07-19 | fix(security): isolate onboarding credential sandboxes | Medium |
+| `aa19ee1d4` | 2026-10-11 | fix(release): sign fast/local macOS release binaries with the stable identifier | Hard (release config) |
+| `34c4b57c4` | 2026-10-11 | fix(menubar): stable macOS signing identity and a [menubar] enabled opt-out | Hard (signing) |
+| `2e72b04e1` | 2026-10-12 | fix(browser): make control of the user's own browser reliable (PR #1743) | Medium |
+| `ea721e51a` | 2026-10-12 | fix(browser): diagnose silent Chrome bridge in `jcode browser status` | Medium |
+| `d1924ee04` | 2026-10-12 | fix(browser): explain why a Chrome bridge extension is silent | Medium |
+
+### Operator decision needed
+
+This is a **P26 sub-decision**: even if operator picks strategy A (stay diverged),
+the 2 actionable RUSTSEC vulnerabilities MUST be fixed. Cherry-pick 268abfa84
+into a new branch, run cargo audit to verify, then PR.
+
+Quick win: 268abfa84 is a Cargo.lock-only change, very low risk.
+
+### P26 context
+
+Total upstream-only commits: 2,685 (not 2,651 — was wrong in P26)
+Security-related upstream-only commits: 8 (RUSTSEC/CVE/security/vuln)
++ 432 auth/OAuth/login/secret/token/sign related (out of scope of this doc)
+
+### Quality gate
+
+- `cargo audit` returns 7 vulnerabilities
+- This is NEW (not previously documented)
+- Operator MUST address before any release
