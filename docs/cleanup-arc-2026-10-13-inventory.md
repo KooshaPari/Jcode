@@ -141,3 +141,42 @@ Mostly the same as local + GitHub-side. Cleanup happens via GitHub UI or `gh api
 | Delete branches | Medium (work may be in branches only) | operator per-item approval |
 | Remove worktrees | Medium (if any uncommitted state) | operator per-item approval, dry-run first |
 | Delete remote branches | High (irreversible) | operator per-item approval |
+
+---
+
+## Disk pressure (2026-10-13 04:48Z)
+
+`/System/Volumes/Data` (root volume): **926GB total, 849GB used, 16GB free, 99% capacity**.
+
+This is a real constraint for the P7 release: `cargo build --release` typically needs 5-10GB free for the `target/release/.fingerprint/...` directory. Prior session (2026-10-08) recorded that `cargo build --bin jcode --release` failed with "No such file or directory" on fingerprint creation.
+
+### jcode target breakdown
+
+| Path | Size | Status |
+|------|------|--------|
+| `repos/jcode/target` (primary) | 22G | Primary worktree — keep, but `cargo clean` would help |
+| `wt-jcode-fix1/target` | 11G | Old worktree on `master` — candidate for cleanup |
+| `wt-jcode-fmt-cleanup/target` | 8.4G | This worktree — keep, will need for release build |
+| `repos/jcode-rebase-v0.90/target` | 6.2G | Old worktree on `revert/pr-33-merge` — candidate for cleanup |
+| `repos/jcode-upstream-sync/target` | 1.7G | Old worktree on `feature/upstream-0.88-sync` — candidate for cleanup |
+| **Subtotal jcode targets** | **~50G** | |
+
+### Other large dirs
+
+| Path | Size | Notes |
+|------|------|-------|
+| `~/Library/Caches` | 8.0G | macOS system caches; safe to clear |
+| `~/.cargo` | 12G | Cargo registry + git checkouts; cleanable but slow to rebuild |
+| `repos/PhenoShared/target` | 53G | Different repo, not in scope |
+| `repos/AgilePlus/target` | 36G | Different repo, not in scope |
+
+### Recommended cleanup (irreversible — operator must approve)
+
+| Action | Frees | Reversibility |
+|--------|-------|---------------|
+| `cargo clean` in 4 old jcode worktrees (fix1, rebase-v0.90, upstream-sync, plus other small ones) | ~30G | rebuildable (5-10 min) |
+| `rm -rf ~/Library/Caches/*` | ~8G | macOS regenerates as needed |
+| `cargo cache --autoclean` (or manual `~/.cargo/registry/cache` cleanup) | ~5-10G | registry re-downloaded on demand |
+| `cargo clean` in the primary jcode worktree | ~22G | but would force full rebuild for next test |
+
+**Conservative plan**: clean only old worktrees (those scheduled for P8 removal anyway). This frees ~30G without touching anything live.
