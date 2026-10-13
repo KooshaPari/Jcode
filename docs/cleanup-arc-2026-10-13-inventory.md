@@ -332,3 +332,62 @@ The 11 jcode-sdk warnings (collapsed_if, needless_return, type_complexity, while
 ### 10 jcode-base test failures — status unchanged
 
 Still 10 real assertion bugs in jcode-base (`session/auth/platform/provider`) — these are scope-level and need operator decision.
+---
+
+## `jcode-base` 10 pre-existing test failures — detailed (2026-10-13 05:23Z)
+
+`cargo test -p jcode-base --lib` on `fix/issue-46-pre-existing-flakes`: **1370 passed, 10 failed, 2 ignored, 0 measured** (in 32-40s).
+
+All 10 failures are pre-existing on `master` and on this branch (NOT introduced by the fmt/clippy work). Categorized below by likely fix complexity.
+
+### Categorization
+
+**Likely 1-line fixes (assertion expectations don't match current behavior)** — 3 failures
+
+| Test | Location | Assertion |
+|------|----------|-----------|
+| `auth::cursor::tests::vscdb_missing_key_returns_error` | `crates/jcode-base/src/auth/cursor_tests.rs:330` | `assertion failed: result.unwrap_err().to_string().contains("not found or empty")` — error message format changed |
+| `session::tests::cases::untouched_session_is_not_persisted_until_real_conversation_starts` | `crates/jcode-base/src/session_tests/cases.rs:713` | `assertion failed: !session_path(id)?.exists()` — session is being persisted when it shouldn't be |
+| `session::tests::cases::streaming_guard_creates_visible_macos_sleep_assertion` | `crates/jcode-base/src/session_tests/cases.rs:2362` | `streaming assertion should be released after guard drop; output was: …` — guard not releasing assertion |
+
+**Likely 1-line fixes (equality assertions)** — 2 failures
+
+| Test | Location | Assertion |
+|------|----------|-----------|
+| `auth::codex::tests::multi_account_active_switch_works` | `crates/jcode-base/src/auth/codex_tests.rs:225` | `assertion left == right failed` |
+| `auth::tests::full_and_fast_auth_status_document_cursor_cli_exception` | `crates/jcode-base/src/auth/tests.rs:227` | `assertion left == right failed` |
+| `provider_catalog::provider_catalog_tests::auth_issue_profile_metadata_matches_direct_provider_endpoints` | `crates/jcode-base/src/provider_catalog_tests.rs:154` | `assertion left == right failed` |
+
+**Likely 1-line fixes (file format / data expectation)** — 2 failures
+
+| Test | Location | Assertion |
+|------|----------|-----------|
+| `auth::oauth::tests::basic::save_claude_tokens_preserves_existing_account_metadata` | `crates/jcode-base/src/auth/oauth_tests/basic.rs:141` | (panic line only) |
+| `provider_catalog::provider_catalog_tests::every_static_profile_model_has_a_known_context_limit` | `crates/jcode-base/src/provider_catalog_tests.rs:1178` | (panic line only) |
+
+**Possibly environmental (macOS / sandbox-related)** — 2 failures
+
+| Test | Location | Assertion |
+|------|----------|-----------|
+| `platform::platform_tests::spawn_detached_creates_new_session` | `crates/jcode-base/src/platform_tests.rs:28` | (panic line only) — likely needs subprocess / session creation |
+| `provider::tests::test_same_provider_account_candidates_include_other_openai_accounts` | `crates/jcode-base/src/provider/tests/catalog_subscription.rs:199:60` | (panic line only) — likely data dependency |
+
+### Scope decision options for operator
+
+1. **Fix all 10 in this branch** (estimate: 2-4 hours of focused work; each is likely small but the test for "panicked at" cases may need deeper investigation)
+2. **Fix the 7 likely-1-line ones, accept the 3 environmental** (most pragmatic; environmental tests are platform-specific and may pass in CI but not locally)
+3. **Add `#[ignore]` to the 10 failing tests** with a tracking issue (quickest; but creates test debt)
+4. **Leave as-is, document in release notes** (lowest risk; but degrades CI signal)
+
+### Files touched in fixes would be (at most)
+
+- `crates/jcode-base/src/auth/codex_tests.rs`
+- `crates/jcode-base/src/auth/cursor_tests.rs`
+- `crates/jcode-base/src/auth/oauth_tests/basic.rs`
+- `crates/jcode-base/src/auth/tests.rs`
+- `crates/jcode-base/src/platform_tests.rs`
+- `crates/jcode-base/src/provider/tests/catalog_subscription.rs`
+- `crates/jcode-base/src/provider_catalog_tests.rs`
+- `crates/jcode-base/src/session_tests/cases.rs`
+
+All in `crates/jcode-base/` only. No cross-crate changes. No API changes. Safe to add to this branch if operator approves scope.
