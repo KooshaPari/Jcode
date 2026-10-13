@@ -1,7 +1,7 @@
 # Cleanup Arc — Final State Report (2026-10-13 05:26Z — UPDATED)
 
 **Branch**: `chore/cargo-fmt-cleanup-2026-10-13` (HEAD: `fd9f2a4a7`) — **12 commits** pushed to origin.
-**Branch URL**: https://github.com/KooshaPari/KCode/tree/chore/cargo-fmt-cleanup-2026-10-13
+**Branch URL**: https://github.com/KooshaPari/Jcode/tree/chore/cargo-fmt-cleanup-2026-10-13
 
 ## Commits
 

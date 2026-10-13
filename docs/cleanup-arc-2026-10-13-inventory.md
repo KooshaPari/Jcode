@@ -687,3 +687,79 @@ The KCode fork can safely ignore most of these PRs and cherry-pick only the ones
 - Fork-relevant (jcode-fork changes)
 - Unmerged upstream (still open here means not in upstream master either)
 - Or, alternatively, merged upstream (then they're already in our fork via master)
+## P25: CRITICAL — Fork renamed/moved (2026-10-13 05:38Z)
+
+**MAJOR FINDING**: The fork repository has moved.
+
+| Old name | New name | Status |
+|----------|----------|--------|
+| `KooshaPari/KCode` | `KooshaPari/Jcode` | **Redirect** (push returns 301-style "moved" notice) |
+
+Both repos return the same metadata (description: "Most RAM-efficient coding harness: Rust-native agent execution runtime"; isFork: true; parent: 1jehuang/jcode). They are the SAME repository, just renamed.
+
+### Evidence
+
+```
+git push origin rescue/...
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/KooshaPari/Jcode.git
+```
+
+The push succeeded after updating remote URL from KCode to Jcode.
+
+### Implications
+
+1. **All prior session URLs referencing `KooshaPari/KCode/tree/...` should be updated to `KooshaPari/Jcode/tree/...`**
+2. **All `git@github.com:KooshaPari/KCode.git` URLs need updating**
+3. **The remote URL must be updated in all worktrees** (currently only the fmt-cleanup worktree was updated)
+4. **Documentation needs migration** — the KCode name still appears in commit messages, branch names, and AGENTS.md
+
+### Actions taken in P25
+
+- Updated `origin` remote URL in `wt-jcode-fmt-cleanup` worktree
+- Pushed 3 rescue branches to new location (Jcode):
+  - `rescue/e45ddd4-fixstorage-unlink-session-markers-through-director` (from wt-kcode-active-pids-race)
+  - `rescue/d6f2d20-choresession-memory-record-validation-metadata` (from wt-kcode-heading-boundary)
+  - `rescue/ceb860b-fixstorage-allow-normal-symlinked-state-home` (from wt-kcode-home-symlink)
+- Verified all 3 branches exist on origin (Jcode)
+
+### What still needs the same treatment
+
+**Other worktrees (32 others) still have the old KCode remote URL.** This will cause:
+- `git fetch` to print deprecation warnings
+- New pushes to fail until URL is updated
+- Pull requests to be created against the old location (if the redirect doesn't catch it)
+
+**Updated remote URL command** (for each worktree):
+```bash
+cd <worktree>
+git remote set-url origin https://github.com/KooshaPari/Jcode.git
+```
+
+**Recommended**: A single shell loop across all 33 worktrees that updates the remote URL.
+
+### Source of truth
+
+The KCode name persists in:
+- Branch names: `chore/cargo-fmt-cleanup-2026-10-13` references nothing specific to KCode
+- Commit message subjects: not KCode-specific
+- Worktree directory names: `wt-kcode-*` (3 worktrees have KCode in the name)
+- `~/.jcode/AGENTS.md` references KCode extensively (the canonical harness)
+
+The AGENTS.md KCode references are INTENTIONAL (per the operator policy on KCode vs jcode decollision — see session 2026-10-07 "Fork decollision"). The KCode fork has its own AGENTS.md, while the local install has the legacy jcode binary.
+
+**The fork rename is just the GitHub repo name, not the project name or namespace.**
+
+### What changed in this turn
+
+- Remote URL: `https://github.com/KooshaPari/KCode.git` → `https://github.com/KooshaPari/Jcode.git` (this worktree only)
+- 3 new branches pushed to origin
+- 3 detached-HEAD commits rescued from potential data loss
+
+### Recommended follow-up
+
+1. Update remote URL in remaining 32 worktrees (simple script)
+2. Update documentation URLs to reference Jcode instead of KCode
+3. Check if KCode name should also be removed from worktree directory names (`wt-kcode-*` → `wt-jcode-*`)
+
+This is a non-destructive, reversible operation. The git remote URL change has no impact on existing branches or history.
