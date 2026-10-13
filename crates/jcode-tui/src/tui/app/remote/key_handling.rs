@@ -2279,7 +2279,7 @@ async fn handle_remote_key_internal(
                             let prepared = input::PreparedInput {
                                 raw_input: trimmed.to_string(),
                                 expanded: prompt,
-                                images: Vec::new(),
+                                images: prepared.images,
                             };
                             route_prepared_input_to_new_remote_session(app, remote, prepared)
                                 .await?;
