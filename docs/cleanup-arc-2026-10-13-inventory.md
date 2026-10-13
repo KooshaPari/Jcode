@@ -786,3 +786,37 @@ The KCode name persists in:
 - Some prior session URLs (which I corrected in P25)
 
 But the actual `origin` remote is Jcode everywhere.
+
+## P25b: Rescue branch quality audit (2026-10-13 05:40Z)
+
+Verified content of the 3 rescue branches from P25.
+
+| Branch | Files | Lines | Quality |
+|--------|-------|-------|---------|
+| `rescue/e45ddd4-fixstorage-unlink-session-markers-through-director` | 2 files (`kcode-storage/src/active_pids.rs` + tests) | 85+/3- | **Real fix** — unlink session markers via directory handles, with new test |
+| `rescue/ceb860b-fixstorage-allow-normal-symlinked-state-home` | 1 file (`kcode-storage/src/remove.rs`) | 99+ | **Real fix** — test rejects symlink home in dev namespace, references PR #27 |
+| `rescue/d6f2d20-choresession-memory-record-validation-metadata` | 0 files | 0 lines | **EMPTY COMMIT** — no code changes, just message-only |
+
+### Finding: d6f2d2091 is an empty commit
+
+`git diff d6f2d2091~1..d6f2d2091` returns zero changes. The commit has only a message ("chore(session-memory): record validation metadata" + tx-agent/tx-validated trailers) but no file modifications.
+
+This is a low-quality commit. The codex agent committed an empty change. Possible explanations:
+- The intended changes were never made (agent commit failure mode)
+- The "metadata" was a state update not committed to a file
+- The agent over-committed (ran `git commit` with `--allow-empty` accidentally)
+
+### Recommended action
+
+The `rescue/d6f2d20-` branch is **low-value** (empty commit). Options:
+- **A) Delete the branch** (cleanup, no value lost since it was empty)
+- **B) Keep the branch** (preserves the commit message + agent context)
+- **C) Replace the commit message** (annotate "this was empty, kept for reference")
+
+**My recommendation**: A. The commit has no code value; if cleanup is the goal, deleting an empty rescue branch is the consistent action.
+
+The 2 other rescue branches (`e45ddd4-` and `ceb860b-`) are real, valuable, codex-authored fixes. They should be:
+- Reviewed for cherry-pickability to master
+- Cross-checked with PR #27 (which the ceb860b commit references)
+
+Note: PR #27 is a known merged PR in the inventory. Both fixes may already be in master via PR #27 — but that's a TBD check.
