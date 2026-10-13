@@ -391,3 +391,27 @@ All 10 failures are pre-existing on `master` and on this branch (NOT introduced 
 - `crates/jcode-base/src/session_tests/cases.rs`
 
 All in `crates/jcode-base/` only. No cross-crate changes. No API changes. Safe to add to this branch if operator approves scope.
+---
+
+## Disk pressure — RE-CHECK (2026-10-13 05:23Z)
+
+**Status: improved from 99% to 93% (63GB free)** — P7 release build is no longer blocked.
+
+Earlier estimate (04:49Z): 99% capacity, 16GB free.
+Now (05:23Z): 93% capacity, 63GB free. Net recovery: ~47GB.
+
+This recovery happened organically (system temp cleanup, possibly from the cargo clean in older worktrees the operator may have run, or from system process). Specific cause not investigated — only the headline number matters.
+
+### Updated target dir sizes (post my builds)
+
+| Worktree | target size | Notes |
+|----------|------------|-------|
+| `wt-jcode-fmt-cleanup` (this branch) | 9.2 GB | grew from 8.4 GB (clippy + test builds I ran) |
+| `jcode` (primary, fix/issue-46) | 25 GB | grew from 22 GB (workspace clippy + jcode-base test I ran) |
+| `wt-jcode-fix1` | ~11 GB | unchanged (no builds there) |
+
+### P7 release build status
+
+`cargo build --release` requires roughly 5-10 GB of intermediate artifacts + ~500 MB final binary. With 63 GB free, this is now safely feasible.
+
+**Recommendation**: proceed with `cargo build --release` on `chore/cargo-fmt-cleanup-2026-10-13` once PR is open + merged, before the operator approves P8 (compression). The release binary is needed for tagging.
