@@ -438,3 +438,31 @@ The 10 failures are byte-identical between the two branches. Cargo fmt + clippy 
 - `cargo test -p jcode-base --lib --no-run` exit 0 (just verified, 3.65s incremental)
 
 All pre-merge gates green. PR can be opened (or operator can) and merged without test re-baseline.
+## Appendix: Uncommitted file inventory (2026-10-13 05:28Z)
+
+7 worktrees have uncommitted changes (not 6 as earlier estimated):
+
+### Real code changes (need decision)
+
+| Worktree | Branch | Files | Significance |
+|----------|--------|-------|--------------|
+| `jcode-decollide-kcode-r2` | feature/decollide-kcode-r2 | 4 modified: `kcode-storage/src/lib.rs` (+4), `sdk/typescript/src/binary.ts` (+23), `sdk/typescript/src/launch.ts` (+14), `sdk/typescript/src/sockets.ts` (+26) | Real decollide work in progress |
+| `jcode-pr27-minor-review-fixes` | codex/pr27-minor-review-fixes-20261010 | 3 modified: `kcode-storage/src/dev_namespace_tests.rs` (+1), `kcode-storage/src/lib.rs` (4-2), `src/cli/dev_namespace_tests.rs` (24+17-) | PR #27 review fixes (maybe already in master?) |
+| `jcode-pr8-on-upstream-20261005` | codex/jcode-pr8-on-upstream-20261005 | 1 unmerged: `crates/jcode-provider-openrouter/src/stream.rs` (UU) | **MERGE CONFLICT** — needs resolution |
+| `jcode-poke-context` | codex/poke-context | 2 modified: `jcode-tui/src/tui/app/remote/key_handling.rs`, `jcode-tui/src/tui/app/tests/remote_events_reload_04.rs` | Test code, small |
+
+### Untracked session dirs (likely operator work)
+
+| Worktree | Branch | Dir | Notes |
+|----------|--------|-----|-------|
+| `jcode` (primary) | fix/issue-46-pre-existing-flakes | `docs/sessions/2026-10-12-cleanup-and-release/` | Has `00_SESSION_OVERVIEW.md` (4.2KB), `01_AUDIT.md` (38KB), `stash-dumps/` (32 entries) |
+| `jcode-rebase-v0.90` | revert/pr-33-merge | `docs/sessions/2026-10-08-pilot-readiness/` | Untracked session dir |
+| `wt-jcode-audit` | docs/audit-and-branch-inventory-2026-10-11 | `docs/issues/test-failures/` | Untracked test failures dir |
+
+### Recommended actions
+
+1. **`jcode-pr8-on-upstream-20261005`** is the only one with an actual conflict. Either resolve it (git add + commit) or `git merge --abort`. Operator decision.
+2. **`jcode-decollide-kcode-r2` / `jcode-pr27-minor-review-fixes` / `jcode-poke-context`** have real code changes. They are NOT in master. They may be WIP from prior subagents. Options: commit as WIP, stash, or revert. Operator decision.
+3. **Untracked session dirs** are documentation, not code. Safe to commit (preserve work) or `git clean -fd` to discard. Operator decision.
+
+These all predate the current cleanup work. The current `chore/cargo-fmt-cleanup-2026-10-13` branch is clean.
