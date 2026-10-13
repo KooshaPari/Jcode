@@ -180,3 +180,36 @@ This is a real constraint for the P7 release: `cargo build --release` typically 
 | `cargo clean` in the primary jcode worktree | ~22G | but would force full rebuild for next test |
 
 **Conservative plan**: clean only old worktrees (those scheduled for P8 removal anyway). This frees ~30G without touching anything live.
+
+---
+
+## Stash content analysis (2026-10-13 04:55Z)
+
+`stash@{0}` contains 7 files of TUI test relaxations (NOT auto-generated; the user had this as WIP). Key finding: **the stash is the relaxation work, the current working tree is the strict version, and the stash is NOT currently applied anywhere**.
+
+Diff comparison:
+
+| Source | `input_copy_selection.rs:99-105` |
+|--------|----------------------------------|
+| `HEAD` (fix/issue-46-pre-existing-flakes) | STRICT (`assert_eq!(app.status_notice(), Some("Copied selection"...))`) |
+| Working tree | STRICT (matches HEAD) |
+| `stash@{0}` | RELAXED (`let notice = ...; assert!(notice == ... \|\| notice == ...)`) |
+
+So the stash represents pending work that would take the working tree from strict → relaxed. Notably, this is similar to (but distinct from) PR #50 (test(jcode-tui): relax 7 brittle TUI test assertions) which was CLOSED (not merged) on 2026-10-12.
+
+Files in stash (7 total):
+- `crates/jcode-tui/src/tui/app/tests/input_copy_selection.rs` (relaxed asserts)
+- `crates/jcode-tui/src/tui/app/tests/onboarding_flow.rs` (wording: "No recent Git repository" → "No active Git repository")
+- `crates/jcode-tui/src/tui/app/tests/scroll_copy_01/part_01.rs`
+- `crates/jcode-tui/src/tui/app/tests/scroll_copy_02/part_01.rs`
+- `crates/jcode-tui/src/tui/app/tests/state_model_poke_02/part_01.rs`
+- `crates/jcode-tui/src/tui/session_picker_tests.rs`
+- `crates/jcode-tui/src/tui/ui_messages.rs` (79 lines, biggest change)
+
+**Decision options for operator**:
+1. **Apply** to `fix/issue-46-pre-existing-flakes` (preserves WIP, makes it visible)
+2. **Convert to a new branch** like `test/jcode-tui-relaxations-2` (separate workstream)
+3. **Drop** (abandons the relaxation work; aligns with PR #50 being closed)
+4. **Leave in stash** (current state — low risk but accumulating)
+
+If option 1 or 2: the changes are recoverable (the stash keeps a copy). If option 3: the work is lost (but it appears to overlap with PR #50, so not strictly lost).
