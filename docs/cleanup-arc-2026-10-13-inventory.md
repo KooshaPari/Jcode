@@ -998,3 +998,44 @@ This is consistent with the P27 finding (rescue branches are obsolete) and P26 f
 **Note**: It's possible the operator's KCode fork strategy is to KEEP working on the KCode namespace and let the GitHub repo be a transitional state. If so, these uncommitted changes would be valuable.
 
 But the GitHub repo moved from `KooshaPari/KCode` to `KooshaPari/Jcode` (per P25), which suggests the canonical name is JCODE. So I believe the dead-weight interpretation is correct.
+
+## P28a: P28 was incomplete — only 2 of 4 are dead (2026-10-13 05:44Z)
+
+Examined the 2 remaining uncommitted worktrees. The P28 pattern (dead KCode work) holds for 2 of 4, but the other 2 are different.
+
+### 4 worktrees with uncommitted changes — corrected assessment
+
+| Worktree | Uncommitted content | Verdict |
+|----------|---------------------|---------|
+| `jcode-poke-context` | Bug fix: `images: prepared.images` (preserves images through /poke context launcher) + 43-line new test for the bug | **REAL FIX** — should be committed and PR'd |
+| `jcode-pr8-on-upstream-20261005` | Cherry-pick conflict in `jcode-provider-openrouter/src/stream.rs` (432 lines added, 4 conflict regions) | **ABORT** — target commit `42cfcfde4` is already on master as `d548f15be` (per P21/P22) |
+| `jcode-pr27-minor-review-fixes` | JCODE→KCODE error message flips + pre-rename paths | **DEAD KCode** (per P28) |
+| `jcode-decollide-kcode-r2` | 4 JCODE→KCODE env mappings + TypeScript renames | **DEAD KCode** (per P28) |
+
+### Specific findings
+
+**jcode-poke-context** is a real, valuable, post-rename fix:
+- `key_handling.rs:2279`: Changes `images: Vec::new()` to `images: prepared.images` — preserves images through the split prompt workflow
+- New test: `test_remote_poke_context_preserves_prompt_and_attached_images` validates the fix
+
+**Branch `codex/poke-context`** recent commit: `feat(tui): add /poke context recovery launcher` (a real feature, not KCode-era work).
+
+### Recommended action for jcode-poke-context
+
+This is a quick win. The 2-line bug fix + 43-line test is a self-contained improvement that could be:
+1. Committed on the `codex/poke-context` branch
+2. Pushed and PR'd against master
+3. Merged if review passes
+
+**The fix is small enough to do as a follow-up commit and PR.**
+
+### Updated P28 summary
+
+2 of 4 uncommitted worktrees are dead KCode work (discard).
+1 of 4 is a real fix (commit + PR).
+1 of 4 is a redundant cherry-pick (abort).
+
+The 4 uncommitted-file worktrees are NOT all the same. The cleanup strategy must distinguish:
+- Discard: jcode-decollide-kcode-r2, jcode-pr27-minor-review-fixes
+- Quick win: jcode-poke-context
+- Abort: jcode-pr8-on-upstream-20261005
