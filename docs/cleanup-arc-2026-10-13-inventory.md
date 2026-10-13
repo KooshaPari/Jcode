@@ -466,3 +466,35 @@ All pre-merge gates green. PR can be opened (or operator can) and merged without
 3. **Untracked session dirs** are documentation, not code. Safe to commit (preserve work) or `git clean -fd` to discard. Operator decision.
 
 These all predate the current cleanup work. The current `chore/cargo-fmt-cleanup-2026-10-13` branch is clean.
+### P20a deep-dive: jcode-pr8-on-upstream-20261005 conflict (2026-10-13 05:30Z)
+
+**Branch**: `codex/jcode-pr8-on-upstream-20261005` — last modified 2026-10-05 (~8 days stale)
+
+**The conflict is from a CHERRY-PICK, not a merge**:
+- `.git/worktrees/.../CHERRY_PICK_HEAD` exists
+- `.git/worktrees/.../sequencer/` exists
+- The cherry-pick in progress is `42cfcfde4` ("test(openrouter): keep the EOF regression tests additive")
+- The UU state means: the cherry-pick was attempted, hit conflicts, and was never completed or aborted
+
+**Conflict structure** (4 regions, total ~506 lines):
+- Region 1: lines 1330-1499 (170 lines) — HEAD adds `repeated_post_eof_polls_stay_none_without_repoll_inner`; incoming adds `parse_next_event_coalesces_repeated_tool_call_id_chunks`. Both are independent `#[test] fn ...` definitions.
+- Region 2: lines 1515-1568 (54 lines) — mid-test continuation
+- Region 3: lines 1573-1756 (184 lines) — interleaved with mid-test code
+- Region 4: lines 1980-2077 (98 lines) — HEAD has `tool_call_deltas_coalesce_into_exactly_n_final_blocks_by_id`; incoming has nothing (just `>>>>>>>`)
+
+**Branch state on origin/master** (3 commits ahead in `stream.rs`):
+- `a115961e6 fix(openrouter): fuse EOF transport and restore CI workflow validity`
+- `f19b47b19 Revert "refactor(decollision): rename jcode to kcode (#33)"`
+- `901b33108 refactor(decollision): rename jcode to kcode (#33)`
+
+The most recent of these (a115961e6) is an openrouter fix that may have already superseded this worktree's changes.
+
+**Recommended operator action**:
+
+1. `git cherry-pick --abort` to restore clean state of the branch (no code loss; the cherry-pick was a no-op)
+2. Then decide:
+   - **(A) Delete the worktree** — the branch is 8 days stale, the cherry-pick was never completed, and the EOF-transport fix on master likely covers the same ground
+   - **(B) Re-cherry-pick on a fresh worktree** if the operator still wants the EOF regression tests
+   - **(C) Resolve the conflict manually** by keeping both sides' `#[test] fn ...` (additive) and running `cargo test -p jcode-provider-openrouter`
+
+The abort option is safe (revertible, no data loss, restores 8-day-old clean state). The branch will still exist on origin; only the worktree is cleaned.
