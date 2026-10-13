@@ -820,3 +820,89 @@ The 2 other rescue branches (`e45ddd4-` and `ceb860b-`) are real, valuable, code
 - Cross-checked with PR #27 (which the ceb860b commit references)
 
 Note: PR #27 is a known merged PR in the inventory. Both fixes may already be in master via PR #27 — but that's a TBD check.
+
+## P26: MAJOR fork/upstream divergence (2026-10-13 05:40Z)
+
+**The fork (KooshaPari/Jcode) is dramatically behind upstream (1jehuang/jcode).**
+
+### Volume
+
+| Direction | Commits | Notes |
+|-----------|---------|-------|
+| Fork has, upstream doesn't | 146 | Includes PR #33 (rename), #36 (revert), #44, #49, #51, #52, #54 |
+| Upstream has, fork doesn't | **2,651** | Massive gap |
+| Net lag | **2,505 commits** | Fork is ~5 months of upstream evolution behind |
+
+### Date analysis
+
+| Metric | Value |
+|--------|-------|
+| Fork master HEAD | 2026-10-12 22:24:41 -0700 |
+| Upstream master HEAD | 2026-10-12 22:32:39 -0700 |
+| HEAD timestamp delta | 7 minutes (coincidence — both repos had activity in the same window) |
+| Merge-base date | 2026-09-14 03:40:51 -0700 |
+| Merge-base age | ~30 days |
+
+### Interpretation
+
+The fork went through a **7,573-commit evolution** since the merge-base, mostly the PR #33 KCode rename (squash-merged 2,260-commit rebase) + the revert (PR #36). The upstream went through a different **10,078-commit evolution** in the same window.
+
+The fork has not re-synced with upstream since late September 2026. The fork's `master` is essentially a "KCode variant" of the project, not a current evolution of upstream.
+
+### Implications
+
+1. **Many upstream PRs are moot**: 101 open PRs on the upstream repo (per P3) are based on a master the fork doesn't have. Cherry-picking them to fork master is risky (massive conflict potential).
+
+2. **Upstream has unmerged work the fork doesn't see**:
+   - `0d240f1d4` iOS orientation
+   - `5e9412178` SDK Windows GUI
+   - `089947b02` jcode companion (decoupled effects)
+   - `8cfa1b559` SDK collections create_with_id
+   - `da09e225d` telemetry model price estimation
+   - 2,646 more
+
+3. **The "fork is healthy" claim was misleading**: My earlier assertions about "no regressions" are correct WITHIN the fork's evolution, but the fork is missing 2,505 upstream commits that may have:
+   - Fixed bugs the fork still has
+   - Added features the fork lacks
+   - Changed APIs the fork depends on
+
+4. **A real fork sync would require**:
+   - Resolving 2,500+ commits of divergence
+   - This is a multi-day project, not autonomous work
+   - Or a hard reset to upstream + re-apply fork-specific commits
+
+### Recommended operator action
+
+**Critical question for operator**: Should the fork re-sync with upstream, or stay diverged as a "KCode variant"?
+
+**Option A: Stay diverged** (current state)
+- Treat the fork as an independent KCode variant
+- Don't attempt to pull upstream
+- Focus on KCode-specific quality and PR #27-style work
+- 146 fork-only commits are the relevant scope
+
+**Option B: Re-sync via rebase** (high risk)
+- Rebase fork's 7,573 commits onto current upstream master
+- Massive conflict potential
+- Could take days of manual work
+- May surface 2,500+ conflicts
+
+**Option C: Re-sync via reset** (nuclear)
+- Hard reset fork master to upstream
+- Re-apply only the 146 fork-specific commits as patches
+- Lose any history that diverged
+- Cleaner but irreversible
+
+**Option D: Cherry-pick selected upstream commits**
+- Identify critical upstream fixes the fork needs
+- Cherry-pick 10-20 high-value commits
+- Accept remaining divergence
+- Lowest risk but only addresses specific needs
+
+**My recommendation**: D first (cherry-pick a handful of critical upstream fixes), then re-evaluate whether A or B is appropriate for the long term.
+
+### Action taken
+
+- No commits made; this is documentation only
+- Upstream already fetched (`upstream/master` is `0d240f1d4`)
+- Operator can re-evaluate fork strategy based on this finding
