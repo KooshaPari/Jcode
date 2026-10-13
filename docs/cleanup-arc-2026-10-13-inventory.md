@@ -415,3 +415,26 @@ This recovery happened organically (system temp cleanup, possibly from the cargo
 `cargo build --release` requires roughly 5-10 GB of intermediate artifacts + ~500 MB final binary. With 63 GB free, this is now safely feasible.
 
 **Recommendation**: proceed with `cargo build --release` on `chore/cargo-fmt-cleanup-2026-10-13` once PR is open + merged, before the operator approves P8 (compression). The release binary is needed for tagging.
+---
+
+## Branch parity check (2026-10-13 05:25Z)
+
+**Verified: `chore/cargo-fmt-cleanup-2026-10-13` has the same 10 pre-existing test failures as `fix/issue-46-pre-existing-flakes`. No new failures introduced by fmt + clippy work.**
+
+| Branch | Passed | Failed | Ignored | Total |
+|--------|--------|--------|---------|-------|
+| `fix/issue-46-pre-existing-flakes` | 1370 | 10 | 2 | 1382 |
+| `chore/cargo-fmt-cleanup-2026-10-13` | 1370 | 10 | 2 | 1382 |
+
+The 10 failures are byte-identical between the two branches. Cargo fmt + clippy fixes did NOT introduce any new test failures, did NOT fix any either.
+
+**Branch is clean** — safe to merge into fix/issue-46 or master without re-baselining the test failures.
+
+### Additional cargo check verified
+
+- `cargo check --workspace` exit 0 on this branch (verified P6a)
+- `cargo clippy -p jcode-sdk --lib --all-targets -- -D warnings` exit 0 (verified P6c)
+- `cargo test -p jcode-sdk --lib --no-run` exit 0 (verified P6c)
+- `cargo test -p jcode-base --lib --no-run` exit 0 (just verified, 3.65s incremental)
+
+All pre-merge gates green. PR can be opened (or operator can) and merged without test re-baseline.
