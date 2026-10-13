@@ -942,3 +942,59 @@ The rescue was a defensive move (prevent data loss from garbage collection), but
 ### Re-evaluation
 
 This validates the P26 finding: the fork has been making its own decisions about what to merge. The 3 rescue branches are evidence of in-flight work that got absorbed into the main PR stream in different forms.
+
+## P28: Uncommitted changes are dead KCode-era work (2026-10-13 05:43Z)
+
+Examined 2 of the 4 worktrees with real code changes. Pattern is clear:
+**All uncommitted changes are extending pre-rename KCode code that was abandoned when PR #36 reverted the rename.**
+
+### jcode-pr27-minor-review-fixes (3 modified files)
+
+Branch: `codex/pr27-minor-review-fixes-20261010`
+Files: `crates/kcode-storage/src/{dev_namespace_tests,lib}.rs`, `src/cli/dev_namespace_tests.rs`
+
+Changes:
+- Error messages: `jcode-dev` → `kcode-dev`, `JCODE_HOME` → `KCODE_HOME` (post-rename fix)
+- Adds `assert!(running_in_dev_namespace())` to test
+- Removes local `env_lock()`, uses `crate::storage::lock_test_env()` (dedup)
+
+**Verdict**: Pre-rename paths (`kcode-storage/`) are obsolete. Error messages flipping to KCODE-* are also obsolete (canonical is JCODE-* again).
+
+### jcode-decollide-kcode-r2 (4 modified files)
+
+Branch: `feature/decollide-kcode-r2`
+Files: `crates/kcode-storage/src/lib.rs`, `sdk/typescript/src/{binary,launch,sockets}.ts`
+
+Changes:
+- Adds 4 more JCODE→KCODE env var mappings to `JCODE_TO_KCODE_ENV` migration table
+- Renames `bundledJcodeBinary` → `bundledKcodeBinary` (with deprecation alias)
+- Renames 4 `JCODE_*` env vars to `KCODE_*` in `launch.ts`
+
+**Verdict**: This is migration code for the JCODE→KCODE rename. The rename was reverted (PR #36). The `JCODE_TO_KCODE_ENV` table only exists in this branch — never merged to master.
+
+### Pattern across all 4 worktrees
+
+The 4 worktrees with uncommitted code changes are all extending the abandoned KCode era:
+
+1. `jcode-decollide-kcode-r2`: extends the KCode migration table
+2. `jcode-poke-context`: probably similar (haven't examined)
+3. `jcode-pr27-minor-review-fixes`: KCode error message fixes
+4. `jcode-pr8-on-upstream-20261005`: cherry-pick of KCode-era fix (per P21)
+
+### Implication
+
+**The uncommitted code changes should be discarded, not committed.** The KCode rename was reverted; the canonical namespace is JCODE again. Any work extending the KCode migration is wrong-direction work.
+
+### Recommended action
+
+1. **Do NOT commit any of these changes.** They would corrupt the post-rename state.
+2. **Discard the uncommitted changes** with `git checkout -- <files>` or `git stash` (with intent to drop).
+3. **Delete the worktrees** once changes are discarded (operator action).
+
+This is consistent with the P27 finding (rescue branches are obsolete) and P26 finding (fork has its own strategy).
+
+### Alternative interpretation
+
+**Note**: It's possible the operator's KCode fork strategy is to KEEP working on the KCode namespace and let the GitHub repo be a transitional state. If so, these uncommitted changes would be valuable.
+
+But the GitHub repo moved from `KooshaPari/KCode` to `KooshaPari/Jcode` (per P25), which suggests the canonical name is JCODE. So I believe the dead-weight interpretation is correct.
