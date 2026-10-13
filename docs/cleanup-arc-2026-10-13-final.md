@@ -1,6 +1,6 @@
-# Cleanup Arc — Final State Report (2026-10-13 05:26Z — UPDATED)
+# Cleanup Arc — Final State Report (2026-10-13 05:49Z — UPDATED)
 
-**Branch**: `chore/cargo-fmt-cleanup-2026-10-13` (HEAD: `fd9f2a4a7`) — **12 commits** pushed to origin.
+**Branch**: `chore/cargo-fmt-cleanup-2026-10-13` (HEAD: `2f6b02e2b`) — **26 commits** pushed to origin.
 **Branch URL**: https://github.com/KooshaPari/Jcode/tree/chore/cargo-fmt-cleanup-2026-10-13
 
 ## Commits
@@ -16,7 +16,7 @@
 9. `d2e5c3bf8` — docs(cleanup-arc-2026-10-13): correct pre-existing clippy count (23→11 in jcode-sdk only)
 10. `45b5ace19` — docs(cleanup-arc-2026-10-13): jcode-base 10 pre-existing test failures, categorized
 11. `2344eb2f2` — docs(cleanup-arc-2026-10-13): disk pressure re-check (93%, 63GB free, P7 unblocked)
-12. `fd9f2a4a7` — docs(cleanup-arc-2026-10-13): branch parity check — no new failures introduced
+12. `2f6b02e2b` — docs(cleanup-arc-2026-10-13): branch parity check — no new failures introduced
 
 ## Quality gates — verified green
 
@@ -98,3 +98,17 @@ The branch is in mergeable state. Three options for the operator:
 - `docs/cleanup-arc-2026-10-13-inventory.md` — 440 lines, full enumeration + proposals
 - `docs/cleanup-arc-2026-10-13-final.md` — this file
 - `docs/upstream-sync-status-2026-10-12/` — 4 docs files, on origin as topic branch
+
+## Update 2026-10-13 05:49Z
+
+This turn added:
+- P29 jcode-poke-context bug fix committed and pushed (commit 6582922ca on origin/codex/poke-context)
+
+The /poke context command (added in 2e93042f6, on codex/poke-context) drops
+staged images because the new code path passes 'images: Vec::new()' instead
+of 'prepared.images'. Fix is 2 lines; 43-line test exercises the flow.
+
+Same class of bug as 43a4f72c1, which only added a static guard for the
+interleave path. This applies the equivalent to the /poke context path.
+
+Operator follow-up: PR codex/poke-context against master?
