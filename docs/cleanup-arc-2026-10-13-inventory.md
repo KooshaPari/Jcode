@@ -1039,3 +1039,44 @@ The 4 uncommitted-file worktrees are NOT all the same. The cleanup strategy must
 - Discard: jcode-decollide-kcode-r2, jcode-pr27-minor-review-fixes
 - Quick win: jcode-poke-context
 - Abort: jcode-pr8-on-upstream-20261005
+
+## P29: Committed jcode-poke-context bug fix (2026-10-13 05:46Z)
+
+**ACTION TAKEN**: Committed the jcode-poke-context bug fix.
+
+### What I did
+
+1. Verified the fix is for a real bug (images dropped in `/poke context` flow)
+2. Confirmed the bug exists in `codex/poke-context` (not in master, since master doesn't have the feature)
+3. Committed on the existing `codex/poke-context` branch
+4. Pushed to origin
+
+### Commit
+
+```
+6582922ca fix(tui): preserve staged images through /poke context recovery
+ 2 files changed, 44 insertions(+), 1 deletion(-)
+```
+
+### Why this is a real fix (not dead work)
+
+- The `/poke context` command was added in 2e93042f6 (October 2026)
+- Master doesn't have `/poke context`, so the bug isn't visible in master
+- The fix is in the new code path: forwarding `prepared.images` through the `PreparedInput` for the forked session
+- A 43-line test exercises the end-to-end flow and asserts images survive
+
+### Prior art (43a4f72c1)
+
+This is the same class of bug that 43a4f72c1 documented for the interleave send path — a `vec![]` instead of staged attachments, which compiles cleanly and silently drops every image.
+
+The 43a4f72c1 commit only added a static guard test; the actual fix happened in a different refactor. This commit applies the equivalent fix to the `/poke context` code path.
+
+### Follow-up
+
+Operator decision needed: PR this branch against master?
+- Yes → create a PR for `codex/poke-context` → master
+- No → the commit is preserved on origin; can be deleted if operator prefers
+
+### Note on the discovery
+
+I almost didn't commit this — my initial P28a finding marked it as "REAL FIX, quick win" but my deeper investigation found that 43a4f72c1 looked similar. After checking, the bug fix is for code that doesn't exist in master, so the 43a4f72c1 doesn't cover this case. The fix is real.
