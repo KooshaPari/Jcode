@@ -763,3 +763,26 @@ The AGENTS.md KCode references are INTENTIONAL (per the operator policy on KCode
 3. Check if KCode name should also be removed from worktree directory names (`wt-kcode-*` → `wt-jcode-*`)
 
 This is a non-destructive, reversible operation. The git remote URL change has no impact on existing branches or history.
+
+## P25a correction (2026-10-13 05:39Z)
+
+**The P25 finding about 32 worktrees needing URL update was WRONG.**
+
+Verified all 34 worktrees (33 listed + 1 main):
+- 34 with `https://github.com/KooshaPari/Jcode.git`
+- 0 with KCode URL
+
+The remote URL was apparently updated globally at some point, OR git's
+redirect handling does it automatically on fetch. Only this worktree
+had the KCode URL because I was operating on it manually and the
+KCode URL was the configured `origin` (which I corrected in P25).
+
+**No P25a action required.**
+
+This validates that the canonical fork location is `Jcode`, not KCode.
+The KCode name persists in:
+- Worktree directory names (`wt-kcode-*`)
+- AGENTS.md references (per the decollision policy)
+- Some prior session URLs (which I corrected in P25)
+
+But the actual `origin` remote is Jcode everywhere.
