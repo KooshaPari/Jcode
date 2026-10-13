@@ -300,3 +300,35 @@ These are likely all `cargo fmt` artifacts from when each worktree was last touc
 ## Verification of all other worktrees
 
 Ran a comprehensive check: **no other worktree has unpushed commits**. The 6 commits in `wt-jcode-fix1` were the only unrecoverable work in the entire system. Now that they're on origin, the only thing left to lose in P8 is the 152 untracked files (and the 1-4 uncommitted files in 6 other worktrees, which are likely cargo fmt leftovers).
+---
+
+## Pre-existing clippy state — CORRECTED (2026-10-13 05:13Z)
+
+**Earlier estimate (this doc)**: 23 pre-existing clippy errors in 3 crates (jcode-app-core 19, jcode-base 1, jcode-tui-mermaid 3).
+**Actual current state on `fix/issue-46-pre-existing-flakes`**: **11 warnings, ALL in `jcode-sdk`** (jcode-app-core, jcode-base, jcode-tui-mermaid are clean).
+
+The earlier 23-error claim was either:
+- A different branch state (the agent may have been on a different branch)
+- An inflated count from running on a branch with stashed-but-uncommitted changes
+- A miscount (the agent may have included 18 `await_holding_lock` warnings that were already fixed before the count)
+
+### Verified: full workspace clippy on `fix/issue-46-pre-existing-flakes`
+
+```
+$ cargo clippy --workspace --no-deps
+... (clean for jcode-app-core, jcode-base, jcode-tui-mermaid, and every other crate)
+warning: `jcode-sdk` (lib) generated 11 warnings (run `cargo clippy --fix --lib -p jcode-sdk -- --no-deps` to apply 9 suggestions)
+```
+
+The 11 jcode-sdk warnings (collapsed_if, needless_return, type_complexity, while_let_loop, unnecessary_sort_by) are **exactly the ones fixed in commit `c475c0283` on branch `chore/cargo-fmt-cleanup-2026-10-13`**.
+
+### Implication
+
+- `chore/cargo-fmt-cleanup-2026-10-13` is **workspace-clippy-clean** (after the jcode-sdk commit)
+- `fix/issue-46-pre-existing-flakes` is **11 jcode-sdk warnings away from clean** (those exact 11)
+- If the operator merges `chore/cargo-fmt-cleanup-2026-10-13` into `fix/issue-46-pre-existing-flakes` (or cherry-picks `c475c0283` + `6ca82eeab`), the entire workspace becomes clippy-clean
+- The earlier "P6c-x" blocker (23 pre-existing errors) is now downgraded to "merge fmt-cleanup first; no separate fix needed"
+
+### 10 jcode-base test failures — status unchanged
+
+Still 10 real assertion bugs in jcode-base (`session/auth/platform/provider`) — these are scope-level and need operator decision.
