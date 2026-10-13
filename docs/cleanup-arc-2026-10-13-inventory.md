@@ -515,3 +515,84 @@ The branch `codex/jcode-pr8-on-upstream-20261005` itself is 8 days stale. After 
 - Net effect: zero information loss
 
 If the operator wants to keep the worktree's other cherry-picks, they can rebase the branch on master. Otherwise, the whole worktree can be removed safely.
+## P2: Issues disposition (CORRECTED 2026-10-13 05:34Z)
+
+**My initial "20 issues" was a 10x undercount. Actual: 200+ open issues.**
+
+### Volume
+
+| Bucket | Count | Notes |
+|--------|-------|-------|
+| Last 7 days | 26 | Recent, likely active, possibly tied to current release work |
+| Last 30 days | 124 | Bulk of current backlog |
+| Last 90 days | 50 | Older but still open |
+| Older | 0 | (none — repo is fairly active) |
+| **Total open** | **200+** | (200 returned by API, may be more) |
+
+### Categorization by label
+
+| Label | Count |
+|-------|-------|
+| bug | 84 |
+| enhancement | 71 |
+| unlabeled | 18 |
+| question | 6 |
+| triage: needs-decision | 4 |
+| duplicate | 3 |
+| type: maintenance | 3 |
+| triage: unclear | 2 |
+| ux | 2 |
+| needs-info | 2 |
+| area: tools | 1 |
+| triage: spam | 1 |
+| area: ci | 1 |
+| security | 1 |
+| tech-debt | 1 |
+
+### Sub-categorization of bugs (84)
+
+Most of the 84 bugs are likely:
+- Windows-specific (jcode-companion) — see #1803, #1812, #1773
+- MCP/tool wrappers (#1814, #1811, #1805, #1804)
+- TUI issues (#1791, #1784, #1782, #1737)
+- Provider issues (#1769, #1759, #1808, #1790)
+- Security (#1747)
+- Build/formatting (#1796, #1803)
+
+### Disposition options (operator decision needed)
+
+Given the scale, the previous "per-issue proposal" approach is infeasible. Better:
+
+**Option A: Triage-by-age** (recommended for size)
+- Close all "older" 90+ days with a "stale: needs-repro" comment
+- Keep last 30 days active
+- Escalate last 7 days to active triage
+- This would close ~50 issues quickly while preserving the actionable ones
+
+**Option B: Triage-by-label** (recommended for label hygiene)
+- Apply area:/* labels to all unlabeled (18) issues
+- Apply area: ci to #1803 (master is red)
+- Apply area: install to #1763
+- Apply area: providers to #1808, #1810 (anthropic-api)
+- Apply area: security to #1747
+- This is a few hours of work and dramatically improves searchability
+
+**Option C: Triage-by-need**
+- Reopen as duplicate: any closed as dup (3 currently labeled duplicate)
+- Promote triage: needs-decision (4) to actual decisions
+- Resolve triage: unclear (2) by re-reading and clarifying
+- Resolve needs-info (2) by asking maintainers
+- This is the highest-leverage category (~12 issues directly actionable)
+
+**Option D: Mass-close by age**
+- Close anything > 180 days with `stale: closed 2026-10-13 cleanup` label
+- Less precise but fastest
+- Could lose legitimate bugs that just haven't been touched
+
+**My recommendation**: A + C combined — start with C (highest leverage), then A (mass stale-age), then B (label hygiene). Total time: ~2 hours for A+C, or ~3 hours for full sweep.
+
+### Note on inventory scope
+
+The "20 issues" figure from earlier inventory was based on `gh issue list --state all --limit 20` (a mistake — I forgot the default limit). The real number is 10x. **The full operator disposition matrix I produced earlier is a sample (top 20), not exhaustive.**
+
+The current branch's `docs/cleanup-arc-2026-10-13-inventory.md` has a sample; this section supersedes that.
