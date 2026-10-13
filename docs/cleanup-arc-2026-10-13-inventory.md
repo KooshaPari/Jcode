@@ -498,3 +498,20 @@ The most recent of these (a115961e6) is an openrouter fix that may have already 
    - **(C) Resolve the conflict manually** by keeping both sides' `#[test] fn ...` (additive) and running `cargo test -p jcode-provider-openrouter`
 
 The abort option is safe (revertible, no data loss, restores 8-day-old clean state). The branch will still exist on origin; only the worktree is cleaned.
+### P20a redundancy confirmed (2026-10-13 05:32Z)
+
+The cherry-pick in `jcode-pr8-on-upstream-20261005` is **redundant work**:
+- Cherry-pick target: `42cfcfde4` (test(openrouter): keep the EOF regression tests additive)
+- Same content already on master: `d548f15be test(openrouter): keep the EOF regression tests additive`
+- Also: `4094e519c` (likely the rebased version of `d548f15be`), and `8dfb2b3d6 ci(workflows): add openrouter-stream EOF regression cohort + repo-local lefthook gate`
+
+The cherry-pick of `42cfcfde4` was applied to master via the upstream-0.88-sync chain sometime between 2026-10-05 and now. The worktree is just trying to apply the same change to a stale branch HEAD.
+
+**Recommended action**: `git cherry-pick --abort` is now even safer than before — it's not just restoring clean state, it's also confirming that the cherry-pick is no longer needed (already on master).
+
+The branch `codex/jcode-pr8-on-upstream-20261005` itself is 8 days stale. After abort:
+- Worktree returns to clean state at `3f8dc3960 test(openrouter): cover the zero-chunk empty stream shape`
+- The cherry-pick target commit's content is provably already in master (via `d548f15be`)
+- Net effect: zero information loss
+
+If the operator wants to keep the worktree's other cherry-picks, they can rebase the branch on master. Otherwise, the whole worktree can be removed safely.
