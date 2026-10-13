@@ -213,3 +213,62 @@ Files in stash (7 total):
 4. **Leave in stash** (current state — low risk but accumulating)
 
 If option 1 or 2: the changes are recoverable (the stash keeps a copy). If option 3: the work is lost (but it appears to overlap with PR #50, so not strictly lost).
+---
+
+## `wt-jcode-fix1` (CRITICAL FINDING — 2026-10-13 04:57Z)
+
+This worktree is on `master` (local) with **6 unpushed docs commits + 152 untracked files**. Created 2026-10-11 23:41:43 by the `jcode-test` agent as part of the upstream-sync investigation.
+
+### 6 unpushed docs commits (real, valuable, recoverable)
+
+| SHA | Subject |
+|-----|---------|
+| `3fbc4ac9c` | docs: add UPSTREAM-DELTA.md (142 commits vs 1jehuang/jcode) |
+| `f6acfb1cb` | docs: correct overstated headline counts in UPSTREAM-DELTA.md |
+| `2092723ca` | docs: add validation evidence + worktree-cleanup state |
+| `0569246a9` | docs: add CI-STATUS.md (12 workflows, 30/30 recent runs are label-pr) |
+| `e2f849ae6` | docs: mark 2 Emacs lock files as removed (154 → 152 untracked) |
+| `476ab1407` | docs: add UPSTREAM-SYNC-STATUS.md (sync blocked by 47 conflict paths) |
+
+Files touched: `docs/UPSTREAM-DELTA.md`, `docs/UPSTREAM-SYNC-STATUS.md`, `docs/CI-STATUS.md`, `docs/WORKTREE-CLEANUP-STATE.md`
+
+These are 100% docs (no code changes), authored by `jcode-test <jcode-test@local>`. They have full ledger trailers (`tx-agent: jcode`, `tx-validated: manual`, `tx-task: upstream-sync-2026-10`, etc.).
+
+### 152 untracked files (mostly upstream sync debris)
+
+- 100 directories (mostly empty `crates/*/src/` stubs)
+- 52 files including:
+  - 10 changelog files (`changelog/v0.85.0.json` through `v0.90.0.json`) — real upstream release notes
+  - 3 workflow files (`.github/FUNDING.yml`, `label-pr.yml`, `pr8-review.yml`) — upstream CI configs
+  - Various sparse-checkout artifacts
+
+The untracked files are from a `git merge upstream/master` attempt that was aborted due to 47 conflict paths. The agent's analysis is in the docs commits.
+
+### Decision options for operator
+
+1. **Push the 6 docs commits to origin/master** (or to a topic branch like `docs/upstream-sync-2026-10-12`)
+   - Safe: pure docs, no code
+   - Preserves the analysis
+   - Low risk
+2. **Leave on local master and abandon** (cherry-pick the docs onto a new branch first if you want them)
+3. **Delete the worktree entirely** (the docs commits are recoverable from reflog until reflog expires; 152 untracked files would be lost but the changelog content is in upstream 1jehuang/jcode master)
+
+### Why this matters for P8
+
+`wt-jcode-fix1` is the only worktree with **unpushed commits** (every other worktree is fully pushed). The 6 docs commits represent the agent's primary deliverable. Removing the worktree without preserving the commits would lose the analysis.
+
+Recommended: extract the 6 docs commits to a topic branch first, then remove the worktree.
+
+## Other uncommitted-state worktrees (lower priority)
+
+| Worktree | Branch | Uncommitted | Notes |
+|----------|--------|-------------|-------|
+| `wt-jcode-fix1` | master | 152 | **CRITICAL** (above) |
+| `jcode-poke-context` | codex/poke-context | 2 | probably fmt leftovers |
+| `jcode-pr27-minor-review-fixes` | codex/pr27-minor-review-fixes-20261010 | 3 | probably fmt leftovers |
+| `wt-jcode-audit` | docs/audit-and-branch-inventory-2026-10-11 | 1 | probably fmt leftover |
+| `jcode-pr8-on-upstream-20261005` | codex/jcode-pr8-on-upstream-20261005 | 1 | probably fmt leftover |
+| `jcode-decollide-kcode-r2` | feature/decollide-kcode-r2 | 4 | probably fmt leftovers |
+| `jcode-rebase-v0.90` | revert/pr-33-merge | 1 | probably fmt leftover |
+
+These are likely all `cargo fmt` artifacts from when each worktree was last touched. They are NOT blockers, just clutter. Can be addressed by running `cargo fmt` in each (or by reverting tracked changes and removing the untracked files — both are operator-gated).
