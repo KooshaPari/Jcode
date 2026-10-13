@@ -906,3 +906,39 @@ The fork has not re-synced with upstream since late September 2026. The fork's `
 - No commits made; this is documentation only
 - Upstream already fetched (`upstream/master` is `0d240f1d4`)
 - Operator can re-evaluate fork strategy based on this finding
+
+## P27: Rescue branches are now mostly obsolete (2026-10-13 05:42Z)
+
+Followup to P25: cross-referenced the 3 rescue branches with current fork master.
+
+| Branch | Status in master | Implication |
+|--------|------------------|-------------|
+| `rescue/e45ddd4-` (active-pids) | **NOT in master**, but pre-rename paths | Wrong paths (`kcode-storage/` was reverted in PR #36 to `jcode-storage/`). Master has `d893b43d5 perf(compile): move active_pids tracking into jcode-storage crate` — a different/equivalent fix. |
+| `rescue/ceb860b-` (home-symlink) | **ALREADY in master** via PR #27 | `6bb97aa07 Merge pull request #27` includes this fix. |
+| `rescue/d6f2d20-` (heading-boundary) | Empty commit (no value) | Already documented in P25b. |
+
+### Conclusion
+
+The 3 rescue branches from P25 have minimal value to fork master:
+1. `e45ddd4-`: Targets pre-rename paths, so cherry-pick would conflict. Master has an equivalent fix.
+2. `ceb860b-`: Already merged via PR #27.
+3. `d6f2d20-`: Empty commit.
+
+**Recommended action**: All 3 rescue branches can be deleted. The actual code they preserve is either:
+- Already in master (ceb860b)
+- Already in master via an equivalent commit (e45ddd4)
+- Empty (d6f2d20)
+
+This is consistent with the fork's policy of clean integration: the rescue effort preserved a snapshot of the work, but master has since incorporated the same logic via different paths.
+
+### Why this happened
+
+The rescue happened too late. By the time P25 found these detached-HEAD commits, the fork had already:
+- Renamed and reverted (PR #33 + #36)
+- Already merged equivalent fixes (PR #27, d893b43d5)
+
+The rescue was a defensive move (prevent data loss from garbage collection), but the rescued work itself doesn't add value to current master.
+
+### Re-evaluation
+
+This validates the P26 finding: the fork has been making its own decisions about what to merge. The 3 rescue branches are evidence of in-flight work that got absorbed into the main PR stream in different forms.
