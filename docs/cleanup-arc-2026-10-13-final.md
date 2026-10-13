@@ -112,3 +112,31 @@ Same class of bug as 43a4f72c1, which only added a static guard for the
 interleave path. This applies the equivalent to the /poke context path.
 
 Operator follow-up: PR codex/poke-context against master?
+
+## Update 2026-10-13 22:48Z — P30 CRITICAL Security Finding
+
+Branch now at 29 commits (HEAD 15f786865). This turn's most important
+finding is the cargo audit results:
+
+cargo audit reveals 7 active vulnerabilities in fork dependency tree:
+
+| Vuln ID | Crate | Severity | Fix | Status |
+|---------|-------|----------|-----|--------|
+| RUSTSEC-2026-0258 | h2 0.4.13 | DoS | upstream 268abfa84 | ACTIONABLE |
+| RUSTSEC-2026-0285 | rustls 0.23.37 | TLS boundary | upstream 268abfa84 | ACTIONABLE |
+| RUSTSEC-2026-0338 | quinn-proto 0.11.15 | Panic | upgrade >=0.11.18 | UNAVAILABLE |
+| RUSTSEC-2026-0339 | quinn-proto 0.11.15 | DoS | upgrade >=0.11.17 | UNAVAILABLE |
+| RUSTSEC-2026-0340 | quinn-proto 0.11.15 | Panic | upgrade >=0.11.18 | UNAVAILABLE |
+| RUSTSEC-2026-0341 | quinn-proto 0.11.15 | DoS | upgrade >=0.11.17 | UNAVAILABLE |
+| RUSTSEC-2026-0342 | quinn-proto 0.11.15 | DoS | upgrade >=0.11.17 | UNAVAILABLE |
+
+The 2 actionable vulns (h2+rustls) are fixed by a single upstream commit
+268abfa84, which is a Cargo.lock-only change. Should cherry-pick cleanly.
+
+The 5 quinn-proto vulns are NOT fixed in upstream (also at 0.11.15).
+Track via https://rustsec.org/feed for upstream fix.
+
+This is a P26 sub-decision: even strategy A (stay diverged) requires
+fixing the 2 RUSTSEC vulns. Standalone from the rebase decision.
+
+Full advisory: docs/cleanup-arc-2026-10-13-SECURITY.md
