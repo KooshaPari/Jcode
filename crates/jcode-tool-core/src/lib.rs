@@ -150,7 +150,9 @@ pub mod elicit_channel {
     }
 
     /// Try to send without blocking (returns Err if channel closed or not initialized).
-    pub fn try_send(msg: ElicitMessage) -> Result<(), tokio::sync::mpsc::error::SendError<Box<ElicitMessage>>> {
+    pub fn try_send(
+        msg: ElicitMessage,
+    ) -> Result<(), tokio::sync::mpsc::error::SendError<Box<ElicitMessage>>> {
         let Some(tx) = ELICIT_TX.get() else {
             return Err(tokio::sync::mpsc::error::SendError(Box::new(msg)));
         };
@@ -200,6 +202,8 @@ impl ToolContext {
 }
 
 /// A tool that can be executed by the agent.
+// async_trait generates redundant must_use attributes on boxed Future methods.
+#[allow(clippy::double_must_use)]
 #[async_trait]
 pub trait Tool: Send + Sync {
     /// Tool name (must match what's sent to the API).

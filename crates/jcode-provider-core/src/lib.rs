@@ -14,8 +14,8 @@ pub mod retry_after;
 pub mod selection;
 pub mod transport;
 
-pub use transport::is_transient_transport_error;
 pub use jcode_usage_types::{ModelUsage, compare_model_usage};
+pub use transport::is_transient_transport_error;
 
 pub use anthropic::{
     ANTHROPIC_OAUTH_BETA_HEADERS, ANTHROPIC_OAUTH_BETA_HEADERS_1M, AnthropicContextMode,
@@ -73,6 +73,8 @@ use std::time::Duration;
 pub type EventStream = Pin<Box<dyn Stream<Item = Result<StreamEvent>> + Send>>;
 
 /// Provider trait for LLM backends.
+// async_trait adds must_use to methods returning an already must-use boxed Future.
+#[allow(clippy::double_must_use)]
 #[async_trait]
 pub trait Provider: Send + Sync {
     /// Prepare provider-specific request state before the foreground completion.
