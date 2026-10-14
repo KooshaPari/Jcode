@@ -114,7 +114,6 @@ pub fn active_provider_fork() -> Option<Arc<dyn Provider>> {
 /// Provider-agnostic streaming idle-timeout budgets. See
 /// [`stream_timeout`] for the base budget and the reasoning-effort scaling that
 /// keeps long silent thinks from looking like dead connections (issue #434).
-};
 
 /// Multiplier applied to the base streaming idle timeout for a given reasoning
 /// effort. High efforts can think silently for many minutes before emitting
