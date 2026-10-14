@@ -1,8 +1,5 @@
 name: CI
 
-env:
-  JCODE_CI: "1"
-
 on:
   push:
     branches: [main, master]
@@ -14,6 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  JCODE_CI: "1"
   CARGO_TERM_COLOR: always
   SCCACHE_GHA_ENABLED: "true"
 
@@ -24,14 +22,6 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-        with:
-          ssh-key: ${{ secrets.DEPLOY_KEY }}
-          submodules: recursive
-
-      - name: Configure SSH for cargo git dependencies
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -162,14 +152,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ssh-key: ${{ secrets.DEPLOY_KEY }}
-          submodules: recursive
-
-      - name: Configure SSH for cargo git dependencies
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -402,14 +384,6 @@ jobs:
     timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
-        with:
-          ssh-key: ${{ secrets.DEPLOY_KEY }}
-          submodules: recursive
-
-      - name: Configure SSH for cargo git dependencies
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
 
       - uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -655,14 +629,6 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-        with:
-          ssh-key: ${{ secrets.DEPLOY_KEY }}
-          submodules: recursive
-
-      - name: Configure SSH for cargo git dependencies
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
 
       - uses: dtolnay/rust-toolchain@stable
         with:
