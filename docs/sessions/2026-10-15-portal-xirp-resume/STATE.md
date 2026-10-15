@@ -90,18 +90,24 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 - **B5 — Unauthorized actions deliberately NOT taken.** No support message sent.
   No allowed-client-pattern widening. No credential minting/replacement. No
   destructive catalog preview applied. No transcript uploaded. No PR merged.
-- **B6 (NEW) — Portal OAuth client allow-listing.** The authorization server
-  supports PKCE (`S256`) and public clients (`token_endpoint_auth_method:
-  none`), so the protocol is capable. The obstacle is identity: there is **no**
-  `registration_endpoint`, so Dynamic Client Registration is unavailable, and CIMD
-  requires a reachable HTTPS client-metadata document whose URL matches an
-  allow-listed pattern. The current patterns are `https://claude.ai/*`,
-  `https://chatgpt.com/oauth/codex/*/client.json`,
-  `https://backstage.spotify.com/chirp.json`,
-  `https://xirp.spotify.com/oauth/client-metadata.json`. None is ours.
-  Unblocking needs either a pre-registered static client id or operator
-  authorization to widen the pattern list. Both are outside current authority.
-  Details and the verified reference document shape are in 1.9.
+- **B6 — Portal OAuth client allow-listing. NOW PROVEN, not inferred (section 15).**
+  The authorization server supports PKCE (`S256`) and public clients
+  (`token_endpoint_auth_method: none`), so the protocol is capable. The obstacle is
+  identity: there is **no** `registration_endpoint`, so Dynamic Client Registration
+  is unavailable, and CIMD requires a reachable HTTPS client-metadata document whose
+  URL matches an allow-listed pattern.
+
+  Proven by direct experiment. `/api/auth/v1/authorize` accepts the allow-listed
+  `https://xirp.spotify.com/oauth/client-metadata.json` with a **302** to a live
+  consent page, and rejects `kooshapari.com`, `jcode.sh` and `example.invalid`
+  with **400 `InputError` "Invalid client_id"**. The first two resolve over HTTPS,
+  so DNS and URL shape are ruled out. Allow-listing is the gate.
+
+  Because CIMD requires no pre-registration, the unblock is narrow: authorization
+  to add exactly one allow-listed pattern for our own domain. A CIMD client does
+  **not** need to pre-register; it only needs a URL that matches an allow-listed
+  pattern. Must not be "solved" by reusing Xirp's URL, which would authenticate as
+  Xirp and corrupt Portal's audit trail.
 - **B7 — `gh pr edit` requires inbox approval.** The corrected PR 67 description
   is staged at `/tmp/pr67-body-2.md`; the command was deferred by the pre_tool
   hook and has not been applied. The live PR body still contains two now-false
@@ -314,3 +320,52 @@ needs is present and consistent —
 binding against that exact `resource` string is therefore well-defined, which
 is what `mcp-remote --resource` should be pointed at. The remaining gap is still
 client identity (B6), not discovery.
+
+## 15. CIMD allow-list enforcement — proven with controls (moved from RESUME.md)
+
+### 1.10b CIMD allow-list enforcement — PROVEN, with controls (B6 confirmed)
+
+This is the decisive experiment for XJ-03 / blocker B6. Read-only `GET` requests
+only; **no credentials were sent, no consent was granted, and nothing was
+authorized.** Only `client_id`, `response_type`, `redirect_uri`, `scope` and a
+dummy PKCE challenge were supplied.
+
+| `client_id` (CIMD URL) | Host resolvable | Result |
+|---|---|---|
+| `https://xirp.spotify.com/oauth/client-metadata.json` (**allow-listed**) | yes | **302** -> `https://phenotype.spotifyportal.com/oauth2/authorize/2e80fd66-...` |
+| `https://kooshapari.com/oauth/client-metadata.json` | yes (200) | **400** `InputError` |
+| `https://jcode.sh/oauth/client-metadata.json` | yes | **400** `InputError` |
+| `https://example.invalid/oauth/client-metadata.json` | no (DNS fail) | **400** `InputError` |
+| *(no `client_id` at all)* | n/a | **400** |
+
+Exact rejection body:
+```json
+{"error":{"name":"InputError",
+  "message":"Invalid client_id 'https://kooshapari.com/oauth/client-metadata.json'"},
+ "request":{"method":"GET","url":"/v1/authorize?client_id=..."},
+ "response":{"statusCode":400}}
+```
+
+Why the controls matter: `kooshapari.com` and `jcode.sh` both resolve over
+HTTPS, so their 400s cannot be blamed on DNS or on the shape of the URL. Only the
+allow-listed Xirp URL is accepted. The gate is therefore **client
+allow-listing specifically**, exactly as B6 predicted, and not protocol
+capability, not PKCE support, and not network reachability.
+
+The consent page itself is reachable and returns `200 text/html`, so the flow
+proceeds normally once a permitted client is presented.
+
+What this means operationally:
+- **B6 is confirmed real and is the only remaining blocker for authenticated
+  Portal MCP.** Everything else in the chain is verified working.
+- A CIMD client does **not** need to pre-register: the authorization server will
+  accept any URL that matches an allow-listed pattern. So the fix is narrow —
+  obtain authorization to add exactly one pattern for our own domain.
+- Our CIMD document must be served over **HTTPS from a stable, publicly
+  reachable URL**, and must declare `redirect_uris` including a loopback
+  callback, `grant_types` including `authorization_code` and `refresh_token`,
+  `token_endpoint_auth_method: "none"`, and scope `openid offline_access` — the
+  same shape as the verified Xirp document.
+
+Do not "solve" this by reusing Xirp's CIMD URL. That authenticates as Xirp and
+would attribute Jcode's actions to it in Portal's audit trail.

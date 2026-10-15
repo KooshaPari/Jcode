@@ -398,6 +398,15 @@ Portal also publishes genuine RFC 9728 protected-resource metadata at
 `resource` that matches the MCP path, so the whole discovery chain is present and
 consistent. Details in `STATE.md` section 14.
 
+**Allow-list enforcement is now proven, not assumed** (`STATE.md` section 15).
+Read-only `GET`s to `/api/auth/v1/authorize` with a dummy PKCE challenge and no
+credentials: the allow-listed Xirp CIMD URL returns **302** to a real consent
+page, while `kooshapari.com`, `jcode.sh` and `example.invalid` all return
+**400 `InputError` "Invalid client_id"**. The first two resolve fine over HTTPS,
+so the rejection cannot be DNS or URL shape. **B6 is confirmed as the only
+remaining blocker for authenticated Portal MCP** — a CIMD client needs no
+pre-registration, just one allow-listed pattern for our own domain.
+
 ### 1.10 Bridge selection for XJ-03 — DECIDED, not yet deployed
 
 Read-only research (no installs, no config writes). Full report preserved at
