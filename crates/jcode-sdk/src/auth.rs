@@ -207,10 +207,14 @@ fn failed(message: &'static str) -> Error {
 fn cancelled() -> Error {
     failed("Login cancelled. Already issued credentials are not revoked.")
 }
+/// Convert a poisoned mutex into a transport error instead of panicking.
+fn locked<T>(guard: std::sync::LockResult<T>) -> Result<T> {
+    guard.map_err(|_| failed("internal state lock poisoned"))
+}
 
 impl AuthFlow {
     pub fn start(&self) -> Result<AuthPrompt> {
-        let mut state = self.0.state.lock().unwrap();
+        let mut state = locked(self.0.state.lock())?;
         if !matches!(*state, State::Created) {
             return Err(invalid("Login was already started"));
         }
@@ -273,7 +277,7 @@ impl AuthFlow {
                 "Login input must be a non-empty single line of at most 16 KiB",
             ));
         }
-        let mut state = self.0.state.lock().unwrap();
+        let mut state = locked(self.0.state.lock())?;
         let State::Pending(kind) = *state else {
             return Err(invalid("Login is not awaiting completion"));
         };
@@ -315,7 +319,7 @@ impl AuthFlow {
     pub fn cancel(&self) -> Result<()> {
         self.0.cancelled.store(true, Ordering::Release);
         self.0.kill_child();
-        let _state = self.0.state.lock().unwrap();
+        let _state = locked(self.0.state.lock())?;
         let (value, success) = self.0.execute(Operation::Cancel, None)?;
         if !success || value["status"] != "cancelled" {
             return Err(failed("Could not clean up pending login"));
@@ -383,7 +387,9 @@ impl FlowInner {
     }
 
     fn kill_child(&self) {
-        if let Some(child) = self.child.lock().unwrap().as_mut() {
+        // Recovery from a poisoned mutex is correct here: cleanup should proceed
+        // even if another thread panicked while holding the lock.
+        if let Some(child) = self.child.lock().unwrap_or_else(|e| e.into_inner()).as_mut() {
             let _ = child.kill();
             let _ = child.wait();
         }
@@ -404,9 +410,15 @@ impl FlowInner {
                 "Could not start the local Jcode login executable",
             )
         })?;
-        let mut stdin = child.stdin.take().expect("piped stdin");
-        let stdout = child.stdout.take().expect("piped stdout");
-        *self.child.lock().unwrap() = Some(child);
+        let mut stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| failed("piped stdin"))?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| failed("piped stdout"))?;
+        *locked(self.child.lock())? = Some(child);
         // Writing even a bounded payload can block on a full pipe. Keep it off the
         // cancellation thread, and never format the payload or I/O error.
         let payload = input.map(|s| s.as_bytes().to_vec());
@@ -456,12 +468,9 @@ impl FlowInner {
                     std::thread::sleep(Duration::from_millis(10));
                 }
                 if status.is_none() {
-                    status = self
-                        .child
-                        .lock()
-                        .unwrap()
+                    status = locked(self.child.lock())?
                         .as_mut()
-                        .unwrap()
+                        .ok_or_else(|| failed("child process missing"))?
                         .try_wait()
                         .map_err(|_| failed("Could not wait for login process"))?;
                 }
@@ -478,7 +487,9 @@ impl FlowInner {
         if result.is_err() {
             self.kill_child();
         }
-        self.child.lock().unwrap().take();
+        // Best-effort cleanup; if the lock is poisoned, the child is already
+        // stuck and the calling thread will surface the real error.
+        let _ = self.child.lock().map(|mut c| c.take());
         result
     }
 }

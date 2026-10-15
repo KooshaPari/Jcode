@@ -73,17 +73,19 @@ impl App {
             ));
             return false;
         }
-        let task = self.remote_login_onboarding.task.as_mut().unwrap();
-        let reply = match task.reply.try_recv() {
-            Ok(reply) => reply,
-            Err(tokio::sync::oneshot::error::TryRecvError::Empty) => return false,
-            Err(_) => Err("Remote status check stopped"),
-        };
-        self.remote_login_onboarding.dismiss();
-        if let Ok(Reply::Status { providers }) = reply
-            && remote_has_no_logins(&providers)
-        {
-            return self.open_ssh_import_offer();
+        if let Some(task) = self.remote_login_onboarding.task.as_mut() {
+            let reply = match task.reply.try_recv() {
+                Ok(reply) => reply,
+                Err(tokio::sync::oneshot::error::TryRecvError::Empty) => return false,
+                Err(_) => Err("Remote status check stopped"),
+            };
+            self.remote_login_onboarding.dismiss();
+            if let Ok(Reply::Status { providers }) = reply
+                && remote_has_no_logins(&providers)
+            {
+                return self.open_ssh_import_offer();
+            }
+            return false;
         }
         false
     }

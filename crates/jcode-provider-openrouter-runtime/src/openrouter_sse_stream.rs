@@ -29,7 +29,15 @@ fn convert_to_responses_format(mut request: Value) -> Value {
         // Pass messages through as-is: the Responses API accepts
         // `{role, content}` format directly for input items.
         request["input"] = messages;
-        request.as_object_mut().unwrap().remove("messages");
+        // The `if let Some(messages)` check above proves `request` is a JSON
+        // object; if a non-object value ever reaches this path the caller's
+        // contract is violated.
+        match request.as_object_mut() {
+            Some(obj) => {
+                obj.remove("messages");
+            }
+            None => unreachable!("convert_to_responses_format requires a JSON object request"),
+        }
     }
 
     // Convert tools from chat-completions format to Responses API format

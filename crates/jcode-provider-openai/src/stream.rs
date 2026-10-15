@@ -328,7 +328,12 @@ fn stream_tool_calls(
             .min_by_key(|(_, state)| (!state.started, state.order))
             .map(|(id, _)| id.clone());
         let Some(item_id) = next else { break };
-        let state = calls.get_mut(&item_id).expect("selected tool call");
+        let state = match calls.get_mut(&item_id) {
+            Some(s) => s,
+            // We just selected this id from `calls`; the map cannot have
+            // changed between the min_by_key and the get_mut.
+            None => unreachable!("selected tool call id missing from map"),
+        };
         if !state.started {
             let id = state
                 .call_id
@@ -337,7 +342,10 @@ fn stream_tool_calls(
                 .unwrap_or(&item_id);
             pending.push_back(StreamEvent::ToolUseStart {
                 id: sanitize_tool_id(id),
-                name: state.name.clone().expect("named tool call"),
+                name: state
+                    .name
+                    .clone()
+                    .unwrap_or_else(|| unreachable!("named tool call")),
             });
             state.started = true;
         }

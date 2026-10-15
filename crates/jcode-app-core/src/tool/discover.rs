@@ -670,9 +670,17 @@ impl Tool for DiscoverToolsTool {
         };
 
         if action == DiscoveryAction::Details {
-            let tool_name = tool_selection
-                .as_deref()
-                .expect("details action was parsed with a tool");
+            let tool_name = match tool_selection.as_deref() {
+                // DiscoveryAction::Details is only constructed when a tool name
+                // is present; if the parser contract is ever broken we surface
+                // an internal error rather than panicking in production.
+                Some(name) => name,
+                None => {
+                    return Err(anyhow::anyhow!(
+                        "missing tool name for details action"
+                    ));
+                }
+            };
             let details = validate_details(&params)?;
             let fetched = match fetch_details(&discovery_request, tool_name, &details).await {
                 Ok(result) => result,

@@ -123,6 +123,11 @@ fn priced_usage(
 ) -> Totals {
     let cached = cached.unwrap_or(0);
     let complete = input.is_some() && output.is_some() && cached <= input.unwrap_or(0);
+    // Capture input/output without unwraps. Each count keeps whatever is
+    // known even when the other is missing; `complete` gates only the cost
+    // computation below, which requires both.
+    let input_tokens = input.unwrap_or(0);
+    let output_tokens = output.unwrap_or(0);
     let cost =
         jcode_provider_core::pricing::openai_api_pricing_with_tier(model, tier).and_then(|price| {
             if !complete {
@@ -143,22 +148,22 @@ fn priced_usage(
             let has_context_surcharge = base_model == "gpt-6-astra"
                 || (base_model == "gpt-5.5"
                     && !tier.is_some_and(|tier| tier.trim().eq_ignore_ascii_case("priority")));
-            let long_context = has_context_surcharge && input.unwrap() > 272_000;
+            let long_context = has_context_surcharge && input_tokens > 272_000;
             let input_multiplier = if long_context { 2.0 } else { 1.0 };
             let output_multiplier = if long_context { 1.5 } else { 1.0 };
             // OpenAI input_tokens INCLUDES cached input, output includes reasoning.
             Some(
-                (((input.unwrap() - cached) as f64 * input_price as f64
+                (((input_tokens - cached) as f64 * input_price as f64
                     + cached as f64 * cache_price as f64)
                     * input_multiplier
-                    + output.unwrap() as f64 * output_price as f64 * output_multiplier)
+                    + output_tokens as f64 * output_price as f64 * output_multiplier)
                     / 1_000_000_000_000.0,
             )
         });
     Totals {
         requests: 1,
-        input: input.unwrap_or(0),
-        output: output.unwrap_or(0),
+        input: input_tokens,
+        output: output_tokens,
         cached,
         known_usd: cost.unwrap_or(0.0),
         unpriced_requests: u64::from(cost.is_none()),

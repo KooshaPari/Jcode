@@ -207,7 +207,11 @@ fn live_records(dir: &Path, exclude: Option<&Path>) -> io::Result<Vec<(String, R
     };
     if !live.is_empty()
         && stale.iter().any(|path| {
-            !snapshot.contains_key(path.file_name().unwrap().to_string_lossy().as_ref())
+            // Live lease paths always have a file name component; missing
+            // name is a programmer error caught by the type system.
+            path.file_name().is_some_and(|name| {
+                !snapshot.contains_key(name.to_string_lossy().as_ref())
+            })
         })
     {
         return Err(io::Error::other(
@@ -296,7 +300,11 @@ impl Lease {
         let peak = (|| {
             live_records(&self.dir, None)?;
             let mut snapshot = read_snapshot(&self.dir)?;
-            let key = self.path.file_name().unwrap().to_string_lossy();
+            let key = self
+                .path
+                .file_name()
+                .map(|n| n.to_string_lossy())
+                .unwrap_or_else(|| unreachable!("lease path always has a file name"));
             let value = snapshot
                 .remove(key.as_ref())
                 .ok_or_else(|| io::Error::other("concurrency record missing at finish"))?;

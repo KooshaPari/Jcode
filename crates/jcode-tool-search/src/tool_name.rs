@@ -93,13 +93,14 @@ fn split_name_tokens(s: &str) -> Vec<String> {
             if upper_run.len() > 1 {
                 // End of an acronym run (e.g. "HTTP"). The last uppercase char
                 // starts the new word (e.g. "Response" after "HTTP").
-                let last = upper_run.pop().unwrap();
+                let Some(last) = upper_run.pop() else { unreachable!() };
                 tokens.push(upper_run.to_lowercase());
                 upper_run.clear();
                 word.push(last);
             } else if upper_run.len() == 1 {
+                let Some(single) = upper_run.pop() else { unreachable!() };
                 // Single uppercase char starts the current word.
-                word.push(upper_run.pop().unwrap());
+                word.push(single);
             }
             word.push(ch);
         }

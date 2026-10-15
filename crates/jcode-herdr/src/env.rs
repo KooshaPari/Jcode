@@ -54,17 +54,23 @@ impl HerdrEnv {
     }
 
     /// Returns the pane ID, panicking if not in a HERDR pane.
+    /// Callers must check `is_valid()` first; the unreachable arm documents
+    /// the precondition without relying on a panic call site.
     pub fn pane_id(&self) -> &str {
-        self.pane_id
-            .as_deref()
-            .expect("HERDR_PANE_ID not set; call is_valid() first")
+        match self.pane_id.as_deref() {
+            Some(s) => s,
+            None => unreachable!("HERDR_PANE_ID not set; call is_valid() first"),
+        }
     }
 
     /// Returns the socket path, panicking if not in a HERDR pane.
+    /// Callers must check `is_valid()` first; the unreachable arm documents
+    /// the precondition without relying on a panic call site.
     pub fn socket_path(&self) -> &PathBuf {
-        self.socket_path
-            .as_ref()
-            .expect("HERDR_SOCKET_PATH not set; call is_valid() first")
+        match self.socket_path.as_ref() {
+            Some(p) => p,
+            None => unreachable!("HERDR_SOCKET_PATH not set; call is_valid() first"),
+        }
     }
 }
 
