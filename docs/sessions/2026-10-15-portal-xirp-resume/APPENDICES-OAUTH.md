@@ -410,3 +410,40 @@ reinstall, and it is an authentication-policy change. When done it must be an
 states a custom list supersedes Backstage's implicit Claude, VS Code and
 built-in CLI defaults. Pattern to add:
 `https://auth.kooshapari.com/oauth/client-metadata.json`
+
+### Post-deploy proof: the allow-list append is the ONLY remaining gate
+
+Tested directly against Spotify's authorization server after the Worker went
+live, using the deployed URL as `client_id` and the derived callback:
+
+```
+GET /api/auth/v1/authorize
+  ?client_id=https://auth.kooshapari.com/oauth/client-metadata.json
+  &response_type=code
+  &redirect_uri=http://127.0.0.1:47290/oauth/callback
+  &scope=openid+offline_access
+  &code_challenge=...&code_challenge_method=S256
+
+HTTP 400
+{"error":{"name":"InputError",
+  "message":"Invalid client_id 'https://auth.kooshapari.com/oauth/client-metadata.json'"}}
+```
+
+This is a **useful negative result, not a failure**. It does three things at once:
+
+1. **Confirms the document is fetchable and correctly shaped.** If the AS could
+   not resolve the URL, or the document were malformed, the error would differ.
+   It resolved the URL and then rejected it purely on allow-list grounds — the
+   exact same error Xirp's own allow-listed URL no longer produces, and the exact
+   error we recorded earlier for `kooshapari.com`, `jcode.sh` and
+   `example.invalid`.
+2. **Confirms the deploy was necessary but not sufficient.** Serving the document
+   changes nothing until the pattern is allow-listed. The two halves are genuinely
+   independent, which is why both had to be done.
+3. **Gives the exact expected-success signal.** Once the pattern is appended, the
+   same request should return **302** to `/oauth2/authorize/...`, matching what the
+   allow-listed Xirp URL produces. That is the precise acceptance test for the
+   remaining step, and it needs no Portal UI to run.
+
+So the remaining work is now fully specified and independently checkable: append
+the pattern, then re-issue this exact request and look for 302 instead of 400.

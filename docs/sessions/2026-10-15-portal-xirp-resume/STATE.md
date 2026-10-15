@@ -204,6 +204,13 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
   custom list supersedes Backstage's implicit Claude, VS Code and built-in CLI
   defaults.
 
+  **Acceptance test is now defined and needs no UI.** With the document live,
+  `GET /api/auth/v1/authorize?client_id=https://auth.kooshapari.com/oauth/client-metadata.json&...`
+  returns **400 `InputError: Invalid client_id`** — it resolves the URL, rejects
+  purely on allow-list grounds, identical to every other non-allow-listed URL we
+  tested. After the append the same request must return **302** to
+  `/oauth2/authorize/...`. That 400 -> 302 flip is the precise success signal.
+
   Not done yet: the Portal session expired during the Xirp reinstall, and the
   append is an authentication-policy change that admits a new client to
   authenticate against this Portal.
