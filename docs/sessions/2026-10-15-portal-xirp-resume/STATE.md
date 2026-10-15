@@ -270,7 +270,79 @@ Checked at the PR's real base `b69b4f4bf` rather than my commit parent:
   README's "JSON-compatible values" wording actually claims. Both readings are
   recorded so the next session does not "fix" a non-issue.
 
-## 13. Evidence file map
+## 13. mcp-remote verified from the published package, not just its README
+
+The earlier bridge assessment rested on README claims. Verified against the
+actual shipped artifact.
+
+Package facts (npm registry, read-only):
+- `mcp-remote` latest = **`0.15.1`**, 123 published versions, `dist-tags.latest`
+  confirmed. `time.modified` = `2026-10-14T22:36:58Z`, `time.created`
+  `2025-03-17`. License MIT, repo `https://github.com/punkpeye/mcp-remote`.
+  So "released today" in the research report was accurate.
+- Downloaded tarball: 405,324 bytes. Bundled code lives in
+  `dist/chunk-KJCT2FXL.js`.
+
+CIMD is real, not marketing. `--client-metadata-url` appears in shipped code,
+not only in the README, and SEP-991 is referenced in both. The exact parse:
+```js
+const clientMetadataUrlIndex = args.indexOf("--client-metadata-url");
+if (clientMetadataUrlIndex !== -1 && clientMetadataUrlIndex < args.length - 1) {
+  const value = args[clientMetadataUrlIndex + 1].trim();
+  if (isClientMetadataUrl(value)) { clientMetadataUrl = value; }
+  else { log("Warning: Ignoring invalid client metadata URL: ... must be an HTTPS URL with a path."); }
+}
+```
+with the validator:
+```js
+function isClientMetadataUrl(value) {
+  const url = new URL(value);
+  return url.protocol === "https:" && url.pathname !== "/";
+}
+```
+So the CIMD URL must be `https:` **and** have a non-root path. A bare domain
+such as `https://kooshapari.com/` would be silently ignored.
+
+Flags confirmed present: `--transport` (accepts `http-first`, `http-only`,
+`sse-only`), `--resource`, `--debug`, `--host`. `--port` and `--callback-port`
+do **not** exist under those names.
+
+### The callback port is derived, and that is the practical trap
+There is no supported way to pin the loopback port. The port comes from a hash of
+the connection parameters:
+```js
+function getServerUrlHash(serverUrl, authorizeResource, headers, authorizeParams, clientMetadataUrl, tokenEndpoint) {
+  const parts = [serverUrl];
+  if (authorizeResource) parts.push(authorizeResource);
+  ... if (clientMetadataUrl) parts.push(clientMetadataUrl);
+  return crypto.createHash("md5").update(parts.join("|")).digest("hex");
+}
+function calculateDefaultPort(serverUrlHash) {
+  return 3335 + parseInt(serverUrlHash.substring(0, 4), 16) % 45816;
+}
+```
+The hash therefore **includes the CIMD URL**. Reproduced in Python:
+- `https://kooshapari.com/oauth/client-metadata.json` -> port **18586**
+- `https://jcode.sh/oauth/client-metadata.json` -> port **35683**
+
+Consequence: `redirect_uris` in our CIMD document cannot be written until the
+CIMD URL is chosen, because choosing the URL changes the port. It must be
+computed, not guessed. A fill-in template is committed at
+`docs/sessions/2026-10-15-portal-xirp-resume/portal-cimd.client-metadata.template.json`
+with the port left as a placeholder and the derivation documented inline.
+
+### Redirect-URI shape mismatch worth flagging to the vendor
+mcp-remote constructs `http://127.0.0.1:<port>/oauth/callback`. The one CIMD
+document that is allow-listed today, Xirp's, declares
+`["http://127.0.0.1/callback"]` — default port, **different path**. So either
+Xirp does not use mcp-remote, or the authorization server does not strictly
+compare `redirect_uri` against the registered list, or it tolerates the
+difference. Unknown which. If the server does compare strictly, an
+exact-match allow-list would need the derived port registered, and
+`http://127.0.0.1/callback` would not match. Worth asking the vendor alongside the
+harness question, because it changes what we must put in our document.
+
+## 14. Evidence file map
 
 Committed copies live in `evidence/` next to this file. Ephemeral working copies
 remain under /tmp and are lost on reboot.
@@ -288,7 +360,7 @@ remain under /tmp and are lost on reboot.
 | `/tmp/xirp-asar-extract/` | extracted Xirp app.asar (461 .js files) |
 | `/tmp/jcode-pr67-wt/` | isolated worktree for PR 67 |
 
-## 14. OAuth discovery detail (moved from RESUME.md to stay under 500 lines)
+## 15. OAuth discovery detail (moved from RESUME.md to stay under 500 lines)
 
 ### 1.9b RFC 9728 protected-resource metadata — verified present
 
@@ -321,7 +393,7 @@ binding against that exact `resource` string is therefore well-defined, which
 is what `mcp-remote --resource` should be pointed at. The remaining gap is still
 client identity (B6), not discovery.
 
-## 15. CIMD allow-list enforcement — proven with controls (moved from RESUME.md)
+## 16. CIMD allow-list enforcement — proven with controls (moved from RESUME.md)
 
 ### 1.10b CIMD allow-list enforcement — PROVEN, with controls (B6 confirmed)
 
