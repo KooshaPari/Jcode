@@ -287,29 +287,28 @@ support message has been sent from this work.
 > Backstage allows HTTP loopback redirects on localhost, 127.0.0.1, and [::1],
 > using any port and path" — which answers it, so that question is dropped.)*
 
-> ### Third, smallest question: a bug we hit while testing
-> While verifying that a locally created session is visible to a Portal
-> workspace, we found what looks like a bug in `squab`, reproducible three ways
-> against `xirp 0.49.0` with `@chirp/squab 0.11.11`:
+> ### Third question: WITHDRAWN — it was our error, not your bug
+> An earlier draft of this note reported that `xirp session list` returns
+> `No sessions found` for a session that `xirp session get` reads fine, and
+> offered it as a possible defect on your side. **That report was wrong and is
+> withdrawn.** On re-testing, `xirp session list`, `--status running` and `--json`
+> all work correctly and enumerate a running session.
 >
-> ```
-> $ xirp session list                 -> No sessions found.
-> $ xirp session list --status running -> No sessions found.
-> $ xirp session list --json           -> []
-> $ xirp session get <id>              -> Status running, Lifecycle active
-> $ xirp session goal <id>             -> returns the goal text correctly
-> ```
+> What actually happened: `xirp session new --goal "<text>"` needs the current
+> directory to be a **registered Xirp project** so it can create a worktree. Run
+> from an unregistered path it fails with
+> `Failed to create worktree: Project is not a git repository`, exits 1, and
+> prints no JSON — so we believed a session had been created when it had not, and
+> then read the empty list as an enumeration fault.
 >
-> The session demonstrably exists and is running, yet enumeration returns empty
-> for every invocation, including an explicit `--status running` filter and the
-> JSON form. `session get` and `session goal` both read it fine, so the session
-> store is not the problem.
+> After registering the path, `session new` succeeds, `session get` shows
+> `Worktree: <path>`, and `session list` lists it. The behaviour is correct. No
+> bug to report, and we would rather withdraw a claim than have you chase it.
 >
-> g. Is this a known defect? It matters to us for two reasons: we rely on
->    `squab --orchestrator-list` to see running orchestrators, and any
->    Portal-side session polling would hit the same enumeration path. If a
->    Portal workspace ever reports "no sessions" while sessions are running
->    locally, this would explain it.
+> If a clearer failure mode would help — for instance distinguishing "path is not
+> a registered project" from "path is not a git repository", since the current
+> message says only the latter — that would be a welcome usability note, but it
+> is a suggestion rather than a defect.
 
 ## Constraints
 GitHub Actions spend is permanently zero. Use local validation or free included

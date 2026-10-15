@@ -280,17 +280,40 @@ observing it. Either Portal expects sessions it launched itself, or it polls a
 different scope. Not diagnosed further; the test session was deleted afterwards
 (`Session deleted`, and `get` then returns `Session not found`).
 
-**A second, independent Xirp defect:** `xirp session list` returns
-`No sessions found`, and `--json` returns `[]`, for a session that `get` and
-`session goal` both read successfully. Reproduced three ways:
-- `xirp session list` -> `No sessions found.`
-- `xirp session list --status running` -> `No sessions found.`
-- `xirp session list --json` -> `[]`
-- `xirp session goal <id>` -> returns the goal text correctly
+**CORRECTION — there is no Xirp enumeration defect, and the vendor question is
+withdrawn.** This section previously claimed that `xirp session list` returns
+`No sessions found` for a running session, and offered it to Spotify as a
+possible bug in `@chirp/squab`. **That was wrong.** It was my error, and
+retracting it matters more than the original claim.
 
-So enumeration is broken independently of Portal. That matters here because
-`squab --orchestrator-list` and any Portal-side polling path both depend on
-enumeration. Worth reporting alongside the vendor question.
+The real explanation: `xirp session new --goal "<text>"` requires the current
+directory to be a **registered Xirp project** so it can create a worktree. Run
+from an unregistered path it fails with
+`Failed to create worktree: Project is not a git repository`, **exits 1, and
+prints no JSON at all**. My test captured that empty output, treated it as a
+session id, and then read the resulting empty list as an enumeration fault. The
+session was never created.
+
+Verified the correction:
+
+1. `xirp project list` shows three registered projects — `kooshapari`
+   (`/Users/kooshapari`), `repos`
+   (`/Users/kooshapari/CodeProjects/Phenotype/repos`), and `herdr`
+   (`/Users/kooshapari/xirp/repositories/github.com/KooshaPari/herdr.git`).
+2. The one session that enumerated correctly carries
+   `Worktree: /Users/kooshapari/CodeProjects/Phenotype/repos` — a **registered**
+   project path that is itself *not* a git repo. So the error message
+   "Project is not a git repository" is misleading in both directions: it fires
+   for unregistered paths, and registration is what actually matters.
+3. Re-running `session new --goal` from `/tmp` and from a real git checkout fails
+   identically, confirming registration is the gate rather than git-ness.
+4. `session list`, `--status running` and `--json` all enumerate a correctly-created
+   running session with no trouble.
+
+Lesson worth keeping: **an empty `session list` is not evidence of a bug when
+`session new` may have silently failed.** Check the creation command's exit code
+before concluding anything about the reader. The draft vendor question (g) is
+withdrawn so nobody at Spotify spends time chasing it.
 
 ### The New Session button is a no-op in the browser
 Clicking **New Session** in the workspace header registers as clicked but opens

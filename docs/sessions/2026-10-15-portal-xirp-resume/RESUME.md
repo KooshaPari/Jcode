@@ -174,11 +174,15 @@ Both surfaces had never been inspected. Neither works end to end. Detail in
   read **`No local sessions yet`** while that session existed and was running.
   The workspace header's **New Session** button is a no-op in the browser despite
   the Xirp app running with a live daemon.
-- **A separate Xirp defect found while testing this**, vendor-side and now
-  question (g) in the drafted vendor ask: `xirp session list` returns
-  `No sessions found`, and `--json` returns `[]`, for a session that `session get`
-  and `session goal` both read successfully. Enumeration is broken independently
-  of Portal, and any Portal-side polling would hit the same code path.
+- **CORRECTION: there is no Xirp enumeration defect.** An earlier version of this
+  record claimed `xirp session list` returns `[]` for a running session. That was
+  my error. `xirp session new --goal` requires the current directory to be a
+  *registered* Xirp project; run from an unregistered path it fails with
+  `Failed to create worktree: Project is not a git repository`, exits 1, and
+  prints no JSON. So the session was never created, and the empty list was
+  correct. Verified: after registering the path, `session new` succeeds and
+  `session list`, `--status running` and `--json` all enumerate it correctly. The
+  corresponding vendor question has been withdrawn.
 
 The disposable test session was deleted and verified gone. No worktree or branch
 was created, and the checkout's pre-existing untracked files are untouched.
