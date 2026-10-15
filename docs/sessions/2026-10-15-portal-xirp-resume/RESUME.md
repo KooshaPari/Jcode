@@ -120,6 +120,38 @@ Most likely the prior figure predated several repos, or applied a fork/archive
 exclusion this run did not. Do not assert which without checking Portal's stored
 list. Archived repos are reference-only per the Wiki Schema rev 2 requirement.
 
+### 1.5 SOLVED with authenticated Portal access (detail in PORTAL-FINDINGS.md)
+
+Three long-open questions are now answered against a **signed-in** Portal
+session, cross-checked row-by-row against live GitHub state:
+
+1. **The 11 unsynced resources are private repos.** The GitHub App grant does
+   not cover private repositories, so they get no sync timestamp. This matched
+   **41 of 42 rows**. Archived state is *irrelevant* — `herdr-jcode`,
+   `herdr-helioslite`, `herdr-forgecode` and `PhenoInfra` are all archived and
+   all have fresh timestamps. The lone exception is `PhenoRegistry`, whose
+   timestamp is **frozen at `1d`** while its live `pushed_at` is
+   `2026-10-15T03:36:03Z` — direct proof the App can no longer read it.
+2. **Everything shares one root cause: private-repo access.** The static catalog
+   lives inside private PhenoRegistry *and* the App cannot read that repo. One
+   fix — granting the App private-repo access — addresses the pinned catalog URL
+   and the 11 unsynced rows together.
+3. **Coverage is 42 attached / 36 ingested = 85.7%, with 16 pending wiki
+   suggestions**, not the "6 sources / 5 suggestions" previously recorded. The
+   Oct 14 force sync **finished without producing anything**:
+   `Catalog Entities` reads `No catalog entities yet`. No suggestion was
+   accepted; bulk `Accept all (16)` was deliberately not used, and at least one
+   suggestion contains a claim contradicted by the Sources view.
+
+Full row-level tables, the 11 affected repos, the 16 suggestion titles, and the
+specific disproved claim are in `PORTAL-FINDINGS.md`.
+
+Stale record found: `https://github.com/KooshaPari/parpoura-experiment-0` is
+**still attached as a Portal resource** despite that repo being deleted (404 even
+when authenticated as its owner). Separate object from the catalog descriptor I
+removed in `2b13afb91`, and not removed by me since resource deletion is
+destructive and unauthorized.
+
 ### 1.6 ROOT CAUSE of the 42-vs-46 discrepancy — SOLVED
 
 The gap is **not** a counting-rule difference. It is three distinct things.

@@ -321,58 +321,50 @@ exact-match allow-list would need the derived port registered, and
 `http://127.0.0.1/callback` would not match. Worth asking the vendor alongside the
 harness question, because it changes what we must put in our document.
 
-## 17. Portal sign-in reached a Spotify account login, not Portal (2026-10-15)
+## 17. Portal sign-in: attempted, verified NOT completed (2026-10-15)
 
-PR 619's non-catalog validation (bench.yml `bash -n`, the `criterion_bench`
-target, the placeholder bench, and the strict-JSON vs YAML-wording question) is
-in section 19.
+Koosha reported signing in. I checked rather than assuming, and the result is
+**not signed in**.
 
-Koosha reported signing in. Enumerating windows found where it landed:
-`https://auth-eu.technology.byspotify.com/u/login/identifier?state=...`,
-tab 4 in window 42, title *"Log in | Spotify Portal for phenotype-3388-plg"*.
-The page body reads:
+Verified state after the attempt:
+- `get_content` on the Portal workspace tab (tab 2) returns
+  **`Sign in to Portal. / Sign in`**. Unchanged from before the attempt.
+- The Spotify login tab (tab 4, window 42) is still at
+  `https://auth-eu.technology.byspotify.com/u/login/identifier?state=...` with
+  title *"Log in | Spotify Portal for phenotype-3388-plg"* — i.e. still sitting
+  on the **identifier** (email) step, having not advanced to a password or
+  consent page.
 
-> Welcome back — Enter your email to continue to Spotify Portal for phenotype-3388-plg.
-> Fields: `Email address *`, one password field, `Continue`.
+So the flow never got past collecting the email. The remaining action is a
+Spotify account login. That is the credential boundary: the email, password and
+any 2FA code are the operator's to enter directly into Firefox, never mine to
+type and never to request in chat.
 
-So the remaining step is a **Spotify account login**, not merely a Portal
-acknowledgement. That is the boundary: credentials and any 2FA code are the
-operator's to enter, never mine to type or request in chat. Koosha has been told
-to complete it directly in Firefox.
+Also confirmed during this attempt: a `screenshot` of the Portal tab rendered
+**blank white**, consistent with the SPA shell not having painted. The page is
+reachable (HTTP 200) but not rendering readable content in the agent window.
 
 ### Firefox extension flaps between builds (real, reproducible)
-While polling, the bridge repeatedly reported the live extension as out of date:
-`Missing actions: evaluate, listFrames, scroll`. `browser setup firefox`
-repaired it once ("Downloading assets... done / Native messaging host... already
-configured / Checking Firefox extension... connected, but out of date /
-Clicked Add / ready!"), after which `browser status` returned
-"installed and responding".
+The bridge repeatedly reported the live extension out of date:
+`Missing actions: evaluate, listFrames, scroll`. `browser setup firefox` repairs
+it once ("Downloading assets done / native messaging host already configured /
+extension connected, but out of date / Add clicked / ready!") and `browser status`
+then reports it responding — **but the repair does not stick**, and the same
+warning returns after the next navigation. Observed twice in one session, with
+`get_content`/`snapshot`/`open` intermittently returning `Timeout waiting for
+response` and fresh tabs reporting `content script is not loaded yet`, while
+`list_tabs` and `status` kept working throughout.
 
-But the repair **does not stick**. Subsequent calls on the same session returned,
-in order:
-- `get_content` on tab 4 -> `Timeout waiting for response`
-- `snapshot` on tab 4 -> `Timeout waiting for response`
-- `get_content` on tab 2 -> `Timeout waiting for response`
-- `status` -> healthy
-- `new_tab` Portal -> `Timed out waiting for page load` (SPA keeps requests open)
-- `list_tabs` -> fine, new tab 12 present
-- `get_content` on tab 12 -> `Could not establish connection`
-- `open` on tab 2 -> timeout
-- `get_content` on tab 2 -> **`Missing actions: evaluate, listFrames, scroll`** again
+Guidance for the next session:
+- Do not read a single timeout as "not signed in". Check `browser status`, then
+  `list_tabs`, then retry.
+- Do not loop `setup` to clear a page-level timeout; it does not converge.
+- After a completed login, the first `get_content` on a Portal tab may fail with
+  `content script is not loaded yet`; reload once, then read.
 
-So the extension reverts to the stale build on reload, most likely because the
-`.xpi` is re-read from `~/.jcode/browser/` per navigation and the installed
-copy is not refreshed. Practical consequences for the next session:
-- Do not interpret a single timeout as "not signed in". Check `browser status`
-  first, then `list_tabs`, then retry.
-- Do not run repeated `setup` cycles hoping to clear a page-level timeout; that
-  loop does not converge and burns turns.
-- Once the Spotify login is completed, the first `get_content` on a Portal tab may
-  fail with `content script is not loaded yet`; reload once, then read.
-
-Unresolved: whether this is an extension-pinning bug in the bridge installer or a
-Firefox add-on reload behaviour. Not diagnosed. It does not affect the local
-evidence already gathered, only live Portal inspection.
+Unresolved: whether this is an extension-pinning bug in the bridge installer or
+Firefox add-on reload behaviour. Not diagnosed. It affects only live Portal
+inspection, none of the evidence already gathered.
 
 ## 18. Evidence file map
 
