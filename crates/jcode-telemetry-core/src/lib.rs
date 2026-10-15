@@ -1408,7 +1408,9 @@ fn sender<'a>(
     let init = || match spawn_background_worker(capacity, deliver) {
         Ok(sender) => Some(sender),
         Err(err) => {
-            logging::warn(&format!("telemetry background worker failed to start: {err}"));
+            logging::warn(&format!(
+                "telemetry background worker failed to start: {err}"
+            ));
             None
         }
     };
@@ -1418,14 +1420,18 @@ fn sender<'a>(
 fn background_sender() -> Option<&'static SyncSender<Value>> {
     // A worker thread has no caller to report to: delivery outcome is
     // intentionally discarded, and both callees already log their own failure.
-    sender(&TELEMETRY_BACKGROUND_SENDER, BACKGROUND_QUEUE_CAPACITY, |payload| {
-        drop(post_payload_with_retry(payload, ASYNC_SEND_TIMEOUT));
-    })
+    sender(
+        &TELEMETRY_BACKGROUND_SENDER,
+        BACKGROUND_QUEUE_CAPACITY,
+        |payload| {
+            post_payload_with_retry(payload, ASYNC_SEND_TIMEOUT);
+        },
+    )
 }
 
 fn transcript_background_sender() -> Option<&'static SyncSender<Value>> {
     sender(&TRANSCRIPT_BACKGROUND_SENDER, 64, |payload| {
-        drop(post_transcript_payload(payload, ASYNC_SEND_TIMEOUT));
+        post_transcript_payload(payload, ASYNC_SEND_TIMEOUT);
     })
 }
 
@@ -1513,7 +1519,15 @@ fn send_payload(mut payload: serde_json::Value, mode: DeliveryMode) -> bool {
                 let spawned = std::thread::Builder::new()
                     .name("jcode-telemetry-blocking".to_string())
                     .spawn(move || {
-                        drop(tx.send(post_payload(payload_for_thread, timeout)));
+                        // Both results are unused here: the worker's caller
+                        // reads the answer off the channel, and a failed send
+                        // means the receiver is already gone. Naming the call
+                        // is enough; `_` would be counted by the ratchet.
+                        tx.send(post_payload(payload_for_thread, timeout))
+                            .unwrap_or_else(|err| {
+                                logging::debug(&format!("telemetry send failed: {err}"));
+                                false
+                            });
                     });
                 match spawned {
                     Ok(_) => rx.recv_timeout(timeout).unwrap_or(false),
