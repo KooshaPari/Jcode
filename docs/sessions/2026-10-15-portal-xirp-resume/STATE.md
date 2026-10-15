@@ -4,6 +4,67 @@ This is the continuation half of the resume record. Read `RESUME.md` first for
 the verified evidence; this file holds the current state of work, open tasks,
 blockers and constraints.
 
+## 1b. State change during a 13-hour gap (2026-10-15 21:21Z)
+
+Work resumed after a gap. Two things changed that the record must reflect.
+
+### PR #67 was CLOSED, unmerged
+
+```
+state=CLOSED  isDraft=false  mergedAt=null  closedAt=2026-10-15T08:13:15Z
+head=191f0e088  branch=chore/xirp-custom-harness-discovery-20261014  base=master
+```
+
+The closure landed roughly six minutes after my last commit (08:07Z), so it was
+a deliberate action, not a side effect. It was **not merged** — `mergedAt` is null
+and no merge commit exists. The branch itself **survives on origin at the same
+SHA `191f0e088`**, and all ten record files are still readable from it, so no work
+was lost.
+
+The PR body was **not** updated before closing. It now opens with
+`## **User description**` followed by the original text claiming "the probe
+executed locally and correctly reported both CLIs absent" and "the installed Mac
+app was not probed". Both statements are false. The corrected text is preserved at
+`docs/sessions/2026-10-15-portal-xirp-resume/pr-67-body.md`.
+
+I did not reopen the PR. Reopening is a deliberate decision for the owner, and the
+branch plus the corrected body make reopening cheap whenever it is wanted. The
+finding itself — that Xirp cannot register a custom harness — is unaffected by the
+PR's state and stands on its own evidence.
+
+### The /tmp worktrees were destroyed
+
+`/tmp/jcode-pr67-wt` and `/tmp/reg619-wt` are gone, and Firefox restarted with a
+new window id (15, previously 3), so the old tabs were lost too. This validates
+the earlier warning that anything in /tmp dies with a reboot. Restored the Jcode
+worktree with `git worktree prune` then `git worktree add`; it is back at
+`191f0e088` with the full record.
+
+Verified the main checkout's unrelated untracked work is untouched:
+`docs/drafts/`, `docs/sessions/2026-10-12-cleanup-and-release/` (including
+`stash-dumps/jcode.patch`) and `docs/sessions/2026-10-14-m31-restore-fix/` all
+still present.
+
+### Browser bridge regression: healthy status, dead content scripts
+
+`browser status` reports "Browser bridge is installed and responding in Firefox"
+and `browser setup firefox` says "already set up and responding. No setup action
+was needed." But **every** `get_content` fails with
+`Could not establish connection. Receiving end does not exist.` — including on
+`about:sessionrestore`, which is not a network page at all. `new_tab` and `open`
+both load the URL but the content script never attaches.
+
+So the status check is not sufficient evidence that the bridge works; only an
+actual page read is. This is a distinct, worse failure than the earlier
+out-of-date-extension flap, which at least let some reads through. Until it is
+fixed, Portal UI state cannot be re-verified and the daily automation results
+(whether Wiki Synthesis ran on schedule, whether the suggestion count moved from
+16, whether the private-repo sync rows changed) cannot be confirmed.
+
+Workaround for the next session: `jcode browser setup chrome`, which needs one
+manual "Load unpacked" step in `chrome://extensions` for
+`/Users/kooshapari/.jcode/browser/extensions/chromium`.
+
 ## 2. Exact revisions at time of writing
 
 | Artifact | Revision | State |
