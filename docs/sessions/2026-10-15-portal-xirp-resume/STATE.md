@@ -140,27 +140,48 @@ are not a remediation target here (paid Actions remains permanently excluded).
 
 ## 7. Open questions
 
-1. ~~Why did the prior count say 42 when GitHub reports 46?~~ **SOLVED — see 1.6.**
-   Three different numbers were being compared: 46 total owned non-zz, 31 public
-   static catalog, 42 Portal App selected. Plus 3 stale descriptor entries
-   (`kcode.yaml`, `github.yaml`, `parpoura-experiment-0.yaml`).
-2. Is the Oct 14 catalog force-sync still running, and did it complete? Root
-   cause of the original preview (3 Locations only, predicted deletion of both
-   pilot Projects) is still unknown. Do not apply a destructive preview.
-   **Blocked on B2 (browser bridge).**
-3. Are the 4 additional repos private and therefore invisible to Portal, or
-   genuinely absent from the GitHub App installation? Partially answered: 17 of
-   46 are private, and the GitHub App was recorded as having exactly 42 selected.
-   That 42 is now suspect and must be compared against Portal's stored list.
-   **Blocked on B2.**
-4. Does squab have any build-time (not runtime) harness extension, e.g. an env var
-   or a generated catalog file read at startup? Not yet exhaustively ruled out.
-   Lower priority: the runtime path is definitively closed, and a build-time hook
-   would not be user-usable anyway.
-5. **NEW — should `kcode.yaml` be renamed to `jcode.yaml` in PR 619?** The
-   descriptor references a repo name that no longer exists. This is a safe,
-   evidence-backed fix but touches the catalog that Portal ingests, so it is
-   deferred until B2 lets us observe ingestion rather than guess at it.
+**Resolved this session.** Kept so they are not re-opened:
+
+1. ~~Why did the prior count say 42 when GitHub reports 46?~~ **SOLVED.** Three
+   different numbers were compared: 46 total owned non-zz, 31 public static
+   catalog Resources (public-only by design), 42 the GitHub App grant. Detail in
+   RESUME.md 1.6.
+2. ~~Is the Oct 14 catalog Force sync still running?~~ **SOLVED — it finished
+   without producing anything.** Catalog Entities reads `No catalog entities
+   yet`; the wiki Page Info independently reports 0. No "Syncing" indicator
+   remains, so the earlier "stuck" reading was a retry loop against unreadable
+   private sources.
+3. ~~Why do 11 of 42 resources never sync?~~ **SOLVED.** The App cannot read
+   private repositories. Matched 41 of 42 rows. Detail in RESUME.md 1.5b.
+4. ~~Root cause of the original destructive preview?~~ **Explained, though the
+   preview itself was never applied.** The preview's 3 Locations and missing
+   owner Group follow from the catalog source being unfetchable. Do not apply a
+   destructive preview regardless; both pilot workspaces must be compared before
+   and after any change.
+5. ~~Should `kcode.yaml` be renamed to `jcode.yaml` in PR 619?~~ **NO — the
+   premise was wrong and the fix is already correct.** `kcode.yaml` correctly
+   declares `project-slug: KooshaPari/Jcode` with `former-name: "KCode"`. Only
+   the genuinely dead `parpoura-experiment-0.yaml` was removed, in PhenoRegistry
+   `2b13afb91`.
+
+**Still open, and outside this machine's reach:**
+
+6. **The GitHub App's selected-repo count cannot be verified here.** Attempted
+   read-only: `gh api /users/KooshaPari/installations` -> 404,
+   `gh api apps/phenotype-spotify-portal` -> 404, and `gh auth status` reports
+   token scopes `gist, read:org, repo, workflow`. A user PAT cannot read App
+   installation records; that needs admin `administration:read` on the App, or a
+   GitHub App token minted by Portal. So "the App has exactly 42 selected repos"
+   remains **unverified** — it is a stored claim in the workspace description and
+   the catalog README, not something I confirmed. Do not restate it as fact. It
+   must be checked in the App's own settings, by whoever administers Portal.
+7. **Granting the App private-repository read access** is the single change that
+   would populate both the static catalog and the 11 unsynced rows. Requires
+   Portal administration; outside current authority.
+8. **Does squab have a build-time harness extension** (env var or generated
+   catalog read at startup)? Not exhaustively ruled out, but low value: the
+   runtime path is definitively closed and a build-time hook would not be
+   user-usable anyway.
 
 ## 8. New finding: two broken gates in PhenoRegistry (found while fixing #619)
 
