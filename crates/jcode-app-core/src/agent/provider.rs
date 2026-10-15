@@ -61,7 +61,13 @@ impl Agent {
             .map(|message| message.id.clone())
             .unwrap_or_else(|| "initial".to_string());
         self.begin_model_usage_turn(&message_id);
-        self.session.model_usage_turn_id.clone().unwrap()
+        match &self.session.model_usage_turn_id {
+            Some(id) => id.clone(),
+            // begin_model_usage_turn should always populate the turn id
+            // when given a non-empty message_id; fall back to a fresh id
+            // instead of panicking if a future refactor breaks that contract.
+            None => "initial".to_string(),
+        }
     }
 
     pub(super) fn record_model_turn_usage(&self, turn_id: &str) {

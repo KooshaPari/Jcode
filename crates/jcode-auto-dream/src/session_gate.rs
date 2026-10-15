@@ -94,7 +94,8 @@ impl SessionGate {
     }
 }
 
-#[cfg(test)] mod tests {
+#[cfg(test)]
+mod tests {
     use super::*;
     use std::time::UNIX_EPOCH;
 

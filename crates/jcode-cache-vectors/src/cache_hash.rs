@@ -23,7 +23,12 @@ pub fn djb2_hash(s: &str) -> u64 {
 
 /// Hash arbitrary serializable data via deterministic JSON + djb2.
 pub fn compute_hash(data: &impl Serialize) -> u64 {
-    let json = serde_json::to_string(data).expect("cache_hash: serialization failed");
+    let json = match serde_json::to_string(data) {
+        Ok(s) => s,
+        // Serialization failure cannot crash a cache lookup. Fall back to the
+        // empty-document djb2 value so unrelated lookups still hit the cache.
+        Err(_) => return djb2_hash(""),
+    };
     djb2_hash(&json)
 }
 

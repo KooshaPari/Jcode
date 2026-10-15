@@ -750,23 +750,25 @@ impl App {
             selected = 0;
         }
         if !openai_accounts.is_empty() {
-            let mut usage_entry = models.last().expect("account center entry").clone();
-            usage_entry.name = "OpenAI usage details".to_string();
-            usage_entry.options[0].detail =
-                "Today / lifetime API-equivalent cost and tokens by account".to_string();
-            usage_entry.options[0].provider = "OpenAI".to_string();
-            usage_entry.action = crate::tui::PickerAction::Usage {
-                id: "openai-oauth-accounts".to_string(),
-                title: "ChatGPT OAuth account usage".to_string(),
-                subtitle: "Today / lifetime API-equivalent estimates, not a bill".to_string(),
-                status: crate::tui::usage_overlay::UsageOverlayStatus::Info,
-                detail_lines: self
-                    .render_openai_accounts_markdown()
-                    .lines()
-                    .map(str::to_string)
-                    .collect(),
-            };
-            models.push(usage_entry);
+            if let Some(usage_entry) = models.last().cloned() {
+                let mut usage_entry = usage_entry;
+                usage_entry.name = "OpenAI usage details".to_string();
+                usage_entry.options[0].detail =
+                    "Today / lifetime API-equivalent cost and tokens by account".to_string();
+                usage_entry.options[0].provider = "OpenAI".to_string();
+                usage_entry.action = crate::tui::PickerAction::Usage {
+                    id: "openai-oauth-accounts".to_string(),
+                    title: "ChatGPT OAuth account usage".to_string(),
+                    subtitle: "Today / lifetime API-equivalent estimates, not a bill".to_string(),
+                    status: crate::tui::usage_overlay::UsageOverlayStatus::Info,
+                    detail_lines: self
+                        .render_openai_accounts_markdown()
+                        .lines()
+                        .map(str::to_string)
+                        .collect(),
+                };
+                models.push(usage_entry);
+            }
         }
         (models, selected)
     }
@@ -1075,23 +1077,25 @@ impl App {
             selected = 0;
         }
         if !accounts.is_empty() {
-            let mut usage_entry = models.last().expect("account center entry").clone();
-            usage_entry.name = "OpenAI usage details".to_string();
-            usage_entry.options[0].detail =
-                "Today / lifetime API-equivalent cost and tokens by account".to_string();
-            usage_entry.options[0].provider = "OpenAI".to_string();
-            usage_entry.action = crate::tui::PickerAction::Usage {
-                id: "openai-oauth-accounts".to_string(),
-                title: "ChatGPT OAuth account usage".to_string(),
-                subtitle: "Today / lifetime API-equivalent estimates, not a bill".to_string(),
-                status: crate::tui::usage_overlay::UsageOverlayStatus::Info,
-                detail_lines: self
-                    .render_openai_accounts_markdown()
-                    .lines()
-                    .map(str::to_string)
-                    .collect(),
-            };
-            models.push(usage_entry);
+            if let Some(usage_entry) = models.last().cloned() {
+                let mut usage_entry = usage_entry;
+                usage_entry.name = "OpenAI usage details".to_string();
+                usage_entry.options[0].detail =
+                    "Today / lifetime API-equivalent cost and tokens by account".to_string();
+                usage_entry.options[0].provider = "OpenAI".to_string();
+                usage_entry.action = crate::tui::PickerAction::Usage {
+                    id: "openai-oauth-accounts".to_string(),
+                    title: "ChatGPT OAuth account usage".to_string(),
+                    subtitle: "Today / lifetime API-equivalent estimates, not a bill".to_string(),
+                    status: crate::tui::usage_overlay::UsageOverlayStatus::Info,
+                    detail_lines: self
+                        .render_openai_accounts_markdown()
+                        .lines()
+                        .map(str::to_string)
+                        .collect(),
+                };
+                models.push(usage_entry);
+            }
         }
         (models, selected)
     }

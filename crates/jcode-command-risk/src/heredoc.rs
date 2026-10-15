@@ -23,12 +23,15 @@ pub fn has_heredoc_substitution(command: &str) -> bool {
 /// Group 1: optional dash for `<<-`
 /// Group 2: single-quoted delimiter
 /// Group 3: backslash-escaped delimiter
-fn heredoc_open_pattern() -> Regex {
-    // SAFETY: the pattern is a compile-time constant; compilation cannot fail.
-    Regex::new(
-        r#"\$\(cat[ \t]*<<(-?)[ \t]*(?:'+([A-Za-z_]\w*)'+|\\([A-Za-z_]\w*))"#,
-    )
-    .unwrap()
+fn heredoc_open_pattern() -> &'static Regex {
+    use std::sync::OnceLock;
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| {
+        Regex::new(
+            r#"\$\(cat[ \t]*<<(-?)[ \t]*(?:'+([A-Za-z_]\w*)'+|\\([A-Za-z_]\w*))"#,
+        )
+        .unwrap_or_else(|_| unreachable!("heredoc_open_pattern: static regex must compile"))
+    })
 }
 
 /// A validated heredoc span (byte offsets into the original command string).
@@ -51,7 +54,7 @@ fn find_valid_heredocs(command: &str) -> Vec<HeredocSpan> {
     let mut candidates: Vec<(usize, usize, String, bool)> = Vec::new();
 
     for cap in re.captures_iter(command) {
-        let m = cap.get(0).unwrap();
+        let Some(m) = cap.get(0) else { continue };
         let delimiter = cap
             .get(2)
             .or_else(|| cap.get(3))
@@ -200,8 +203,13 @@ fn strip_heredocs(command: &str) -> Option<String> {
     }
 
     // SECURITY: remaining text must contain only safe characters (no shell
-    // metacharacters that could chain a dangerous command).
-    let safe_re = Regex::new(r#"^[a-zA-Z0-9 \t"'.\-/_@=,:+~]*$"#).unwrap();
+    // metacharacters that could chain a dangerous command). Compile once and
+    // reuse; the pattern is a static literal that cannot fail.
+    static SAFE_RE: std::sync::OnceLock<Regex> = std::sync::OnceLock::new();
+    let safe_re = SAFE_RE.get_or_init(|| {
+        Regex::new(r#"^[a-zA-Z0-9 \t"'.\-/_@=,:+~]*$"#)
+            .unwrap_or_else(|_| unreachable!("safe_re: static regex must compile"))
+    });
 
     // Strip in reverse order so earlier indices stay valid.
     spans.sort_by_key(|a| std::cmp::Reverse(a.start));

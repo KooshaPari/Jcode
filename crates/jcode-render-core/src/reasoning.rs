@@ -30,7 +30,9 @@ pub fn reasoning_line_content(line: &str) -> Option<String> {
                 .peek()
                 .is_some_and(|ch| REASONING_ESCAPES.contains(*ch))
         {
-            content.push(chars.next().unwrap());
+            // Safe: the peek above confirmed a next char exists.
+            let next = chars.next().unwrap_or_else(|| unreachable!());
+            content.push(next);
         } else {
             content.push(ch);
         }

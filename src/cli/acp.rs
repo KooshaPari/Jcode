@@ -142,12 +142,13 @@ impl TurnUsage {
             "inputTokens": self.input_tokens,
             "outputTokens": self.output_tokens,
         });
-        let object = usage.as_object_mut().expect("usage is an object");
-        if let Some(tokens) = self.cached_read_tokens {
-            object.insert("cachedReadTokens".to_string(), json!(tokens));
-        }
-        if let Some(tokens) = self.cached_write_tokens {
-            object.insert("cachedWriteTokens".to_string(), json!(tokens));
+        if let Some(object) = usage.as_object_mut() {
+            if let Some(tokens) = self.cached_read_tokens {
+                object.insert("cachedReadTokens".to_string(), json!(tokens));
+            }
+            if let Some(tokens) = self.cached_write_tokens {
+                object.insert("cachedWriteTokens".to_string(), json!(tokens));
+            }
         }
         Some(usage)
     }
@@ -162,10 +163,9 @@ fn add_optional_tokens(total: &mut Option<u64>, tokens: Option<u64>) {
 fn prompt_response(stop_reason: &str, usage: &TurnUsage) -> Value {
     let mut response = json!({ "stopReason": stop_reason });
     if let Some(usage) = usage.to_acp() {
-        response
-            .as_object_mut()
-            .expect("prompt response is an object")
-            .insert("usage".to_string(), usage);
+        if let Some(object) = response.as_object_mut() {
+            object.insert("usage".to_string(), usage);
+        }
     }
     response
 }

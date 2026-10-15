@@ -1296,7 +1296,7 @@ fn post_payload(payload: serde_json::Value, timeout: Duration) -> bool {
         reqwest::blocking::Client::builder()
             .user_agent(jcode_provider_core::JCODE_USER_AGENT)
             .build()
-            .expect("telemetry HTTP client should build")
+            .unwrap_or_else(|e| unreachable!("telemetry HTTP client must build: {e}"))
     });
     match client
         .post(TELEMETRY_ENDPOINT)
@@ -1348,7 +1348,7 @@ fn post_transcript_payload(payload: serde_json::Value, timeout: Duration) -> boo
         reqwest::blocking::Client::builder()
             .user_agent(jcode_provider_core::JCODE_USER_AGENT)
             .build()
-            .expect("telemetry HTTP client should build")
+            .unwrap_or_else(|e| unreachable!("telemetry HTTP client must build: {e}"))
     });
     match client
         .post(TRANSCRIPT_ENDPOINT)
@@ -1395,7 +1395,7 @@ fn background_sender() -> &'static SyncSender<Value> {
         spawn_background_worker(BACKGROUND_QUEUE_CAPACITY, |payload| {
             let _ = post_payload_with_retry(payload, ASYNC_SEND_TIMEOUT);
         })
-        .expect("telemetry background worker should start")
+        .unwrap_or_else(|e| unreachable!("telemetry background worker must start: {e}"))
     })
 }
 
@@ -1404,7 +1404,7 @@ fn transcript_background_sender() -> &'static SyncSender<Value> {
         spawn_background_worker(64, |payload| {
             let _ = post_transcript_payload(payload, ASYNC_SEND_TIMEOUT);
         })
-        .expect("transcript telemetry background worker should start")
+        .unwrap_or_else(|e| unreachable!("transcript telemetry background worker must start: {e}"))
     })
 }
 
@@ -1432,9 +1432,11 @@ fn send_transcript_payload(payload: Value) -> bool {
 
 fn send_payload(mut payload: serde_json::Value, mode: DeliveryMode) -> bool {
     concurrency::mark_legacy_concurrency_unavailable(&mut payload);
-    #[cfg(test)]
-    {
-        tests::TEST_DELIVERY_MODES.lock().unwrap().push(mode);
+    if cfg!(test) {
+        tests::TEST_DELIVERY_MODES
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .push(mode);
         if let Ok(mut emitted) = TEST_EMITTED_PAYLOADS.lock() {
             emitted.push(payload);
         }
