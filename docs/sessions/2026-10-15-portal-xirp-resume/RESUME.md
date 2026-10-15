@@ -391,6 +391,13 @@ Net: the auth server is capable of PKCE + public client. The blocker is
 pre-registered static client id, or operator authorization to add a CIMD URL to
 the allowed patterns. Neither can be minted from this session.
 
+Portal also publishes genuine RFC 9728 protected-resource metadata at
+`/.well-known/oauth-protected-resource` and `/.well-known/oauth-protected-resource/v1`
+(real `application/json`, unlike the CIMD path above). Both name
+`authorization_servers: ["https://phenotype.spotifyportal.com/api/auth"]` and a
+`resource` that matches the MCP path, so the whole discovery chain is present and
+consistent. Details in `STATE.md` section 14.
+
 ### 1.10 Bridge selection for XJ-03 — DECIDED, not yet deployed
 
 Read-only research (no installs, no config writes). Full report preserved at

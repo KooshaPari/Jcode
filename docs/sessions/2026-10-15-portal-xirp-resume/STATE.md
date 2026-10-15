@@ -281,3 +281,36 @@ remain under /tmp and are lost on reboot.
 | `/tmp/xirp-probe-20261015/repo-inventory-summary.txt` | human-readable inventory |
 | `/tmp/xirp-asar-extract/` | extracted Xirp app.asar (461 .js files) |
 | `/tmp/jcode-pr67-wt/` | isolated worktree for PR 67 |
+
+## 14. OAuth discovery detail (moved from RESUME.md to stay under 500 lines)
+
+### 1.9b RFC 9728 protected-resource metadata — verified present
+
+Portal publishes genuine MCP authorization-discovery documents (real
+`application/json`, unlike the CIMD false positive above):
+
+`GET /.well-known/oauth-protected-resource` ->
+```json
+{"resource":"https://phenotype.spotifyportal.com/api/mcp-actions/",
+ "authorization_servers":["https://phenotype.spotifyportal.com/api/auth"],
+ "scopes_supported":["openid","offline_access"]}
+```
+`GET /.well-known/oauth-protected-resource/v1` -> the same document with
+`"resource":"https://phenotype.spotifyportal.com/api/mcp-actions/v1"`, matching
+the MCP endpoint path exactly.
+
+The path-scoped variant
+`/api/mcp-actions/.well-known/oauth-protected-resource` returns **401**, so
+metadata is served only from the origin root, not per-resource. Worth knowing:
+a client that derives the metadata URL from the resource URL rather than trying
+the origin root will get a 401 and may misdiagnose the endpoint as
+unconfigured.
+
+Consequence for the bridge plan: the full discovery chain a compliant MCP client
+needs is present and consistent —
+`protected-resource metadata -> authorization_servers -> /.well-known/oauth-authorization-server`
+— and both `resource` values line up with
+`https://phenotype.spotifyportal.com/api/mcp-actions/v1`. RFC 8707 resource
+binding against that exact `resource` string is therefore well-defined, which
+is what `mcp-remote --resource` should be pointed at. The remaining gap is still
+client identity (B6), not discovery.
