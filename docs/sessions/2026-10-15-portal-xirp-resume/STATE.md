@@ -249,7 +249,7 @@ The live body still contains two false claims. The corrected text is now
 committed at `docs/sessions/2026-10-15-portal-xirp-resume/pr-67-body.md` so it
 survives a reboot, and can be pasted manually or approved in the inbox.
 
-## 13. mcp-remote verified from the published package, not just its README
+## 12. mcp-remote verified from the published package, not just its README
 
 The earlier bridge assessment rested on README claims. Verified against the
 actual shipped artifact.
@@ -321,28 +321,33 @@ exact-match allow-list would need the derived port registered, and
 `http://127.0.0.1/callback` would not match. Worth asking the vendor alongside the
 harness question, because it changes what we must put in our document.
 
-## 17. Portal sign-in: attempted, verified NOT completed (2026-10-15)
+## 13. Portal sign-in history (resolved 2026-10-15)
 
-Koosha reported signing in. I checked rather than assuming, and the result is
-**not signed in**.
+Kept because the path to a working session is not obvious and the next person
+will otherwise repeat it.
 
-Verified state after the attempt:
-- `get_content` on the Portal workspace tab (tab 2) returns
-  **`Sign in to Portal. / Sign in`**. Unchanged from before the attempt.
-- The Spotify login tab (tab 4, window 42) is still at
-  `https://auth-eu.technology.byspotify.com/u/login/identifier?state=...` with
-  title *"Log in | Spotify Portal for phenotype-3388-plg"* — i.e. still sitting
-  on the **identifier** (email) step, having not advanced to a password or
-  consent page.
+1. **Browser bridge.** Safari and Chrome each require a manual "load unpacked
+   extension" step and could not be automated. **Firefox works with no manual
+   step** — `browser setup firefox` reported "No setup action was needed".
+   Use Firefox for Portal work.
+2. **The extension flaps.** It repeatedly reports itself out of date
+   (`Missing actions: evaluate, listFrames, scroll`). `browser setup firefox`
+   repairs it once but the repair does not stick; the warning returns after the
+   next navigation. Check `browser status` before concluding a tab is signed
+   out, and do not loop `setup` against page-level timeouts.
+3. **`eval` does not work.** `browser action=eval` returns `null` for every
+   script including `1+1`, matching the extension's own missing-`evaluate`
+   report. Use `get_content`.
+4. **First sign-in attempt did not complete.** It stalled on the Spotify account
+   identifier step (`auth-eu.technology.byspotify.com/u/login/identifier`,
+   "Welcome back", email field). Credentials are the operator's to enter; never
+   typed by the agent and never requested in chat.
+5. **Second attempt succeeded.** The workspace now renders authenticated
+   content, and everything in `PORTAL-FINDINGS.md` was read from that session.
 
-So the flow never got past collecting the email. The remaining action is a
-Spotify account login. That is the credential boundary: the email, password and
-any 2FA code are the operator's to enter directly into Firefox, never mine to
-type and never to request in chat.
-
-Also confirmed during this attempt: a `screenshot` of the Portal tab rendered
-**blank white**, consistent with the SPA shell not having painted. The page is
-reachable (HTTP 200) but not rendering readable content in the agent window.
+A `screenshot` of the Portal tab during the stalled period rendered blank
+white, consistent with the SPA shell not having painted. The page was reachable
+(HTTP 200) throughout.
 
 ### Firefox extension flaps between builds (real, reproducible)
 The bridge repeatedly reported the live extension out of date:
@@ -366,7 +371,7 @@ Unresolved: whether this is an extension-pinning bug in the bridge installer or
 Firefox add-on reload behaviour. Not diagnosed. It affects only live Portal
 inspection, none of the evidence already gathered.
 
-## 18. Evidence file map
+## 14. Evidence file map
 
 Committed copies live in `evidence/` next to this file. Ephemeral working copies
 remain under /tmp and are lost on reboot.
@@ -383,108 +388,3 @@ remain under /tmp and are lost on reboot.
 | `/tmp/xirp-probe-20261015/repo-inventory-summary.txt` | human-readable inventory |
 | `/tmp/xirp-asar-extract/` | extracted Xirp app.asar (461 .js files) |
 | `/tmp/jcode-pr67-wt/` | isolated worktree for PR 67 |
-
-## 15. OAuth discovery detail (moved from RESUME.md to stay under 500 lines)
-
-### 1.9b RFC 9728 protected-resource metadata — verified present
-
-Portal publishes genuine MCP authorization-discovery documents (real
-`application/json`, unlike the CIMD false positive above):
-
-`GET /.well-known/oauth-protected-resource` ->
-```json
-{"resource":"https://phenotype.spotifyportal.com/api/mcp-actions/",
- "authorization_servers":["https://phenotype.spotifyportal.com/api/auth"],
- "scopes_supported":["openid","offline_access"]}
-```
-`GET /.well-known/oauth-protected-resource/v1` -> the same document with
-`"resource":"https://phenotype.spotifyportal.com/api/mcp-actions/v1"`, matching
-the MCP endpoint path exactly.
-
-The path-scoped variant
-`/api/mcp-actions/.well-known/oauth-protected-resource` returns **401**, so
-metadata is served only from the origin root, not per-resource. Worth knowing:
-a client that derives the metadata URL from the resource URL rather than trying
-the origin root will get a 401 and may misdiagnose the endpoint as
-unconfigured.
-
-Consequence for the bridge plan: the full discovery chain a compliant MCP client
-needs is present and consistent —
-`protected-resource metadata -> authorization_servers -> /.well-known/oauth-authorization-server`
-— and both `resource` values line up with
-`https://phenotype.spotifyportal.com/api/mcp-actions/v1`. RFC 8707 resource
-binding against that exact `resource` string is therefore well-defined, which
-is what `mcp-remote --resource` should be pointed at. The remaining gap is still
-client identity (B6), not discovery.
-
-## 16. CIMD allow-list enforcement — proven with controls (moved from RESUME.md)
-
-### 1.10b CIMD allow-list enforcement — PROVEN, with controls (B6 confirmed)
-
-This is the decisive experiment for XJ-03 / blocker B6. Read-only `GET` requests
-only; **no credentials were sent, no consent was granted, and nothing was
-authorized.** Only `client_id`, `response_type`, `redirect_uri`, `scope` and a
-dummy PKCE challenge were supplied.
-
-| `client_id` (CIMD URL) | Host resolvable | Result |
-|---|---|---|
-| `https://xirp.spotify.com/oauth/client-metadata.json` (**allow-listed**) | yes | **302** -> `https://phenotype.spotifyportal.com/oauth2/authorize/2e80fd66-...` |
-| `https://kooshapari.com/oauth/client-metadata.json` | yes (200) | **400** `InputError` |
-| `https://jcode.sh/oauth/client-metadata.json` | yes | **400** `InputError` |
-| `https://example.invalid/oauth/client-metadata.json` | no (DNS fail) | **400** `InputError` |
-| *(no `client_id` at all)* | n/a | **400** |
-
-Exact rejection body:
-```json
-{"error":{"name":"InputError",
-  "message":"Invalid client_id 'https://kooshapari.com/oauth/client-metadata.json'"},
- "request":{"method":"GET","url":"/v1/authorize?client_id=..."},
- "response":{"statusCode":400}}
-```
-
-Why the controls matter: `kooshapari.com` and `jcode.sh` both resolve over
-HTTPS, so their 400s cannot be blamed on DNS or on the shape of the URL. Only the
-allow-listed Xirp URL is accepted. The gate is therefore **client
-allow-listing specifically**, exactly as B6 predicted, and not protocol
-capability, not PKCE support, and not network reachability.
-
-The consent page itself is reachable and returns `200 text/html`, so the flow
-proceeds normally once a permitted client is presented.
-
-What this means operationally:
-- **B6 is confirmed real and is the only remaining blocker for authenticated
-  Portal MCP.** Everything else in the chain is verified working.
-- A CIMD client does **not** need to pre-register: the authorization server will
-  accept any URL that matches an allow-listed pattern. So the fix is narrow —
-  obtain authorization to add exactly one pattern for our own domain.
-- Our CIMD document must be served over **HTTPS from a stable, publicly
-  reachable URL**, and must declare `redirect_uris` including a loopback
-  callback, `grant_types` including `authorization_code` and `refresh_token`,
-  `token_endpoint_auth_method: "none"`, and scope `openid offline_access` — the
-  same shape as the verified Xirp document.
-
-Do not "solve" this by reusing Xirp's CIMD URL. That authenticates as Xirp and
-would attribute Jcode's actions to it in Portal's audit trail.
-
-## 19. PR 619 non-catalog validation (moved out to stay under 500 lines)
-
-## 12. Non-catalog parts of PR 619 validated locally (all pass)
-
-Checked at the PR's real base `b69b4f4bf` rather than my commit parent:
-
-- `bench.yml` parses as YAML (jobs: `bench`, `compare-baseline`).
-- The repaired comparison block passes `bash -n`. The `+ fi` added in the PR
-  correctly closes the `if [ -f baseline-results/criterion.txt ] && [ -f
-  current-results/criterion.txt ]; then` opened above the Python heredoc. This is
-  a **valid repair, not a bug** — I initially suspected a missing `if` and was
-  wrong.
-- `--bench criterion_bench` matches the declared `[[bench]]` target in
-  `Cargo.toml` (`name = "criterion_bench"`, `harness = false`), and
-  `benches/criterion_bench.rs` exists.
-- The placeholder limitation is still real: `benches/criterion_bench.rs` is 6
-  lines and benchmarks `1 + 1`. Not performance evidence, and now stated as such
-  in the PR body.
-- Descriptors are YAML with trailing commas, so they are **not** strict JSON
-  documents. Their *parsed values* are JSON-serializable, which is what the
-  README's "JSON-compatible values" wording actually claims. Both readings are
-  recorded so the next session does not "fix" a non-issue.

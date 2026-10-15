@@ -1,16 +1,22 @@
 # Spotify Portal + Xirp setup — resume record
 
-Last updated: 2026-10-14 (session 2026-10-15T00:04Z–00:2xZ local, America/Los_Angeles)
+Last updated: 2026-10-15 (all times UTC unless marked PDT)
 Owner: KooshaPari · Host: this Mac (darwin/arm64)
 Purpose: single source of truth so a future local session can resume without
 reading chat history. Update after every meaningful change.
 
 ## How to read this file
 
-**This file is split in two.** `RESUME.md` (this file) holds the verified evidence.
-`STATE.md` holds the continuation half: exact revisions, completed work,
-remaining tasks, blockers, constraints, open questions and the evidence file map.
-Start here, then read `STATE.md`.
+**Three files, read in this order:**
+
+- `RESUME.md` (this file) — verified evidence, including everything observed in a
+  signed-in Portal session.
+- `PORTAL-FINDINGS.md` — row-level detail from that authenticated inspection:
+  the 42 Sources rows, the 11 affected repos, the 16 wiki suggestions and their
+  accuracy audit, automation runs, and the session-launch test.
+- `STATE.md` — continuation half: exact revisions, completed work, remaining
+  tasks, blockers, constraints, open questions, broken gates and the evidence
+  file map.
 
 Sections separate **verified outcomes** (something observed, with the command
 that observed it) from **claims** (believed, not proven) and **blockers**.
@@ -148,11 +154,31 @@ session, cross-checked row-by-row against live GitHub state:
 Full row-level tables, the 11 affected repos, the 16 suggestion titles, and the
 specific disproved claim are in `PORTAL-FINDINGS.md`.
 
-Stale record found: `https://github.com/KooshaPari/parpoura-experiment-0` is
-**still attached as a Portal resource** despite that repo being deleted (404 even
-when authenticated as its owner). Separate object from the catalog descriptor I
-removed in `2b13afb91`, and not removed by me since resource deletion is
-destructive and unauthorized.
+### 1.5f Forward-execution item 9: automations and launch flow, both now tested
+
+Both surfaces had never been inspected. Neither works end to end. Detail in
+`PORTAL-FINDINGS.md`.
+
+- **Automations are healthy but barely exercised.** 3 runs, 3 completed, 100%
+  success, 0 failing. Wiki Synthesis (Daily 3:00, last 21h) and Wiki Lint
+  (Daily 5:00, last 2d). But the wiki has only ever had **2 accepted pages**,
+  and Activity's "19 wiki pages changed" counts *suggested* changes, not
+  accepted content. 100% success describes a pipeline that has processed almost
+  nothing, not proof that Wiki Lint detects real drift.
+- **The session launch flow is broken at the Portal boundary.** Local creation
+  works: `xirp session new` returned a session id and `xirp session get` reported
+  `Status running`, `Activity working`, `Cost $0.0000`. Portal `/sessions` still
+  read **`No local sessions yet`** while that session existed and was running.
+  The workspace header's **New Session** button is a no-op in the browser despite
+  the Xirp app running with a live daemon.
+- **A separate Xirp defect found while testing this**, vendor-side and now
+  question (g) in the drafted vendor ask: `xirp session list` returns
+  `No sessions found`, and `--json` returns `[]`, for a session that `session get`
+  and `session goal` both read successfully. Enumeration is broken independently
+  of Portal, and any Portal-side polling would hit the same code path.
+
+The disposable test session was deleted and verified gone. No worktree or branch
+was created, and the checkout's pre-existing untracked files are untouched.
 
 ### 1.6 ROOT CAUSE of the 42-vs-46 discrepancy — SOLVED
 
@@ -443,51 +469,12 @@ pre-registration, just one allow-listed pattern for our own domain.
 
 ### 1.10 Bridge selection for XJ-03 — DECIDED, not yet deployed
 
-Read-only research (no installs, no config writes). Full report preserved at
-`evidence/mcp-bridge-research.md`.
-
-**Verdict: `punkpeye/mcp-remote` (npm `mcp-remote`) is the only viable bridge.**
-
-| Candidate | Streamable HTTP | OAuth PKCE | DCR | **CIMD** | Verdict |
-|---|---|---|---|---|---|
-| `mcp-remote` v0.15.1 (2026-10-14) | yes | yes | yes | **yes** (`--client-metadata-url`) | **SELECTED** |
-| `sparfenyuk/mcp-proxy` v0.13.0 | yes | **no PKCE, no refresh** | no | no | static-bearer only |
-| `mikluko/mcp-proxy` v0.1.0 (2024-11) | yes | yes | yes | no | unmaintained, ~2 commits |
-| official MCP org | — | — | — | — | **no official stdio-to-remote bridge exists** |
-
-CIMD support is the discriminator: only `mcp-remote` implements SEP-991. That is
-exactly what Portal needs, since CIMD is the mechanism its allow-list is built
-around. Caveat recorded honestly: CIMD support was verified from the live README,
-not by reading the TypeScript source.
-
-**Rejected sample config.** The research proposed pointing the bridge at Xirp's
-own CIMD URL:
-```
-"--client-metadata-url", "https://xirp.spotify.com/oauth/client-metadata.json"
-```
-This would authenticate **as Xirp** — `client_name: "Xirp"`. That is
-impersonation of a supported agent, which is explicitly out of bounds, and it
-would make Portal's audit trail attribute Jcode's actions to Xirp. **Rejected.**
-
-The correct config needs **our own** CIMD document, which requires authorization
-to add a pattern to Portal's allowed-client list (B6). Sketch only, not applied:
-```jsonc
-{
-  "mcpServers": {
-    "phenotype-spotify": {
-      "command": "npx",
-      "args": ["-y", "mcp-remote@<pinned-version>",
-               "https://phenotype.spotifyportal.com/api/mcp-actions/v1",
-               "--transport", "http-first",
-               "--client-metadata-url", "<OUR-HTTPS-CIMD-URL>",
-               "--resource", "https://phenotype.spotifyportal.com/api/mcp-actions/v1"]
-    }
-  }
-}
-```
-Version must be pinned, not `@latest`, for reproducibility.
-
-**Hard parts flagged for whoever builds it:** token refresh must be serialized to
-avoid refresh-token rotation races (7-day refresh lifetime, 30-day max session);
-token cache needs `chmod 0600`; `token_endpoint_auth_method` must be read from
-server metadata rather than assumed `none`.
+**`punkpeye/mcp-remote` (npm `mcp-remote`) v0.15.1 is the only viable bridge.**
+It is the only candidate implementing CIMD (SEP-991), the mechanism Portal's
+allow-list is built around; the alternatives lack PKCE, CIMD, or maintenance.
+Verified against the published package rather than its README: the
+`--client-metadata-url` flag exists in shipped code and is validated by
+`isClientMetadataUrl`, which requires `https:` and a non-root path. Comparison
+table, the rejected impersonating config, the derived callback port, and the
+redirect_uri mismatch to raise with the vendor are in `STATE.md` sections 13
+and 15, plus `scripts/derive_callback_port.py` and the CIMD template.

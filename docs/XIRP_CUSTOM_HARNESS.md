@@ -289,6 +289,30 @@ support message has been sent from this work.
 >    Xirp's document, which would attribute our actions to Xirp in your audit
 >    trail.
 
+> ### Third, smallest question: a bug we hit while testing
+> While verifying that a locally created session is visible to a Portal
+> workspace, we found what looks like a bug in `squab`, reproducible three ways
+> against `xirp 0.49.0` with `@chirp/squab 0.11.11`:
+>
+> ```
+> $ xirp session list                 -> No sessions found.
+> $ xirp session list --status running -> No sessions found.
+> $ xirp session list --json           -> []
+> $ xirp session get <id>              -> Status running, Lifecycle active
+> $ xirp session goal <id>             -> returns the goal text correctly
+> ```
+>
+> The session demonstrably exists and is running, yet enumeration returns empty
+> for every invocation, including an explicit `--status running` filter and the
+> JSON form. `session get` and `session goal` both read it fine, so the session
+> store is not the problem.
+>
+> g. Is this a known defect? It matters to us for two reasons: we rely on
+>    `squab --orchestrator-list` to see running orchestrators, and any
+>    Portal-side session polling would hit the same enumeration path. If a
+>    Portal workspace ever reports "no sessions" while sessions are running
+>    locally, this would explain it.
+
 ## Constraints
 GitHub Actions spend is permanently zero. Use local validation or free included
 capacity. Preserve the separate Tracera/AgilePlus pilot and specification gates.

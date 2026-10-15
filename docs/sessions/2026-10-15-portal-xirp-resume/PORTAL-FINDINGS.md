@@ -206,3 +206,238 @@ above, and send the rest back for regeneration with correct repo identities.
 The Wiki Schema requires suggestions be reviewed against exact current sources
 before acceptance, and four wrong repository names plus one disproved ingestion
 claim is a clear failure of that bar.
+
+## Forward-execution item 9: automation outputs and the launch flow
+
+Both surfaces had never been inspected before this. Both were read directly.
+
+### Automation outputs: healthy, with one caveat
+
+`/automations` reports:
+
+| Automation | Type | Status | Schedule | Last run |
+|---|---|---|---|---|
+| Wiki Synthesis | Generation | **Active** | Daily at 3:00 | 21h |
+| Wiki Lint | Lint | **Active** | Daily at 5:00 | 2d |
+
+Aggregate stats: **`3` Runs, `3` Completed, `100%` Success**, `2 Active`,
+`0 Paused`, `0 Failing`. Recent Runs lists exactly three: Wiki Synthesis (21h),
+Wiki Lint (2d), Wiki Synthesis (2d).
+
+`/activity` for Oct 12-18 shows **`66` events** — Resources 42, Wiki 20,
+Automations 3, Members 1 — summarised as "19 wiki pages changed / 3 automations
+ran", plus "added 42 resources", "edited 1 wiki page" and "added 1 member" by
+`kooshapari@kooshapari.com`.
+
+Caveat worth recording: **100% success is success over 3 runs on a wiki that has
+only ever had 2 accepted pages.** Wiki Lint's last run was 2d ago and the wiki
+has had no accepted content since. So "100% success" describes a pipeline that
+has processed almost nothing. It is not evidence the lint detects real drift.
+The `19 wiki pages changed` in Activity counts *suggested* changes, not accepted
+pages, which is why `Pages` still shows 2.
+
+### Session launch: local creation works, Portal integration does not
+
+Tested end to end with a disposable session.
+
+**Local creation works.** `xirp session new --goal "..." --json` returned:
+```json
+{"id":"b6eaf8f0-68ba-43c0-9e70-d594121fb456",
+ "name":"Verify Portal session-launch prerequisite",
+ "branch":null,"worktreePath":null,
+ "links":{"desktop":"web+xirp://launch?action=open-session&sessionId=b6eaf8f0-..."}}
+```
+and `xirp session get` confirmed a real session: `Status running`,
+`Lifecycle active`, `Activity working`, `Workflow in_progress`,
+`Terminal no`, `Cost $0.0000`, created `2026-10-15T05:06:24Z`.
+
+**Portal does not show it.** `/sessions` still read **`No local sessions yet`**
+after the session existed and was `running`. So the documented prerequisite —
+that workspace launch needs a session — is satisfied locally, but Portal is not
+observing it. Either Portal expects sessions it launched itself, or it polls a
+different scope. Not diagnosed further; the test session was deleted afterwards
+(`Session deleted`, and `get` then returns `Session not found`).
+
+**A second, independent Xirp defect:** `xirp session list` returns
+`No sessions found`, and `--json` returns `[]`, for a session that `get` and
+`session goal` both read successfully. Reproduced three ways:
+- `xirp session list` -> `No sessions found.`
+- `xirp session list --status running` -> `No sessions found.`
+- `xirp session list --json` -> `[]`
+- `xirp session goal <id>` -> returns the goal text correctly
+
+So enumeration is broken independently of Portal. That matters here because
+`squab --orchestrator-list` and any Portal-side polling path both depend on
+enumeration. Worth reporting alongside the vendor question.
+
+### The New Session button is a no-op in the browser
+Clicking **New Session** in the workspace header registers as clicked but opens
+no dialog, creates no session, and navigates nowhere; `list_tabs` shows no new
+tab and no Xirp window appears. The Xirp app *is* running (pid 67945) with a live
+daemon (`xirp api send agents:list` responds). So the button's behaviour is
+unexplained. Given `session new` works locally, the most likely reading is that
+the button dispatches the `web+xirp://` custom-scheme link seen in the local
+session's `links.desktop` field, and that scheme is not handled in Firefox. That
+would make this a browser-environment limitation rather than a Portal defect —
+but it is inference, not something verified, so it is recorded as such.
+
+## Cleanup performed
+The test session was deleted and verified gone (`Session not found`). No worktree
+was created (`worktreePath: null`), no branch was made (`branch: null`), and the
+Jcode checkout's pre-existing untracked files are untouched.
+
+## Appendix A. OAuth discovery detail
+
+### 1.9b RFC 9728 protected-resource metadata — verified present
+
+Portal publishes genuine MCP authorization-discovery documents (real
+`application/json`, unlike the CIMD false positive above):
+
+`GET /.well-known/oauth-protected-resource` ->
+```json
+{"resource":"https://phenotype.spotifyportal.com/api/mcp-actions/",
+ "authorization_servers":["https://phenotype.spotifyportal.com/api/auth"],
+ "scopes_supported":["openid","offline_access"]}
+```
+`GET /.well-known/oauth-protected-resource/v1` -> the same document with
+`"resource":"https://phenotype.spotifyportal.com/api/mcp-actions/v1"`, matching
+the MCP endpoint path exactly.
+
+The path-scoped variant
+`/api/mcp-actions/.well-known/oauth-protected-resource` returns **401**, so
+metadata is served only from the origin root, not per-resource. Worth knowing:
+a client that derives the metadata URL from the resource URL rather than trying
+the origin root will get a 401 and may misdiagnose the endpoint as
+unconfigured.
+
+Consequence for the bridge plan: the full discovery chain a compliant MCP client
+needs is present and consistent —
+`protected-resource metadata -> authorization_servers -> /.well-known/oauth-authorization-server`
+— and both `resource` values line up with
+`https://phenotype.spotifyportal.com/api/mcp-actions/v1`. RFC 8707 resource
+binding against that exact `resource` string is therefore well-defined, which
+is what `mcp-remote --resource` should be pointed at. The remaining gap is still
+client identity (B6), not discovery.
+
+## Appendix B. CIMD allow-list enforcement — proven with controls
+
+### 1.10b CIMD allow-list enforcement — PROVEN, with controls (B6 confirmed)
+
+This is the decisive experiment for XJ-03 / blocker B6. Read-only `GET` requests
+only; **no credentials were sent, no consent was granted, and nothing was
+authorized.** Only `client_id`, `response_type`, `redirect_uri`, `scope` and a
+dummy PKCE challenge were supplied.
+
+| `client_id` (CIMD URL) | Host resolvable | Result |
+|---|---|---|
+| `https://xirp.spotify.com/oauth/client-metadata.json` (**allow-listed**) | yes | **302** -> `https://phenotype.spotifyportal.com/oauth2/authorize/2e80fd66-...` |
+| `https://kooshapari.com/oauth/client-metadata.json` | yes (200) | **400** `InputError` |
+| `https://jcode.sh/oauth/client-metadata.json` | yes | **400** `InputError` |
+| `https://example.invalid/oauth/client-metadata.json` | no (DNS fail) | **400** `InputError` |
+| *(no `client_id` at all)* | n/a | **400** |
+
+Exact rejection body:
+```json
+{"error":{"name":"InputError",
+  "message":"Invalid client_id 'https://kooshapari.com/oauth/client-metadata.json'"},
+ "request":{"method":"GET","url":"/v1/authorize?client_id=..."},
+ "response":{"statusCode":400}}
+```
+
+Why the controls matter: `kooshapari.com` and `jcode.sh` both resolve over
+HTTPS, so their 400s cannot be blamed on DNS or on the shape of the URL. Only the
+allow-listed Xirp URL is accepted. The gate is therefore **client
+allow-listing specifically**, exactly as B6 predicted, and not protocol
+capability, not PKCE support, and not network reachability.
+
+The consent page itself is reachable and returns `200 text/html`, so the flow
+proceeds normally once a permitted client is presented.
+
+What this means operationally:
+- **B6 is confirmed real and is the only remaining blocker for authenticated
+  Portal MCP.** Everything else in the chain is verified working.
+- A CIMD client does **not** need to pre-register: the authorization server will
+  accept any URL that matches an allow-listed pattern. So the fix is narrow —
+  obtain authorization to add exactly one pattern for our own domain.
+- Our CIMD document must be served over **HTTPS from a stable, publicly
+  reachable URL**, and must declare `redirect_uris` including a loopback
+  callback, `grant_types` including `authorization_code` and `refresh_token`,
+  `token_endpoint_auth_method: "none"`, and scope `openid offline_access` — the
+  same shape as the verified Xirp document.
+
+Do not "solve" this by reusing Xirp's CIMD URL. That authenticates as Xirp and
+would attribute Jcode's actions to it in Portal's audit trail.
+
+## Appendix C. PR 619 non-catalog validation
+
+Checked at the PR's real base `b69b4f4bf` rather than my commit parent:
+
+- `bench.yml` parses as YAML (jobs: `bench`, `compare-baseline`).
+- The repaired comparison block passes `bash -n`. The `+ fi` added in the PR
+  correctly closes the `if [ -f baseline-results/criterion.txt ] && [ -f
+  current-results/criterion.txt ]; then` opened above the Python heredoc. This is
+  a **valid repair, not a bug** — I initially suspected a missing `if` and was
+  wrong.
+- `--bench criterion_bench` matches the declared `[[bench]]` target in
+  `Cargo.toml` (`name = "criterion_bench"`, `harness = false`), and
+  `benches/criterion_bench.rs` exists.
+- The placeholder limitation is still real: `benches/criterion_bench.rs` is 6
+  lines and benchmarks `1 + 1`. Not performance evidence, and now stated as such
+  in the PR body.
+- Descriptors are YAML with trailing commas, so they are **not** strict JSON
+  documents. Their *parsed values* are JSON-serializable, which is what the
+  README's "JSON-compatible values" wording actually claims. Both readings are
+  recorded so the next session does not "fix" a non-issue.
+
+## Appendix D. Bridge selection detail
+
+### 1.10 Bridge selection for XJ-03 — DECIDED, not yet deployed
+
+Read-only research (no installs, no config writes). Full report preserved at
+`evidence/mcp-bridge-research.md`.
+
+**Verdict: `punkpeye/mcp-remote` (npm `mcp-remote`) is the only viable bridge.**
+
+| Candidate | Streamable HTTP | OAuth PKCE | DCR | **CIMD** | Verdict |
+|---|---|---|---|---|---|
+| `mcp-remote` v0.15.1 (2026-10-14) | yes | yes | yes | **yes** (`--client-metadata-url`) | **SELECTED** |
+| `sparfenyuk/mcp-proxy` v0.13.0 | yes | **no PKCE, no refresh** | no | no | static-bearer only |
+| `mikluko/mcp-proxy` v0.1.0 (2024-11) | yes | yes | yes | no | unmaintained, ~2 commits |
+| official MCP org | — | — | — | — | **no official stdio-to-remote bridge exists** |
+
+CIMD support is the discriminator: only `mcp-remote` implements SEP-991. That is
+exactly what Portal needs, since CIMD is the mechanism its allow-list is built
+around. Caveat recorded honestly: CIMD support was verified from the live README,
+not by reading the TypeScript source.
+
+**Rejected sample config.** The research proposed pointing the bridge at Xirp's
+own CIMD URL:
+```
+"--client-metadata-url", "https://xirp.spotify.com/oauth/client-metadata.json"
+```
+This would authenticate **as Xirp** — `client_name: "Xirp"`. That is
+impersonation of a supported agent, which is explicitly out of bounds, and it
+would make Portal's audit trail attribute Jcode's actions to Xirp. **Rejected.**
+
+The correct config needs **our own** CIMD document, which requires authorization
+to add a pattern to Portal's allowed-client list (B6). Sketch only, not applied:
+```jsonc
+{
+  "mcpServers": {
+    "phenotype-spotify": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote@<pinned-version>",
+               "https://phenotype.spotifyportal.com/api/mcp-actions/v1",
+               "--transport", "http-first",
+               "--client-metadata-url", "<OUR-HTTPS-CIMD-URL>",
+               "--resource", "https://phenotype.spotifyportal.com/api/mcp-actions/v1"]
+    }
+  }
+}
+```
+Version must be pinned, not `@latest`, for reproducibility.
+
+**Hard parts flagged for whoever builds it:** token refresh must be serialized to
+avoid refresh-token rotation races (7-day refresh lifetime, 30-day max session);
+token cache needs `chmod 0600`; `token_endpoint_auth_method` must be read from
+server metadata rather than assumed `none`.
