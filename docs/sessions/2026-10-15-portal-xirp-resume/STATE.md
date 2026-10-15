@@ -249,27 +249,6 @@ The live body still contains two false claims. The corrected text is now
 committed at `docs/sessions/2026-10-15-portal-xirp-resume/pr-67-body.md` so it
 survives a reboot, and can be pasted manually or approved in the inbox.
 
-## 12. Non-catalog parts of PR 619 validated locally (all pass)
-
-Checked at the PR's real base `b69b4f4bf` rather than my commit parent:
-
-- `bench.yml` parses as YAML (jobs: `bench`, `compare-baseline`).
-- The repaired comparison block passes `bash -n`. The `+ fi` added in the PR
-  correctly closes the `if [ -f baseline-results/criterion.txt ] && [ -f
-  current-results/criterion.txt ]; then` opened above the Python heredoc. This is
-  a **valid repair, not a bug** — I initially suspected a missing `if` and was
-  wrong.
-- `--bench criterion_bench` matches the declared `[[bench]]` target in
-  `Cargo.toml` (`name = "criterion_bench"`, `harness = false`), and
-  `benches/criterion_bench.rs` exists.
-- The placeholder limitation is still real: `benches/criterion_bench.rs` is 6
-  lines and benchmarks `1 + 1`. Not performance evidence, and now stated as such
-  in the PR body.
-- Descriptors are YAML with trailing commas, so they are **not** strict JSON
-  documents. Their *parsed values* are JSON-serializable, which is what the
-  README's "JSON-compatible values" wording actually claims. Both readings are
-  recorded so the next session does not "fix" a non-issue.
-
 ## 13. mcp-remote verified from the published package, not just its README
 
 The earlier bridge assessment rested on README claims. Verified against the
@@ -342,7 +321,60 @@ exact-match allow-list would need the derived port registered, and
 `http://127.0.0.1/callback` would not match. Worth asking the vendor alongside the
 harness question, because it changes what we must put in our document.
 
-## 14. Evidence file map
+## 17. Portal sign-in reached a Spotify account login, not Portal (2026-10-15)
+
+PR 619's non-catalog validation (bench.yml `bash -n`, the `criterion_bench`
+target, the placeholder bench, and the strict-JSON vs YAML-wording question) is
+in section 19.
+
+Koosha reported signing in. Enumerating windows found where it landed:
+`https://auth-eu.technology.byspotify.com/u/login/identifier?state=...`,
+tab 4 in window 42, title *"Log in | Spotify Portal for phenotype-3388-plg"*.
+The page body reads:
+
+> Welcome back — Enter your email to continue to Spotify Portal for phenotype-3388-plg.
+> Fields: `Email address *`, one password field, `Continue`.
+
+So the remaining step is a **Spotify account login**, not merely a Portal
+acknowledgement. That is the boundary: credentials and any 2FA code are the
+operator's to enter, never mine to type or request in chat. Koosha has been told
+to complete it directly in Firefox.
+
+### Firefox extension flaps between builds (real, reproducible)
+While polling, the bridge repeatedly reported the live extension as out of date:
+`Missing actions: evaluate, listFrames, scroll`. `browser setup firefox`
+repaired it once ("Downloading assets... done / Native messaging host... already
+configured / Checking Firefox extension... connected, but out of date /
+Clicked Add / ready!"), after which `browser status` returned
+"installed and responding".
+
+But the repair **does not stick**. Subsequent calls on the same session returned,
+in order:
+- `get_content` on tab 4 -> `Timeout waiting for response`
+- `snapshot` on tab 4 -> `Timeout waiting for response`
+- `get_content` on tab 2 -> `Timeout waiting for response`
+- `status` -> healthy
+- `new_tab` Portal -> `Timed out waiting for page load` (SPA keeps requests open)
+- `list_tabs` -> fine, new tab 12 present
+- `get_content` on tab 12 -> `Could not establish connection`
+- `open` on tab 2 -> timeout
+- `get_content` on tab 2 -> **`Missing actions: evaluate, listFrames, scroll`** again
+
+So the extension reverts to the stale build on reload, most likely because the
+`.xpi` is re-read from `~/.jcode/browser/` per navigation and the installed
+copy is not refreshed. Practical consequences for the next session:
+- Do not interpret a single timeout as "not signed in". Check `browser status`
+  first, then `list_tabs`, then retry.
+- Do not run repeated `setup` cycles hoping to clear a page-level timeout; that
+  loop does not converge and burns turns.
+- Once the Spotify login is completed, the first `get_content` on a Portal tab may
+  fail with `content script is not loaded yet`; reload once, then read.
+
+Unresolved: whether this is an extension-pinning bug in the bridge installer or a
+Firefox add-on reload behaviour. Not diagnosed. It does not affect the local
+evidence already gathered, only live Portal inspection.
+
+## 18. Evidence file map
 
 Committed copies live in `evidence/` next to this file. Ephemeral working copies
 remain under /tmp and are lost on reboot.
@@ -441,3 +473,26 @@ What this means operationally:
 
 Do not "solve" this by reusing Xirp's CIMD URL. That authenticates as Xirp and
 would attribute Jcode's actions to it in Portal's audit trail.
+
+## 19. PR 619 non-catalog validation (moved out to stay under 500 lines)
+
+## 12. Non-catalog parts of PR 619 validated locally (all pass)
+
+Checked at the PR's real base `b69b4f4bf` rather than my commit parent:
+
+- `bench.yml` parses as YAML (jobs: `bench`, `compare-baseline`).
+- The repaired comparison block passes `bash -n`. The `+ fi` added in the PR
+  correctly closes the `if [ -f baseline-results/criterion.txt ] && [ -f
+  current-results/criterion.txt ]; then` opened above the Python heredoc. This is
+  a **valid repair, not a bug** — I initially suspected a missing `if` and was
+  wrong.
+- `--bench criterion_bench` matches the declared `[[bench]]` target in
+  `Cargo.toml` (`name = "criterion_bench"`, `harness = false`), and
+  `benches/criterion_bench.rs` exists.
+- The placeholder limitation is still real: `benches/criterion_bench.rs` is 6
+  lines and benchmarks `1 + 1`. Not performance evidence, and now stated as such
+  in the PR body.
+- Descriptors are YAML with trailing commas, so they are **not** strict JSON
+  documents. Their *parsed values* are JSON-serializable, which is what the
+  README's "JSON-compatible values" wording actually claims. Both readings are
+  recorded so the next session does not "fix" a non-issue.
