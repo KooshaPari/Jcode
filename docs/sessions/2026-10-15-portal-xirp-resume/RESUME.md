@@ -178,13 +178,75 @@ This is a wiring gap, not a data gap: Jcode does persist transcripts at
 `edit-stats/` tree. Format is JSON, not the JSONL the Claude/Pi adapters read, so
 a future adapter needs a real parser.
 
-### 1.7 Xirp daemon quirk worth knowing
+### 1.8 Xirp daemon quirk worth knowing
 `xirp features` fails with
 `Could not connect to the daemon at ws://localhost:3849: ECONNREFUSED`
 while `xirp api ...` succeeds against the same daemon. Use
 `xirp api send agents:list` for health checks, not `xirp features`.
 
 ---
+
+
+### 1.9 Portal OAuth discovery — verified, and one near-miss avoided
+
+Probed directly, unauthenticated, with `curl`. All read-only.
+
+**Real, verified — the authorization server metadata** at
+`https://phenotype.spotifyportal.com/.well-known/oauth-authorization-server`
+(genuine `application/json`):
+
+| Field | Value |
+|---|---|
+| `issuer` | `https://phenotype.spotifyportal.com/api/auth` |
+| `authorization_endpoint` | `https://phenotype.spotifyportal.com/api/auth/v1/authorize` |
+| `token_endpoint` | `https://phenotype.spotifyportal.com/api/auth/v1/token` |
+| `userinfo_endpoint` | `https://phenotype.spotifyportal.com/api/auth/v1/userinfo` |
+| `jwks_uri` | `https://phenotype.spotifyportal.com/api/auth/.well-known/jwks.json` |
+| `scopes_supported` | `openid`, `offline_access` |
+| `grant_types_supported` | `authorization_code`, `refresh_token` |
+| `code_challenge_methods_supported` | `S256`, `plain` |
+| `token_endpoint_auth_methods_supported` | `client_secret_basic`, `client_secret_post`, `none` |
+| `registration_endpoint` | **absent** |
+
+**Near-miss, corrected:** the path
+`https://phenotype.spotifyportal.com/.well-known/oauth-client-metadata.json`
+returns **HTTP 200**, which looks like a working CIMD document. It is not. It is
+the SPA fallback: `content-type: text/html`, 13,761 bytes. A control request to
+`/.well-known/definitely-not-real-xyz.json` returns the identical 200 /
+`text/html` / 13,761 bytes. So **any** `200` on this host proves nothing; the
+content type must be checked. Do not record Portal as publishing a CIMD document.
+
+**What this means for the bridge decision (XJ-03):**
+- PKCE is supported, including `S256`. Good: no client secret is strictly
+  required (`token_endpoint_auth_methods_supported` includes `none`).
+- There is **no `registration_endpoint`**, so OAuth Dynamic Client Registration
+  is not offered. A bridge cannot self-register a client id at runtime.
+- CIMD requires the client to publish a *reachable HTTPS* client-metadata
+  document and for the authorization server to allow-list its URL as a client
+  pattern. Portal's allowed patterns are currently `https://claude.ai/*`,
+  `https://chatgpt.com/oauth/codex/*/client.json`,
+  `https://backstage.spotify.com/chirp.json`,
+  `https://xirp.spotify.com/oauth/client-metadata.json`. None of those is ours,
+  and widening the list is explicitly out of bounds without authorization.
+- Verified reference shape, from the Xirp document that IS allow-listed
+  (`https://xirp.spotify.com/oauth/client-metadata.json`, HTTP 200 JSON):
+  ```json
+  {"client_id":"https://xirp.spotify.com/oauth/client-metadata.json",
+   "client_name":"Xirp",
+   "redirect_uris":["http://127.0.0.1/callback"],
+   "response_types":["code"],
+   "grant_types":["authorization_code","refresh_token"],
+   "token_endpoint_auth_method":"none",
+   "scope":"openid offline_access"}
+  ```
+  Note `token_endpoint_auth_method: "none"` and a loopback redirect. That is the
+  shape any Jcode bridge would need to match, once a pattern is allowed.
+
+Net: the auth server is capable of PKCE + public client. The blocker is
+**client allow-listing**, not protocol capability. That requires either a
+pre-registered static client id, or operator authorization to add a CIMD URL to
+the allowed patterns. Neither can be minted from this session.
+
 
 ## 2. Exact revisions at time of writing
 
@@ -226,16 +288,17 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 
 | # | Task | Blocked by |
 |---|---|---|
-| A | Commit + push the PR 67 doc update | nothing — do this next |
-| B | Verify Portal catalog force-sync outcome (was "Syncing" on Oct 14) | needs Portal session |
-| C | Diagnose private-source retrieval failure with actual errors | needs Portal session + source refresh |
-| D | Reconcile PhenoRegistry descriptors: 42-recorded vs 46-actual | depends on B |
-| E | Decide bridge for Portal MCP (XJ-03) | needs bridge selection research |
-| F | Authorize + send vendor question | **operator authorization required** |
+| A | Commit + push PR 67 doc updates | **DONE** (`ff5e0a47f`, `8d1002352`) |
+| B | Verify Portal catalog force-sync outcome (was "Syncing" on Oct 14) | B2 browser bridge |
+| C | Diagnose private-source retrieval failure with actual errors | B2 browser bridge |
+| D | Rename `kcode.yaml` -> `jcode.yaml` and reconcile descriptors (1.6) | B2 — defer so ingestion is observed, not guessed |
+| E | Decide bridge for Portal MCP (XJ-03) | B6 client allow-listing |
+| F | Authorize + send vendor question | **operator authorization** |
 | G | Complete local PR 619 checks; keep description accurate | local validation, $0 CI |
-| H | Verify authenticated Portal tool discovery + bounded workspace read | needs Portal session |
-| I | Review 5 pending wiki suggestions against exact current sources | needs Portal session |
+| H | Verify authenticated Portal tool discovery + bounded workspace read | B2 + B6 |
+| I | Review 5 pending wiki suggestions against exact current sources | B2 browser bridge |
 | J | Full launch -> context -> result -> transcript flow | blocked on B and F |
+| K | Apply corrected PR 67 description | inbox approval (deferred by hook) |
 
 ## 5. Blockers (explicit)
 
@@ -269,6 +332,22 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 - **B5 — Unauthorized actions deliberately NOT taken.** No support message sent.
   No allowed-client-pattern widening. No credential minting/replacement. No
   destructive catalog preview applied. No transcript uploaded. No PR merged.
+- **B6 (NEW) — Portal OAuth client allow-listing.** The authorization server
+  supports PKCE (`S256`) and public clients (`token_endpoint_auth_method:
+  none`), so the protocol is capable. The obstacle is identity: there is **no**
+  `registration_endpoint`, so Dynamic Client Registration is unavailable, and CIMD
+  requires a reachable HTTPS client-metadata document whose URL matches an
+  allow-listed pattern. The current patterns are `https://claude.ai/*`,
+  `https://chatgpt.com/oauth/codex/*/client.json`,
+  `https://backstage.spotify.com/chirp.json`,
+  `https://xirp.spotify.com/oauth/client-metadata.json`. None is ours.
+  Unblocking needs either a pre-registered static client id or operator
+  authorization to widen the pattern list. Both are outside current authority.
+  Details and the verified reference document shape are in 1.9.
+- **B7 — `gh pr edit` requires inbox approval.** The corrected PR 67 description
+  is staged at `/tmp/pr67-body-2.md`; the command was deferred by the pre_tool
+  hook and has not been applied. The live PR body still contains two now-false
+  claims (probe reported both CLIs absent; app was not probed).
 
 ### 5.1 CI cost check — $0 confirmed for this session's push
 `git push` of commit `ff5e0a47f` (docs only) triggered **no** workflow runs:
