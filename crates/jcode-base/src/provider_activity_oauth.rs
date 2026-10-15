@@ -123,13 +123,11 @@ fn priced_usage(
 ) -> Totals {
     let cached = cached.unwrap_or(0);
     let complete = input.is_some() && output.is_some() && cached <= input.unwrap_or(0);
-    // Capture input/output once they are known to be Some (when complete),
-    // so the cost computation does not need unwraps.
-    let (input_tokens, output_tokens) = if complete {
-        (input.unwrap_or(0), output.unwrap_or(0))
-    } else {
-        (0, 0)
-    };
+    // Capture input/output without unwraps. Each count keeps whatever is
+    // known even when the other is missing; `complete` gates only the cost
+    // computation below, which requires both.
+    let input_tokens = input.unwrap_or(0);
+    let output_tokens = output.unwrap_or(0);
     let cost =
         jcode_provider_core::pricing::openai_api_pricing_with_tier(model, tier).and_then(|price| {
             if !complete {

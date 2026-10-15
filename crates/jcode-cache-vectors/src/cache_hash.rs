@@ -25,9 +25,16 @@ pub fn djb2_hash(s: &str) -> u64 {
 pub fn compute_hash(data: &impl Serialize) -> u64 {
     let json = match serde_json::to_string(data) {
         Ok(s) => s,
-        // Serialization failure cannot crash a cache lookup. Fall back to the
-        // empty-document djb2 value so unrelated lookups still hit the cache.
-        Err(_) => return djb2_hash(""),
+        // Serialization failure cannot crash a cache lookup - but hashing a
+        // constant fallback makes every failed input share one key and return
+        // the wrong cached data. Give each failure a unique key instead so it
+        // always misses (cache effectively skips unserializable inputs).
+        Err(_) => {
+            use std::sync::atomic::{AtomicU64, Ordering};
+            static FAILED_HASH_COUNTER: AtomicU64 = AtomicU64::new(0);
+            let n = FAILED_HASH_COUNTER.fetch_add(1, Ordering::Relaxed);
+            return djb2_hash(&format!("serialization-failure:{n}"));
+        }
     };
     djb2_hash(&json)
 }

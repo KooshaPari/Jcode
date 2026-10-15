@@ -36,9 +36,9 @@ const TELEMETRY_SCHEMA_VERSION: u32 = 6;
 const DEFAULT_DISCOVERY_ENDPOINT: &str = "https://api.jcode.sh/v1/discovery";
 static TELEMETRY_PERMANENTLY_REJECTED: AtomicBool = AtomicBool::new(false);
 static TELEMETRY_QUEUE_OVERFLOW_WARNED: AtomicBool = AtomicBool::new(false);
-static TELEMETRY_BACKGROUND_SENDER: OnceLock<SyncSender<Value>> = OnceLock::new();
-static TRANSCRIPT_BACKGROUND_SENDER: OnceLock<SyncSender<Value>> = OnceLock::new();
-static TELEMETRY_HTTP_CLIENT: OnceLock<reqwest::blocking::Client> = OnceLock::new();
+static TELEMETRY_BACKGROUND_SENDER: OnceLock<Option<SyncSender<Value>>> = OnceLock::new();
+static TRANSCRIPT_BACKGROUND_SENDER: OnceLock<Option<SyncSender<Value>>> = OnceLock::new();
+static TELEMETRY_HTTP_CLIENT: OnceLock<Option<reqwest::blocking::Client>> = OnceLock::new();
 #[cfg(test)]
 static TEST_EMITTED_PAYLOADS: Mutex<Vec<Value>> = Mutex::new(Vec::new());
 
@@ -1296,8 +1296,12 @@ fn post_payload(payload: serde_json::Value, timeout: Duration) -> bool {
         reqwest::blocking::Client::builder()
             .user_agent(jcode_provider_core::JCODE_USER_AGENT)
             .build()
-            .unwrap_or_else(|e| unreachable!("telemetry HTTP client must build: {e}"))
+            .ok()
     });
+    let Some(client) = client else {
+        logging::warn("telemetry HTTP client unavailable; dropping payload");
+        return false;
+    };
     match client
         .post(TELEMETRY_ENDPOINT)
         .timeout(timeout)
@@ -1348,8 +1352,12 @@ fn post_transcript_payload(payload: serde_json::Value, timeout: Duration) -> boo
         reqwest::blocking::Client::builder()
             .user_agent(jcode_provider_core::JCODE_USER_AGENT)
             .build()
-            .unwrap_or_else(|e| unreachable!("telemetry HTTP client must build: {e}"))
+            .ok()
     });
+    let Some(client) = client else {
+        logging::warn("telemetry HTTP client unavailable; dropping payload");
+        return false;
+    };
     match client
         .post(TRANSCRIPT_ENDPOINT)
         .timeout(timeout)
@@ -1390,22 +1398,24 @@ where
     Ok(sender)
 }
 
-fn background_sender() -> &'static SyncSender<Value> {
+fn background_sender() -> Option<&'static SyncSender<Value>> {
     TELEMETRY_BACKGROUND_SENDER.get_or_init(|| {
         spawn_background_worker(BACKGROUND_QUEUE_CAPACITY, |payload| {
             let _ = post_payload_with_retry(payload, ASYNC_SEND_TIMEOUT);
         })
-        .unwrap_or_else(|e| unreachable!("telemetry background worker must start: {e}"))
+        .ok()
     })
+    .as_ref()
 }
 
-fn transcript_background_sender() -> &'static SyncSender<Value> {
+fn transcript_background_sender() -> Option<&'static SyncSender<Value>> {
     TRANSCRIPT_BACKGROUND_SENDER.get_or_init(|| {
         spawn_background_worker(64, |payload| {
             let _ = post_transcript_payload(payload, ASYNC_SEND_TIMEOUT);
         })
-        .unwrap_or_else(|e| unreachable!("transcript telemetry background worker must start: {e}"))
+        .ok()
     })
+    .as_ref()
 }
 
 fn send_transcript_payload(payload: Value) -> bool {
@@ -1417,14 +1427,20 @@ fn send_transcript_payload(payload: Value) -> bool {
         return true;
     }
     #[cfg(not(test))]
-    match transcript_background_sender().try_send(payload) {
-        Ok(()) => true,
-        Err(TrySendError::Full(_)) => {
-            logging::warn("transcript upload queue is full; dropping transcript");
-            false
-        }
-        Err(TrySendError::Disconnected(_)) => {
-            logging::warn("transcript upload worker stopped; dropping transcript");
+    match transcript_background_sender() {
+        Some(sender) => match sender.try_send(payload) {
+            Ok(()) => true,
+            Err(TrySendError::Full(_)) => {
+                logging::warn("transcript upload queue is full; dropping transcript");
+                false
+            }
+            Err(TrySendError::Disconnected(_)) => {
+                logging::warn("transcript upload worker stopped; dropping transcript");
+                false
+            }
+        },
+        None => {
+            logging::warn("transcript background worker unavailable; dropping transcript");
             false
         }
     }
@@ -1450,21 +1466,27 @@ fn send_payload(mut payload: serde_json::Value, mode: DeliveryMode) -> bool {
                 return false;
             }
             logging::debug("queueing telemetry payload for background delivery");
-            match background_sender().try_send(payload) {
-                Ok(()) => {
-                    TELEMETRY_QUEUE_OVERFLOW_WARNED.store(false, Ordering::Relaxed);
-                    true
-                }
-                Err(TrySendError::Full(_)) => {
-                    if !TELEMETRY_QUEUE_OVERFLOW_WARNED.swap(true, Ordering::Relaxed) {
-                        logging::warn(&format!(
-                            "telemetry background queue is full (capacity={BACKGROUND_QUEUE_CAPACITY}); dropping events until delivery catches up"
-                        ));
+            match background_sender() {
+                Some(sender) => match sender.try_send(payload) {
+                    Ok(()) => {
+                        TELEMETRY_QUEUE_OVERFLOW_WARNED.store(false, Ordering::Relaxed);
+                        true
                     }
-                    false
-                }
-                Err(TrySendError::Disconnected(_)) => {
-                    logging::warn("telemetry background worker stopped; dropping payload");
+                    Err(TrySendError::Full(_)) => {
+                        if !TELEMETRY_QUEUE_OVERFLOW_WARNED.swap(true, Ordering::Relaxed) {
+                            logging::warn(&format!(
+                                "telemetry background queue is full (capacity={BACKGROUND_QUEUE_CAPACITY}); dropping events until delivery catches up"
+                            ));
+                        }
+                        false
+                    }
+                    Err(TrySendError::Disconnected(_)) => {
+                        logging::warn("telemetry background worker stopped; dropping payload");
+                        false
+                    }
+                },
+                None => {
+                    logging::warn("telemetry background worker unavailable; dropping payload");
                     false
                 }
             }
@@ -1476,10 +1498,17 @@ fn send_payload(mut payload: serde_json::Value, mode: DeliveryMode) -> bool {
             ));
             if tokio::runtime::Handle::try_current().is_ok() {
                 let (tx, rx) = std::sync::mpsc::sync_channel(1);
-                std::thread::spawn(move || {
-                    let _ = tx.send(post_payload(payload, timeout));
-                });
-                rx.recv_timeout(timeout).unwrap_or(false)
+                let payload_for_thread = payload.clone();
+                let spawned = std::thread::Builder::new()
+                    .name("jcode-telemetry-blocking".to_string())
+                    .spawn(move || {
+                        let _ = tx.send(post_payload(payload_for_thread, timeout));
+                    });
+                match spawned {
+                    Ok(_) => rx.recv_timeout(timeout).unwrap_or(false),
+                    // Thread creation failed: fall back to sending inline.
+                    Err(_) => post_payload(payload, timeout),
+                }
             } else {
                 post_payload(payload, timeout)
             }
