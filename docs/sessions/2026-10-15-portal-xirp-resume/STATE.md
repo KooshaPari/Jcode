@@ -208,7 +208,63 @@ real failure. **Re-run the gate properly before relying on that commit.**
 
 PR 619 is still a **draft** and was not merged. Both pilot PRs untouched.
 
-## 10. Evidence file map
+## 10. Browser bridge: SOLVED via Firefox (B2 partially resolved)
+
+Earlier this session B2 looked like a hard blocker needing manual work in two
+browsers. It was not. Re-running setup against **Firefox** connected
+immediately:
+
+```
+browser setup firefox -> "Firefox was not running, so it was launched and the
+                         browser bridge reconnected. No setup action was needed."
+browser status        -> "Browser bridge is installed and responding in Firefox."
+```
+
+Chrome and Safari both need a manual "load unpacked extension" step. Firefox does
+not. **Use Firefox for Portal work.**
+
+Caveat: the Firefox profile is fresh, so it is **not signed in to Portal** —
+`https://phenotype.spotifyportal.com/workspace/phenotype-platform` renders only
+"Sign in to Portal. / Sign in". Portal inspection now needs Koosha to sign in in
+that window, not to install anything. That is a much smaller ask than B2 was.
+
+## 11. PR descriptions corrected
+
+**PR 619 (PhenoRegistry) — APPLIED successfully.** Its description claimed
+"31-repository", cited head `8be56b97`, and omitted the catalog fix. Rewritten
+with: the removal rationale and its three-way verification, the corrected scope
+table (claimed vs verified for all six metrics), the honest statement that the
+benchmark is still a zero-time placeholder, the anonymous-fetchability table,
+and both broken gates. Verified applied by reading it back.
+
+**PR 67 (Jcode) — STILL DEFERRED to the inbox.** `gh pr edit 67` has been
+deferred twice with the same request id `hook-ff88046b9d4d5eb62452865d3a30d179`.
+The live body still contains two false claims. The corrected text is now
+committed at `docs/sessions/2026-10-15-portal-xirp-resume/pr-67-body.md` so it
+survives a reboot, and can be pasted manually or approved in the inbox.
+
+## 12. Non-catalog parts of PR 619 validated locally (all pass)
+
+Checked at the PR's real base `b69b4f4bf` rather than my commit parent:
+
+- `bench.yml` parses as YAML (jobs: `bench`, `compare-baseline`).
+- The repaired comparison block passes `bash -n`. The `+ fi` added in the PR
+  correctly closes the `if [ -f baseline-results/criterion.txt ] && [ -f
+  current-results/criterion.txt ]; then` opened above the Python heredoc. This is
+  a **valid repair, not a bug** — I initially suspected a missing `if` and was
+  wrong.
+- `--bench criterion_bench` matches the declared `[[bench]]` target in
+  `Cargo.toml` (`name = "criterion_bench"`, `harness = false`), and
+  `benches/criterion_bench.rs` exists.
+- The placeholder limitation is still real: `benches/criterion_bench.rs` is 6
+  lines and benchmarks `1 + 1`. Not performance evidence, and now stated as such
+  in the PR body.
+- Descriptors are YAML with trailing commas, so they are **not** strict JSON
+  documents. Their *parsed values* are JSON-serializable, which is what the
+  README's "JSON-compatible values" wording actually claims. Both readings are
+  recorded so the next session does not "fix" a non-issue.
+
+## 13. Evidence file map
 
 Committed copies live in `evidence/` next to this file. Ephemeral working copies
 remain under /tmp and are lost on reboot.
