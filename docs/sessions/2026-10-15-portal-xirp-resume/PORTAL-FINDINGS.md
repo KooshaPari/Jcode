@@ -283,37 +283,44 @@ different scope. Not diagnosed further; the test session was deleted afterwards
 **CORRECTION — there is no Xirp enumeration defect, and the vendor question is
 withdrawn.** This section previously claimed that `xirp session list` returns
 `No sessions found` for a running session, and offered it to Spotify as a
-possible bug in `@chirp/squab`. **That was wrong.** It was my error, and
-retracting it matters more than the original claim.
+possible bug in `@chirp/squab`. **That was wrong**, and so was my first
+correction. The accurate explanation took three passes to pin down.
 
-The real explanation: `xirp session new --goal "<text>"` requires the current
-directory to be a **registered Xirp project** so it can create a worktree. Run
-from an unregistered path it fails with
+**Pass 1 (wrong):** project registration is the gate. I inferred this because
+`xirp project list` showed three registered projects and the one session that
+enumerated had a worktree path. But re-testing from the registered
+`/Users/kooshapari/CodeProjects/Phenotype/repos` still failed, so registration is
+not sufficient.
+
+**Pass 2 (wrong):** git-ness is the gate. Also false — the registered project is
+itself **not** a git repo, yet a session created there enumerates fine.
+
+**Pass 3 (correct):** the gate is **`--no-worktree`**. `xirp session new --goal`
+defaults to creating a git worktree, which requires the project root to be a git
+repository. When that fails it prints
 `Failed to create worktree: Project is not a git repository`, **exits 1, and
-prints no JSON at all**. My test captured that empty output, treated it as a
-session id, and then read the resulting empty list as an enumeration fault. The
+emits no JSON**. My original test captured that empty output, treated it as a
+session id, and then read the resulting empty list as a reader fault. The
 session was never created.
 
-Verified the correction:
+Verified end to end from the same directory: default flags -> `exit=1, no JSON`
+with the worktree error; adding `--no-worktree` -> `exit=0`, a session id, and
+`session list` reporting it as `running / in_progress / 1 session`. So
+`session list`, `--status running` and `--json` all enumerate correctly. Note
+`worktreePath` is populated with the **project root** under `--no-worktree`,
+which is why the successful session looked like a worktree-backed one.
 
-1. `xirp project list` shows three registered projects — `kooshapari`
-   (`/Users/kooshapari`), `repos`
-   (`/Users/kooshapari/CodeProjects/Phenotype/repos`), and `herdr`
-   (`/Users/kooshapari/xirp/repositories/github.com/KooshaPari/herdr.git`).
-2. The one session that enumerated correctly carries
-   `Worktree: /Users/kooshapari/CodeProjects/Phenotype/repos` — a **registered**
-   project path that is itself *not* a git repo. So the error message
-   "Project is not a git repository" is misleading in both directions: it fires
-   for unregistered paths, and registration is what actually matters.
-3. Re-running `session new --goal` from `/tmp` and from a real git checkout fails
-   identically, confirming registration is the gate rather than git-ness.
-4. `session list`, `--status running` and `--json` all enumerate a correctly-created
-   running session with no trouble.
+Two lessons, both recorded because they cost real time:
 
-Lesson worth keeping: **an empty `session list` is not evidence of a bug when
-`session new` may have silently failed.** Check the creation command's exit code
-before concluding anything about the reader. The draft vendor question (g) is
-withdrawn so nobody at Spotify spends time chasing it.
+1. **An empty `session list` is not evidence of a bug when `session new` may have
+   failed silently.** Check the creation command's exit code before concluding
+   anything about the reader.
+2. **Do not infer a mechanism from one observation.** Two of my three
+   explanations were wrong; both looked plausible from the evidence at hand. The
+   discriminator appeared only after reading `xirp session new --help`.
+
+The draft vendor question (g) is withdrawn so nobody at Spotify spends time
+chasing a non-existent defect.
 
 ### The New Session button is a no-op in the browser
 Clicking **New Session** in the workspace header registers as clicked but opens
@@ -330,171 +337,3 @@ but it is inference, not something verified, so it is recorded as such.
 The test session was deleted and verified gone (`Session not found`). No worktree
 was created (`worktreePath: null`), no branch was made (`branch: null`), and the
 Jcode checkout's pre-existing untracked files are untouched.
-
-## CIMD hosting: where the document can actually be served (2026-10-15)
-
-Tested candidate hosts before recommending the append. Two of them look right and
-are not, which is worth writing down so nobody repeats the check.
-
-### Both obvious domain choices fail
-
-| Host | Probe | Result |
-|---|---|---|
-| `https://kooshapari.com/oauth/client-metadata.json` | anonymous GET | **404** |
-| `https://jcode.sh/oauth/client-metadata.json` | anonymous GET | **200 — but `text/html`, 98,237 bytes** |
-| `https://jcode.sh/definitely-not-real-xyz` (control) | anonymous GET | **200, `text/html`, 98,425 bytes** |
-
-`jcode.sh` is a Cloudflare-hosted SPA (`server: cloudflare`) that returns the
-HTML shell with **HTTP 200 for every path**. So the 200 on the CIMD path is the
-identical SPA-fallback trap already found on Portal's
-`/.well-known/oauth-client-metadata.json`. **Content-type must be checked; a 200
-proves nothing on an SPA host.** Neither `kooshapari.com` nor `jcode.sh` can
-serve the document as it stands.
-
-### raw.githubusercontent is the viable route, with one caveat
-
-`KooshaPari/Jcode` is `private: false, visibility: public, fork: true`, and
-anonymous raw fetches work — e.g. `README.md` and `Cargo.toml` both return 200.
-So a CIMD document committed to that repo would be anonymously fetchable.
-
-**Caveat, stated honestly:** raw serves JSON as `content-type: text/plain`.
-Verified against a real file (`fork-prompt-session-rich-summary.json` -> 200,
-`text/plain`). Whether Spotify's auth backend accepts a client-metadata document
-served as `text/plain` is **not established**, because the only allow-listed
-document that could serve as a comparison point, Xirp's, is served as
-`application/json` from a normal web host. If the fetcher is strict, raw is the
-wrong host and a small static host or Cloudflare Worker returning
-`application/json` would be required.
-
-Two of my own earlier 404s during this check were my error, not a property of
-raw: I probed `package.json` and `biome.json`, neither of which exists at Jcode
-master root. Corrected by listing the directory first.
-
-### Net hosting recommendation
-1. **Preferred:** a static host that serves `application/json` at a stable HTTPS
-   path — a small Cloudflare Worker is the natural fit given the account already
-   runs one for `jcode.sh`.
-2. **Fallback:** a file committed to a public repo and served via
-   `raw.githubusercontent.com`, accepting the `text/plain` risk and testing it
-   against the real authorization endpoint before relying on it.
-
-Either way, the allow-list pattern appended in App Settings must match the URL
-actually used, and the redirect port must be re-derived by
-`scripts/derive_callback_port.py` for that exact URL. The port is 18586 for
-`https://kooshapari.com/oauth/client-metadata.json` and **35683** for
-`https://jcode.sh/oauth/client-metadata.json`, so it changes with the choice.
-
-### Bridge state during this work
-The Firefox bridge flapped again and stopped responding, and `browser setup
-firefox` could not complete — it needs a manual "Add" click in the extension
-prompt. This is the same flap already documented in STATE.md section 13. It did
-not block this work, because everything above was done with `curl`.
-
-## CIMD hosting: the deployment is now scoped (2026-10-15)
-
-Verified against the Cloudflare API and by probe, so the operator's step is a
-single known action rather than a design decision.
-
-### `kooshapari.com` is a Cloudflare zone in your own account
-
-```
-/zones -> kooshapari.com (active, 6c9edab581e9c7b8fdb6a83adc6878ea)
-         pheno.shop, pheno.studio, phenotype.space
-whoami -> user:2a8cf34986db70be316acea959d9b9b9b9, kooshapari@gmail.com
-```
-
-That is the decisive fact: the domain named in my recommended pattern is one you
-control in Cloudflare, so a Worker route on it is a first-party operation.
-
-### Today `kooshapari.com` is served by Vercel, and the path 404s honestly
-
-| Path | Status | Content-Type |
-|---|---|---|
-| `/` | 200 | text/html |
-| `/index.html` | 200 | text/html |
-| `/.well-known/oauth-client-metadata.json` | 404 | text/plain |
-| `/oauth/client-metadata.json` | 404 | text/plain |
-
-`server: Vercel`. Note this is the **good** failure mode: Vercel returns a real
-`404 text/plain` for unknown paths rather than an HTML fallback with a 200. So
-`kooshapari.com` is a trustworthy host for the pattern — the 404 today simply
-means nothing is deployed at that path yet.
-
-### No existing Worker can be reused
-
-Enumerated all 12 Workers: `agent-digest`, `dispensary-collector`,
-`job-collector`, `job-collector-verification-preview`, `phenotype-apex-landing`,
-`phenotype-pages-proxy`, `relay-forwarder`, `shop-redirect`, `studio-redirect`,
-`tracera-edge`, `tracera-edge-dev`, `tracera-edge-preview`. **Every one has
-`routes: []`**, so none owns a custom domain, and none is a fit — they do email,
-KV/D1/R2 collection, redirects, and a tracera API. A dedicated Worker is
-required.
-
-Also checked Pages: only `job-cockpit` (dash.kooshapari.com) and
-`harnessdesk-preview` exist. `jcode.sh` is in **none** of this account's zones,
-which is consistent with it being an external/Vercel-hosted domain and is why it
-was not an option.
-
-### Recommended deployment, exactly
-
-A new Worker with a route scoped to **only** the CIMD path, so it cannot affect
-any other path on the domain:
-
-- Worker name: `jcode-cimd`
-- Route: `kooshapari.com/oauth/client-metadata.json` (exact path, not a wildcard)
-- Response: `content-type: application/json`, `cache-control` short, CORS not
-  required (server-to-server fetch)
-- Body: the committed template with `client_id` set to that same URL,
-  `client_name` set to our own identity, and `redirect_uris` containing
-  `http://127.0.0.1:18586/oauth/callback`
-
-**Order matters.** Deploy and verify the URL returns real JSON *first*, then
-append the allow-list pattern in App Settings. Adding the pattern before the
-document is served would allow a client_id that cannot be resolved.
-
-### The exact port, once more
-`18586` for `https://kooshapari.com/oauth/client-metadata.json`, derived by
-`scripts/derive_callback_port.py` and cross-checked against the shipped
-`mcp-remote` JavaScript. Recompute if the URL changes.
-
-### The Worker config is validated, not just written
-
-Two independent checks, neither of which deploys anything:
-
-**`wrangler deploy --dry-run`** against a real `wrangler.toml` (name `jcode-cimd`,
-`main = index.js`, `compatibility_date = 2026-10-15`, and the single route
-`kooshapari.com/oauth/client-metadata.json` on `zone_name = kooshapari.com`):
-
-```
-Total Upload: 1.52 KiB / gzip: 0.81 KiB
-No bindings found.
---dry-run: exiting now.
-```
-
-So the bundle builds and the config parses. Note the dry-run does **not** contact
-Cloudflare, so it cannot prove the route pattern is accepted.
-
-**Cloudflare API, zone `6c9edab581e9c7b8fdb6a83adc6878ea`:**
-- `zoneStatus: "active"`, `zoneName: "kooshapari.com"`
-- `GET /zones/{id}/workers/routes` -> **`routeCount: 0`**
-
-That zero is worth stating precisely, for two reasons. First, **no route
-occupies our path**, so the deploy cannot collide with anything. Second, it
-independently corroborates the `curl` probe: nothing is serving
-`/oauth/client-metadata.json` on this zone today, which is why that path 404s
-rather than falling back.
-
-Together these mean the deploy step is a known-good configuration meeting an
-empty target. What remains genuinely unproven is only whether Spotify's auth
-backend accepts the resulting document — which is exactly what the allow-list
-append and a test authorization would establish.
-
-### One gap in the dry-run worth being honest about
-`wrangler deploy --dry-run` validates the bundle and the TOML, but it does not
-call the Cloudflare API, so it cannot catch a malformed route pattern. The API
-call above confirms the zone is active but does not itself validate the pattern
-string. If the deploy fails on the route, the fallback is to drop `routes` from
-wrangler.toml, deploy the Worker on its default `*.workers.dev` URL, verify the
-document there, and only then attach the custom domain. That fallback changes the
-client_id URL, which changes the derived port, so it is a last resort rather than
-an equal option.

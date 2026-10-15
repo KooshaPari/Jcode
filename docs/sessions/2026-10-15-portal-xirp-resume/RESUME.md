@@ -176,13 +176,15 @@ Both surfaces had never been inspected. Neither works end to end. Detail in
   the Xirp app running with a live daemon.
 - **CORRECTION: there is no Xirp enumeration defect.** An earlier version of this
   record claimed `xirp session list` returns `[]` for a running session. That was
-  my error. `xirp session new --goal` requires the current directory to be a
-  *registered* Xirp project; run from an unregistered path it fails with
-  `Failed to create worktree: Project is not a git repository`, exits 1, and
-  prints no JSON. So the session was never created, and the empty list was
-  correct. Verified: after registering the path, `session new` succeeds and
-  `session list`, `--status running` and `--json` all enumerate it correctly. The
-  corresponding vendor question has been withdrawn.
+  my error. The gate is **`--no-worktree`**: `xirp session new --goal` defaults to
+  creating a git worktree, and when the project root is not a git repo it prints
+  `Failed to create worktree: Project is not a git repository`, **exits 1, and
+  emits no JSON**. My test captured that empty output as a session id, so the
+  session was never created and the empty list was correct. Verified: the same
+  directory with `--no-worktree` creates a session (exit 0) and `session list`,
+  `--status running` and `--json` all enumerate it. The vendor question is
+  withdrawn. Two of my three successive explanations were wrong; the detail is in
+  `PORTAL-FINDINGS.md`.
 
 The disposable test session was deleted and verified gone. No worktree or branch
 was created, and the checkout's pre-existing untracked files are untouched.

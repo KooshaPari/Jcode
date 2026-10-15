@@ -295,3 +295,173 @@ template already committed at
 `docs/sessions/2026-10-15-portal-xirp-resume/portal-cimd.client-metadata.template.json`,
 with the redirect port derived by `scripts/derive_callback_port.py` for that exact
 URL (18586).
+
+## Appendix E. CIMD hosting analysis
+
+## CIMD hosting: where the document can actually be served (2026-10-15)
+
+Tested candidate hosts before recommending the append. Two of them look right and
+are not, which is worth writing down so nobody repeats the check.
+
+### Both obvious domain choices fail
+
+| Host | Probe | Result |
+|---|---|---|
+| `https://kooshapari.com/oauth/client-metadata.json` | anonymous GET | **404** |
+| `https://jcode.sh/oauth/client-metadata.json` | anonymous GET | **200 — but `text/html`, 98,237 bytes** |
+| `https://jcode.sh/definitely-not-real-xyz` (control) | anonymous GET | **200, `text/html`, 98,425 bytes** |
+
+`jcode.sh` is a Cloudflare-hosted SPA (`server: cloudflare`) that returns the
+HTML shell with **HTTP 200 for every path**. So the 200 on the CIMD path is the
+identical SPA-fallback trap already found on Portal's
+`/.well-known/oauth-client-metadata.json`. **Content-type must be checked; a 200
+proves nothing on an SPA host.** Neither `kooshapari.com` nor `jcode.sh` can
+serve the document as it stands.
+
+### raw.githubusercontent is the viable route, with one caveat
+
+`KooshaPari/Jcode` is `private: false, visibility: public, fork: true`, and
+anonymous raw fetches work — e.g. `README.md` and `Cargo.toml` both return 200.
+So a CIMD document committed to that repo would be anonymously fetchable.
+
+**Caveat, stated honestly:** raw serves JSON as `content-type: text/plain`.
+Verified against a real file (`fork-prompt-session-rich-summary.json` -> 200,
+`text/plain`). Whether Spotify's auth backend accepts a client-metadata document
+served as `text/plain` is **not established**, because the only allow-listed
+document that could serve as a comparison point, Xirp's, is served as
+`application/json` from a normal web host. If the fetcher is strict, raw is the
+wrong host and a small static host or Cloudflare Worker returning
+`application/json` would be required.
+
+Two of my own earlier 404s during this check were my error, not a property of
+raw: I probed `package.json` and `biome.json`, neither of which exists at Jcode
+master root. Corrected by listing the directory first.
+
+### Net hosting recommendation
+1. **Preferred:** a static host that serves `application/json` at a stable HTTPS
+   path — a small Cloudflare Worker is the natural fit given the account already
+   runs one for `jcode.sh`.
+2. **Fallback:** a file committed to a public repo and served via
+   `raw.githubusercontent.com`, accepting the `text/plain` risk and testing it
+   against the real authorization endpoint before relying on it.
+
+Either way, the allow-list pattern appended in App Settings must match the URL
+actually used, and the redirect port must be re-derived by
+`scripts/derive_callback_port.py` for that exact URL. The port is 18586 for
+`https://kooshapari.com/oauth/client-metadata.json` and **35683** for
+`https://jcode.sh/oauth/client-metadata.json`, so it changes with the choice.
+
+### Bridge state during this work
+The Firefox bridge flapped again and stopped responding, and `browser setup
+firefox` could not complete — it needs a manual "Add" click in the extension
+prompt. This is the same flap already documented in STATE.md section 13. It did
+not block this work, because everything above was done with `curl`.
+
+## CIMD hosting: the deployment is now scoped (2026-10-15)
+
+Verified against the Cloudflare API and by probe, so the operator's step is a
+single known action rather than a design decision.
+
+### `kooshapari.com` is a Cloudflare zone in your own account
+
+```
+/zones -> kooshapari.com (active, 6c9edab581e9c7b8fdb6a83adc6878ea)
+         pheno.shop, pheno.studio, phenotype.space
+whoami -> user:2a8cf34986db70be316acea959d9b9b9b9, kooshapari@gmail.com
+```
+
+That is the decisive fact: the domain named in my recommended pattern is one you
+control in Cloudflare, so a Worker route on it is a first-party operation.
+
+### Today `kooshapari.com` is served by Vercel, and the path 404s honestly
+
+| Path | Status | Content-Type |
+|---|---|---|
+| `/` | 200 | text/html |
+| `/index.html` | 200 | text/html |
+| `/.well-known/oauth-client-metadata.json` | 404 | text/plain |
+| `/oauth/client-metadata.json` | 404 | text/plain |
+
+`server: Vercel`. Note this is the **good** failure mode: Vercel returns a real
+`404 text/plain` for unknown paths rather than an HTML fallback with a 200. So
+`kooshapari.com` is a trustworthy host for the pattern — the 404 today simply
+means nothing is deployed at that path yet.
+
+### No existing Worker can be reused
+
+Enumerated all 12 Workers: `agent-digest`, `dispensary-collector`,
+`job-collector`, `job-collector-verification-preview`, `phenotype-apex-landing`,
+`phenotype-pages-proxy`, `relay-forwarder`, `shop-redirect`, `studio-redirect`,
+`tracera-edge`, `tracera-edge-dev`, `tracera-edge-preview`. **Every one has
+`routes: []`**, so none owns a custom domain, and none is a fit — they do email,
+KV/D1/R2 collection, redirects, and a tracera API. A dedicated Worker is
+required.
+
+Also checked Pages: only `job-cockpit` (dash.kooshapari.com) and
+`harnessdesk-preview` exist. `jcode.sh` is in **none** of this account's zones,
+which is consistent with it being an external/Vercel-hosted domain and is why it
+was not an option.
+
+### Recommended deployment, exactly
+
+A new Worker with a route scoped to **only** the CIMD path, so it cannot affect
+any other path on the domain:
+
+- Worker name: `jcode-cimd`
+- Route: `kooshapari.com/oauth/client-metadata.json` (exact path, not a wildcard)
+- Response: `content-type: application/json`, `cache-control` short, CORS not
+  required (server-to-server fetch)
+- Body: the committed template with `client_id` set to that same URL,
+  `client_name` set to our own identity, and `redirect_uris` containing
+  `http://127.0.0.1:18586/oauth/callback`
+
+**Order matters.** Deploy and verify the URL returns real JSON *first*, then
+append the allow-list pattern in App Settings. Adding the pattern before the
+document is served would allow a client_id that cannot be resolved.
+
+### The exact port, once more
+`18586` for `https://kooshapari.com/oauth/client-metadata.json`, derived by
+`scripts/derive_callback_port.py` and cross-checked against the shipped
+`mcp-remote` JavaScript. Recompute if the URL changes.
+
+### The Worker config is validated, not just written
+
+Two independent checks, neither of which deploys anything:
+
+**`wrangler deploy --dry-run`** against a real `wrangler.toml` (name `jcode-cimd`,
+`main = index.js`, `compatibility_date = 2026-10-15`, and the single route
+`kooshapari.com/oauth/client-metadata.json` on `zone_name = kooshapari.com`):
+
+```
+Total Upload: 1.52 KiB / gzip: 0.81 KiB
+No bindings found.
+--dry-run: exiting now.
+```
+
+So the bundle builds and the config parses. Note the dry-run does **not** contact
+Cloudflare, so it cannot prove the route pattern is accepted.
+
+**Cloudflare API, zone `6c9edab581e9c7b8fdb6a83adc6878ea`:**
+- `zoneStatus: "active"`, `zoneName: "kooshapari.com"`
+- `GET /zones/{id}/workers/routes` -> **`routeCount: 0`**
+
+That zero is worth stating precisely, for two reasons. First, **no route
+occupies our path**, so the deploy cannot collide with anything. Second, it
+independently corroborates the `curl` probe: nothing is serving
+`/oauth/client-metadata.json` on this zone today, which is why that path 404s
+rather than falling back.
+
+Together these mean the deploy step is a known-good configuration meeting an
+empty target. What remains genuinely unproven is only whether Spotify's auth
+backend accepts the resulting document — which is exactly what the allow-list
+append and a test authorization would establish.
+
+### One gap in the dry-run worth being honest about
+`wrangler deploy --dry-run` validates the bundle and the TOML, but it does not
+call the Cloudflare API, so it cannot catch a malformed route pattern. The API
+call above confirms the zone is active but does not itself validate the pattern
+string. If the deploy fails on the route, the fallback is to drop `routes` from
+wrangler.toml, deploy the Worker on its default `*.workers.dev` URL, verify the
+document there, and only then attach the custom domain. That fallback changes the
+client_id URL, which changes the derived port, so it is a last resort rather than
+an equal option.
