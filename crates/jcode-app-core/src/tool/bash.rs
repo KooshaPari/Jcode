@@ -535,7 +535,7 @@ impl PromotedCommandProgress {
         let _ = self.task_id.set(task_id.to_string());
         let pending = match self.pending.lock() {
             Ok(mut g) => g.take(),
-            Err(mut poisoned) => poisoned.into_inner().take(),
+            Err(poisoned) => poisoned.into_inner().take(),
         };
         if let Some(update) = pending {
             apply_progress_update(task_id, update).await;
