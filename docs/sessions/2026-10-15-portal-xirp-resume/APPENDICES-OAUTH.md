@@ -447,3 +447,21 @@ This is a **useful negative result, not a failure**. It does three things at onc
 
 So the remaining work is now fully specified and independently checkable: append
 the pattern, then re-issue this exact request and look for 302 instead of 400.
+### Durability check (so the next session does not have to re-verify)
+
+The deployment is persisted, not transient. Confirmed via the Cloudflare API:
+
+- script `jcode-cimd` present, `bindings: []`, observability disabled
+- zone route: `auth.kooshapari.com/oauth/client-metadata.json -> jcode-cimd`
+- DNS: `{type: CNAME, content: jcode-cimd.kooshapari.workers.dev, proxied: true}`
+
+Reliability: five consecutive anonymous requests to the custom domain all
+returned `200 application/json` in 0.21-0.83 s. The zone is on the **Free
+Website** plan, which is ample here — the Worker serves a single static object
+with no bindings, no subrequests and no state, so it cannot be throttled for
+complexity and has no cold-start data to lose.
+
+One free-plan nuance worth knowing rather than discovering later: the zone shows
+`Free Website`, so if a request ever does fail it will surface as a 5xx rather
+than an indefinite hang. That is the right failure mode for an OAuth metadata
+document — a hard error the authorization server can report beats a timeout.
