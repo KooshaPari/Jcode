@@ -271,23 +271,21 @@ support message has been sent from this work.
 >   URL returns `400 Invalid client_id`, including URLs on hosts that resolve
 >   fine. So the gate appears to be the allowed-client-pattern list.
 >
-> Two questions follow:
+> One question, about how to request the change:
 >
-> e. **Does the authorization server compare `redirect_uri` strictly against the
->    `redirect_uris` published in the client-metadata document?** This matters
->    concretely. The Xirp document declares
->    `http://127.0.0.1/callback` (default port, path `/callback`), whereas the
->    `mcp-remote` bridge derives its own loopback port and uses
->    `http://127.0.0.1:<derived-port>/oauth/callback`. If comparison is strict,
->    a client using mcp-remote could not register without knowing the derived
->    port in advance, which would make the CIMD flow impractical. If it is
->    tolerant of loopback variation, that should be documented.
 > f. **What is the intended way to request that a new CIMD URL be added to the
 >    allowed-client-pattern list?** We can serve a client-metadata document over
 >    HTTPS from a stable public URL with a non-root path, `client_name` of our
 >    own, and `token_endpoint_auth_method: none`. We are not asking to reuse
 >    Xirp's document, which would attribute our actions to Xirp in your audit
->    trail.
+>    trail. We will append rather than replace, since we understand a custom list
+>    supersedes the implicit defaults.
+>
+> *(A previous draft also asked whether `redirect_uri` is compared strictly
+> against the published `redirect_uris`. We have since found your own documented
+> default for "Allowed redirect URI patterns" — "When no list is configured,
+> Backstage allows HTTP loopback redirects on localhost, 127.0.0.1, and [::1],
+> using any port and path" — which answers it, so that question is dropped.)*
 
 > ### Third, smallest question: a bug we hit while testing
 > While verifying that a locally created session is visible to a Portal

@@ -7,13 +7,15 @@ reading chat history. Update after every meaningful change.
 
 ## How to read this file
 
-**Three files, read in this order:**
+**Four files, read in this order:**
 
 - `RESUME.md` (this file) — verified evidence, including everything observed in a
   signed-in Portal session.
 - `PORTAL-FINDINGS.md` — row-level detail from that authenticated inspection:
   the 42 Sources rows, the 11 affected repos, the 16 wiki suggestions and their
-  accuracy audit, automation runs, and the session-launch test.
+  accuracy audit, automation runs, the session-launch test, and the admin/CIMD
+  discovery.
+- `APPENDICES.md` — deeper OAuth, CIMD and bridge-verification records.
 - `STATE.md` — continuation half: exact revisions, completed work, remaining
   tasks, blockers, constraints, open questions, broken gates and the evidence
   file map.

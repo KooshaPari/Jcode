@@ -48,10 +48,10 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 | B | Verify Portal catalog force-sync outcome | B2 browser bridge — **1.6c now has a strong root-cause hypothesis** |
 | C | Diagnose private-source retrieval failure | B2; **1.6c found the likely mechanism** |
 | D | Fix descriptor defects in PR 619 | **DONE** for the deleted repo (`2b13afb91`); PhenoRegistry privacy intentionally deferred |
-| E | Decide bridge for Portal MCP (XJ-03) | **DONE** — `mcp-remote`, needs B6 to deploy |
+| E | Decide bridge for Portal MCP (XJ-03) | **DONE** — `mcp-remote`; B6 resolved in substance |
 | F | Authorize + send vendor question | **operator authorization** |
 | G | Complete local PR 619 checks | **PARTIAL** — gate is flaky (8.2); re-run before relying on the commit |
-| H | Verify authenticated Portal tool discovery | B2 + B6 |
+| H | Verify authenticated Portal tool discovery | B6 edit (admin, one field) |
 | I | Review 5 pending wiki suggestions | B2 |
 | J | Full launch -> context -> result -> transcript flow | blocked on B and F |
 | K | Apply corrected PR 67 description | inbox approval (deferred by hook) |
@@ -90,24 +90,37 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 - **B5 — Unauthorized actions deliberately NOT taken.** No support message sent.
   No allowed-client-pattern widening. No credential minting/replacement. No
   destructive catalog preview applied. No transcript uploaded. No PR merged.
-- **B6 — Portal OAuth client allow-listing. NOW PROVEN, not inferred (section 15).**
-  The authorization server supports PKCE (`S256`) and public clients
-  (`token_endpoint_auth_method: none`), so the protocol is capable. The obstacle is
-  identity: there is **no** `registration_endpoint`, so Dynamic Client Registration
-  is unavailable, and CIMD requires a reachable HTTPS client-metadata document whose
-  URL matches an allow-listed pattern.
+- **B6 — Portal OAuth client allow-listing. SOLVED IN SUBSTANCE; needs one
+  deliberate edit.** Earlier this was recorded as needing vendor authorization.
+  That is wrong. `kooshapari@kooshapari.com` is a member of **Portal Admins**, and
+  the allow-list is an editable field: `App Settings -> General -> MCP ->
+  Allowed client ID patterns`, currently holding exactly 4 inputs and an
+  "Add item" control. The 4 inputs match the 4 patterns in the checkpoint,
+  corroborating that record.
 
-  Proven by direct experiment. `/api/auth/v1/authorize` accepts the allow-listed
-  `https://xirp.spotify.com/oauth/client-metadata.json` with a **302** to a live
-  consent page, and rejects `kooshapari.com`, `jcode.sh` and `example.invalid`
-  with **400 `InputError` "Invalid client_id"**. The first two resolve over HTTPS,
-  so DNS and URL shape are ruled out. Allow-listing is the gate.
+  **Warning that must travel with the edit:** the field help says a custom list
+  *replaces* the defaults. So the new pattern must be **appended** to the
+  existing four. Clearing and repopulating with fewer entries would break
+  Claude Code and the ChatGPT/Codex client, since Backstage's implicit defaults
+  (Claude, VS Code, built-in CLI) only apply when no list is configured.
 
-  Because CIMD requires no pre-registration, the unblock is narrow: authorization
-  to add exactly one allow-listed pattern for our own domain. A CIMD client does
-  **not** need to pre-register; it only needs a URL that matches an allow-listed
-  pattern. Must not be "solved" by reusing Xirp's URL, which would authenticate as
-  Xirp and corrupt Portal's audit trail.
+  **Also resolved by the same screen:** the `redirect_uri` worry behind vendor
+  question (e) is answered by the documented default for "Allowed redirect URI
+  patterns", which is currently empty: "When no list is configured, Backstage
+  allows HTTP loopback redirects on localhost, 127.0.0.1, and [::1], using any
+  port and path." `mcp-remote`'s `http://127.0.0.1:<port>/oauth/callback` is
+  loopback with an arbitrary port, so the derived port does not need to be
+  pre-registered. Question (e) should be dropped from the vendor ask.
+
+  The concrete edit, when authorized: add exactly one pattern,
+  `https://kooshapari.com/oauth/client-metadata.json`, serving the committed CIMD
+  template, with the redirect port derived for that exact URL by
+  `scripts/derive_callback_port.py` (18586).
+
+  Not done by me. Appending a client ID pattern is a change to authentication
+  policy that admits a new client to authenticate against this Portal. That is a
+  permission change, which the task constraints place outside automatic action,
+  so it is documented and left for deliberate execution.
 - **B7 — `gh pr edit` requires inbox approval.** The corrected PR 67 description
   is staged at `/tmp/pr67-body-2.md`; the command was deferred by the pre_tool
   hook and has not been applied. The live PR body still contains two now-false
