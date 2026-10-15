@@ -441,3 +441,57 @@ Version must be pinned, not `@latest`, for reproducibility.
 avoid refresh-token rotation races (7-day refresh lifetime, 30-day max session);
 token cache needs `chmod 0600`; `token_endpoint_auth_method` must be read from
 server metadata rather than assumed `none`.
+
+## Acceptance criteria for the 16 suggestions, prepared for the operator
+
+Accepting is the operator's call, so this is a decision aid rather than an
+action. The two items that block acceptance are already established above.
+This adds the remaining criteria, derived from the verified rules, so the
+decision can be made without re-deriving them.
+
+### Criterion 1: do not accept anything that asserts private-repo content
+
+Verified basis: the 11 private repositories have **no usable ingested content**
+(their sync rows resolve to blank), and `PhenoRegistry`'s is frozen. So no
+synthesis could have been written from them. A suggestion that describes private
+repository internals is therefore asserting something the evidence does not
+support, and must be rejected rather than accepted with a caveat.
+
+Two suggestions are named in ways that risk this, and should be checked against
+their content before acceptance:
+- **AI Routing, Inference, and Evaluation** — describes provider gateways and
+  "local MLX inference". `PhenoMLX` is **public** and synced, so `PhenoMLX`-based
+  claims are supportable. But `HarnessDesk`, `PhenoLab` and `PhenoBot` are
+  private, and if the page leans on those it is asserting unavailable evidence.
+- **Runtime and Agent Infrastructure** — names Herdr, cmux, ShareCLI,
+  HeliosLite, Jcode, HeliosCLI, Herdr plugins and Ratatui. All of those are
+  public and synced, so this one is on firmer ground than it first appears.
+
+### Criterion 2: do not accept anything that claims coverage the numbers do not support
+
+Verified basis: 42 attached, 36 ingested = **85.7%**, and the 6-row gap is the
+private repositories rather than a transient sync. Any page claiming complete
+or full 42-repository coverage is contradicted by the Sources view, on the same
+footing as the disproved PhenoDesign claim.
+
+This makes **Portfolio Evidence and Coverage** the one page where the correct
+numbers are most likely to be got wrong, since it is the page that owns them.
+Its own description promises it "records attached versus ingested source counts,
+no-content resources, archive/read-only caveats, and acceptance-boundary
+rules" — which is exactly right in intent. Check the rendered counts against 42
+/ 36 / 12-private before accepting.
+
+### Criterion 3: identity correctness, already established
+
+Four cited repository names do not exist (`DinoForge`, `WorldSphereMod3D`,
+`Civic Survival`, bare `Helios`). Any suggestion citing them needs regeneration,
+not acceptance.
+
+### What I could not check
+The suggestion *bodies* were not readable through this bridge: `browser eval` is
+unavailable, and the per-suggestion `View content` control is exposed only for
+the currently-selected row, so navigating to a specific suggestion by index did
+not work. Criterion 1 and Criterion 2 above are therefore stated as checks to
+perform on the rendered content, not as findings about it. What **is** a finding
+is the identity audit in Criterion 3, which was done against live GitHub rather
+than against the UI.
