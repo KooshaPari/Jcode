@@ -254,6 +254,40 @@ support message has been sent from this work.
 > We are explicitly not asking to have Jcode masquerade as an existing harness.
 > We will not rename our binary or forge transcripts to match a supported agent,
 > because that would corrupt provenance in the records Xirp keeps.
+>
+> ### Second, smaller question: CIMD client registration on the Portal MCP endpoint
+> Separately from the harness question, we want to connect a non-Spotify agent to
+> `https://phenotype.spotifyportal.com/api/mcp-actions/v1`. We have verified the
+> authorization side works and is not the obstacle:
+>
+> - `/.well-known/oauth-authorization-server` and
+>   `/.well-known/oauth-protected-resource/v1` are both published and consistent.
+> - PKCE with `S256` is supported, and `token_endpoint_auth_methods_supported`
+>   includes `none`, so a public client with no secret is viable.
+> - There is no `registration_endpoint`, so dynamic client registration is not
+>   offered; CIMD looks like the intended path.
+> - Presenting the allow-listed `https://xirp.spotify.com/oauth/client-metadata.json`
+>   returns 302 to a working consent page. Presenting any other client-metadata
+>   URL returns `400 Invalid client_id`, including URLs on hosts that resolve
+>   fine. So the gate appears to be the allowed-client-pattern list.
+>
+> Two questions follow:
+>
+> e. **Does the authorization server compare `redirect_uri` strictly against the
+>    `redirect_uris` published in the client-metadata document?** This matters
+>    concretely. The Xirp document declares
+>    `http://127.0.0.1/callback` (default port, path `/callback`), whereas the
+>    `mcp-remote` bridge derives its own loopback port and uses
+>    `http://127.0.0.1:<derived-port>/oauth/callback`. If comparison is strict,
+>    a client using mcp-remote could not register without knowing the derived
+>    port in advance, which would make the CIMD flow impractical. If it is
+>    tolerant of loopback variation, that should be documented.
+> f. **What is the intended way to request that a new CIMD URL be added to the
+>    allowed-client-pattern list?** We can serve a client-metadata document over
+>    HTTPS from a stable public URL with a non-root path, `client_name` of our
+>    own, and `token_endpoint_auth_method: none`. We are not asking to reuse
+>    Xirp's document, which would attribute our actions to Xirp in your audit
+>    trail.
 
 ## Constraints
 GitHub Actions spend is permanently zero. Use local validation or free included
