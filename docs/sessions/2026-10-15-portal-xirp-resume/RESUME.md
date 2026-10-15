@@ -175,20 +175,124 @@ CI, $0). No files in the registry repo were modified.
 **Two genuine defects to fix in PR 619:**
 
 1. `parpoura-experiment-0.yaml` describes a repository that **no longer exists**.
-   `gh api repos/KooshaPari/parpoura-experiment-0` returns
-   `{"message":"Not Found",...,"status":"404"}`. The repo appears to have been
-   renamed to `zz-pause-inc-Parpoura`, which the non-zz rule excludes. So this
-   descriptor now points at a 404 and also violates the non-zz scope rule.
-2. `phenoregistry.yaml` is **private** on GitHub (verified live:
-   `{"id":1201113097,"name":"PhenoRegistry","private":true}`) yet sits in the
-   public catalog, whose own description says private records belong only in
-   Portal. The checkpoint notes PhenoRegistry became private *after* this
-   snapshot was taken, which explains the drift.
+   Verified live, three ways:
+   - `gh api repos/KooshaPari/parpoura-experiment-0` -> HTTP 404. Because `gh` is
+     authenticated as the owner, this is **not** a private-repo artifact: it is a
+     deleted or never-existed repo.
+   - `gh api repos/1409529692` (the claimed immutable id, any owner) -> 404. The
+     id does not correspond to anything.
+   - `https://github.com/KooshaPari/parpoura-experiment-0` -> 404 with **no
+     redirect**, so it was not renamed to an existing repo.
+   - The id is plausible and short-lived: `1409529692` sits immediately beside
+     `shopping-home` (`1409492961`, created 2026-10-07), the era the Oct 9
+     snapshot was taken. So this was almost certainly a real repo that was
+     deleted after the snapshot.
 
-Both are evidence-backed and low-risk to correct, but I am **not** applying them
-yet: changing the descriptor set changes what Portal ingests, and the original
-destructive-preview root cause is still unknown (B2 blocks observing ingestion).
-Fix, then verify ingestion rather than guess.
+   **Correction to my earlier reasoning:** I first guessed it had been renamed to
+   `zz-pause-inc-Parpoura`. That is wrong. `zz-pause-inc-Parpoura` has immutable
+   id `1164684829`, created 2026-02-23 — a different, unrelated, *private* repo.
+   There is exactly one Parpoura-named repo on the account and it is private, so
+   the correct disposition is **removal of this descriptor**, not retargeting it
+   at the Parpoura repo. Removing it also restores scope consistency: the only
+   Parpoura work now lives under the `zz-pause-inc-*` prefix, which the non-zz
+   rule excludes.
+
+   When the descriptor was added: commit `b9869102e`, 2026-10-09T18:06:01Z
+   ("chore(catalog): add catalog/spotify-portal/repositories/parpoura-experiment-0.yaml").
+   Last touched by `00054b8d0`, 2026-10-14T01:31:18Z (the Prettier formatting pass).
+2. `phenoregistry.yaml` describes PhenoRegistry, which is **private** on GitHub
+   (verified live: `{"id":1201113097,"name":"PhenoRegistry","private":true,
+   "visibility":"private"}`), yet it sits in a catalog whose own description says
+   "Private records belong only in Portal." The catalog README already
+   anticipated this: "PhenoRegistry changed to private after the original
+   snapshot; the central descriptor now requires private repository
+   authentication. Reconcile current visibility before any publication."
+
+   Severity is **lower than it first looked**, for two verified reasons:
+   - `catalog/spotify-portal/` does **not** exist on PhenoRegistry's `main`
+     branch at all. `main`'s `catalog/` contains only `RUBRIC-LINEAGE.md`,
+     `inventory`, `registry.schema.json`, `registry.yaml`. So publishing this
+     descriptor does not publish anything to a public surface; it does not leak
+     private metadata today.
+   - The descriptor's `default-branch: main` annotation is **correct**
+     (verified `default_branch = main`). This is not an annotation error.
+
+   What it does mean: because the whole catalog ships inside a private repo, any
+   commit-pinned `catalog-info.yaml` URL Portal is pointed at now requires
+   authenticated fetch. That is a plausible contributing cause for the
+   "31 resource rows had sync timestamps, 11 did not" observation recorded in the
+   catalog README, and for the preview that produced only three Locations and no
+   owner Group. It is a hypothesis worth testing, **not** a proven root cause.
+
+   Disposition options, in preference order, pending eyes-on Portal observation:
+   (a) keep the descriptor and give Portal's GitHub App authenticated read access
+       to PhenoRegistry, which the App may already hold; or
+   (b) move the catalog to a public location and exclude PhenoRegistry from it,
+       consistent with the "private records belong only in Portal" rule.
+   Do **not** simply delete the descriptor: PhenoRegistry is a first-class
+   catalog subject and its absence would silently narrow coverage.
+
+**Defect 1 has been FIXED** in PhenoRegistry commit `2b13afb91`: the descriptor
+and its `catalog-info.yaml` target entry were removed, the README count was
+corrected, and the result re-validated (30 descriptors + owner Group = 31
+targets, zero dangling, zero orphans, Prettier clean). Pushed to the PR 619 draft
+branch. The PR remains a draft and was not merged.
+
+**Defect 2 (PhenoRegistry privacy) is deliberately NOT "fixed" yet.** Removing the
+descriptor would silently narrow coverage of a first-class catalog subject, and
+the real issue is that the catalog is unreachable rather than that the descriptor
+is wrong. It needs the eyes-on Portal observation described in 1.6c first.
+
+### 1.6c LIKELY ROOT CAUSE of Portal catalog ingestion failure — found
+
+The static Location Portal is pointed at is a **GitHub raw URL into a repository
+that is now private**. Proven with a three-way control:
+
+| Probe | Result |
+|---|---|
+| Anonymous `GET raw.githubusercontent.com/KooshaPari/PhenoRegistry/b5c082a6.../catalog/spotify-portal/catalog-info.yaml` | **404** |
+| Anonymous `GET raw.githubusercontent.com/KooshaPari/PhenoRegistry/main/README.md` (control) | **404** — private repo hides everything anonymously |
+| Anonymous `GET raw.githubusercontent.com/KooshaPari/Jcode/master/README.md` (positive control) | **200** — public repos still work |
+| **Authenticated** `GET /repos/KooshaPari/PhenoRegistry/contents/catalog/spotify-portal/catalog-info.yaml?ref=b5c082a6...` | **200, 1543 bytes** |
+
+So the path and the file are real and intact. They are simply not anonymously
+reachable, because PhenoRegistry flipped to `visibility: private` after the
+catalog was written. The catalog's own README predicted this: *"PhenoRegistry
+changed to private after the original snapshot; the central descriptor now
+requires private repository authentication."*
+
+This explains, with one cause, all four previously-unexplained symptoms:
+
+1. **The force-sync that has shown "Syncing" since Oct 14.** If the fetch keeps
+   retrying a 404 rather than surfacing a terminal error, a stuck progress state
+   is the expected presentation.
+2. **The preview that produced only three generated Locations, no owner Group and
+   no repository Resources.** Backstage cannot build a Location's target set from
+   entities it cannot read.
+3. **"31 resource rows showed sync timestamps, 11 did not."** Consistent with rows
+   sourced from the GitHub App's authenticated API (which can read private repos)
+   rather than from the static catalog fetch.
+4. **The catalog-import route returning 404.** Consistent with the importer
+   treating the source as unavailable.
+
+Confidence: **high but not proven.** The mechanism is demonstrated; the linkage to
+the specific Portal errors is inference from consistency, not observation of the
+Portal error text. Confirming it requires reading the actual processor error in
+Portal, which is blocked by the browser bridge (B2).
+
+Fix candidates, cheapest first — all require authorization or eyes-on Portal:
+- (a) Repoint the static Location at an authenticated GitHub App source instead
+  of a raw URL. Preferable if Portal supports it, since it survives future
+  privacy changes.
+- (b) Host the catalog in a public location and exclude private repositories from
+  it, consistent with "private records belong only in Portal". This changes what
+  is public and so needs explicit authorization.
+- (c) Grant the Portal GitHub App broader access to PhenoRegistry, if the App's
+  read-only grant is the limiting factor.
+
+Do not repoint the Location silently. The current pinned URL, the visible
+entities, and the two pilot workspaces must be preserved and compared before and
+after any change.
 
 ### 1.7 Session detection/sync of externally-launched sessions: NOT supported for Jcode
 
