@@ -344,3 +344,70 @@ The Firefox bridge flapped again and stopped responding, and `browser setup
 firefox` could not complete — it needs a manual "Add" click in the extension
 prompt. This is the same flap already documented in STATE.md section 13. It did
 not block this work, because everything above was done with `curl`.
+
+## CIMD hosting: the deployment is now scoped (2026-10-15)
+
+Verified against the Cloudflare API and by probe, so the operator's step is a
+single known action rather than a design decision.
+
+### `kooshapari.com` is a Cloudflare zone in your own account
+
+```
+/zones -> kooshapari.com (active, 6c9edab581e9c7b8fdb6a83adc6878ea)
+         pheno.shop, pheno.studio, phenotype.space
+whoami -> user:2a8cf34986db70be316acea959d9b9b9b9, kooshapari@gmail.com
+```
+
+That is the decisive fact: the domain named in my recommended pattern is one you
+control in Cloudflare, so a Worker route on it is a first-party operation.
+
+### Today `kooshapari.com` is served by Vercel, and the path 404s honestly
+
+| Path | Status | Content-Type |
+|---|---|---|
+| `/` | 200 | text/html |
+| `/index.html` | 200 | text/html |
+| `/.well-known/oauth-client-metadata.json` | 404 | text/plain |
+| `/oauth/client-metadata.json` | 404 | text/plain |
+
+`server: Vercel`. Note this is the **good** failure mode: Vercel returns a real
+`404 text/plain` for unknown paths rather than an HTML fallback with a 200. So
+`kooshapari.com` is a trustworthy host for the pattern — the 404 today simply
+means nothing is deployed at that path yet.
+
+### No existing Worker can be reused
+
+Enumerated all 12 Workers: `agent-digest`, `dispensary-collector`,
+`job-collector`, `job-collector-verification-preview`, `phenotype-apex-landing`,
+`phenotype-pages-proxy`, `relay-forwarder`, `shop-redirect`, `studio-redirect`,
+`tracera-edge`, `tracera-edge-dev`, `tracera-edge-preview`. **Every one has
+`routes: []`**, so none owns a custom domain, and none is a fit — they do email,
+KV/D1/R2 collection, redirects, and a tracera API. A dedicated Worker is
+required.
+
+Also checked Pages: only `job-cockpit` (dash.kooshapari.com) and
+`harnessdesk-preview` exist. `jcode.sh` is in **none** of this account's zones,
+which is consistent with it being an external/Vercel-hosted domain and is why it
+was not an option.
+
+### Recommended deployment, exactly
+
+A new Worker with a route scoped to **only** the CIMD path, so it cannot affect
+any other path on the domain:
+
+- Worker name: `jcode-cimd`
+- Route: `kooshapari.com/oauth/client-metadata.json` (exact path, not a wildcard)
+- Response: `content-type: application/json`, `cache-control` short, CORS not
+  required (server-to-server fetch)
+- Body: the committed template with `client_id` set to that same URL,
+  `client_name` set to our own identity, and `redirect_uris` containing
+  `http://127.0.0.1:18586/oauth/callback`
+
+**Order matters.** Deploy and verify the URL returns real JSON *first*, then
+append the allow-list pattern in App Settings. Adding the pattern before the
+document is served would allow a client_id that cannot be resolved.
+
+### The exact port, once more
+`18586` for `https://kooshapari.com/oauth/client-metadata.json`, derived by
+`scripts/derive_callback_port.py` and cross-checked against the shipped
+`mcp-remote` JavaScript. Recompute if the URL changes.
