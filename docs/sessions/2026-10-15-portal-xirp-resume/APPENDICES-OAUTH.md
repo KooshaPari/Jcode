@@ -318,3 +318,95 @@ intermediate attempt to `cp -R` the Electron framework failed on
 `fchmod … locale.pak`, leaving a partial copy that was moved aside to
 `Xirp.app.0.49.0-partial`. The 0.54.0 copy `Xirp.app.0.54.0.active` is intact and
 verified, and `/Applications/Xirp.app` is the live 0.54.0 install.
+
+## Appendix G. CIMD document DEPLOYED and verified live (2026-15-22)
+
+The Worker is deployed and serving. This closes the "host the document" step;
+only the Portal allow-list append remains.
+
+### First attempt failed for a non-obvious reason, and the failure is instructive
+The initial route was `kooshapari.com/oauth/client-metadata.json`. The deploy
+**succeeded** — `wrangler` reported the trigger attached, and the Cloudflare API
+confirmed the route:
+
+```
+routes: [{ pattern: "kooshapari.com/oauth/client-metadata.json", script: "jcode-cimd" }]
+paused: false, plan: "Free Website"
+```
+
+But `curl` still returned **404 text/plain, server: Vercel**. The route was
+registered and the zone was active, so the obvious explanation was wrong.
+
+Actual cause, from the DNS API: the apex is a **DNS-only CNAME to Vercel**.
+
+```
+{ type: "CNAME", name: "kooshapari.com",
+  content: "8ab95bf8ff9c3219.vercel-dns-017.com",
+  proxied: false }
+```
+
+Workers custom-domain routes only fire on **proxied** (orange-cloud) names. A
+grey-cloud CNAME means Cloudflare only does DNS for that hostname and all traffic
+goes straight to Vercel. Route registered, but never reachable. Worth remembering:
+**a Workers route on an unproxied name is a silent no-op**, and deploy output will
+not warn about it.
+
+### Fix: a dedicated subdomain, leaving the apex untouched
+Moved the route to `auth.kooshapari.com`, which was free, and created a proxied
+CNAME:
+
+```
+POST /zones/{zone}/dns_records
+{ type: "CNAME", name: "auth",
+  content: "jcode-cimd.kooshapari.workers.dev", proxied: true }
+```
+
+This deliberately does **not** touch the `kooshapari.com` apex CNAME, so the
+existing Vercel-hosted site keeps working untouched.
+
+**The callback port changed with the URL**, exactly as predicted: 18586 for
+`kooshapari.com/...`, **47290** for `auth.kooshapari.com/...`. Recomputed with
+`scripts/derive_callback_port.py` and written into the Worker. This is the
+chicken-and-egg the derivation script exists to solve.
+
+### Verified live
+```
+GET https://auth.kooshapari.com/oauth/client-metadata.json
+  HTTP/2 200
+  content-type: application/json; charset=utf-8
+  server: cloudflare
+  cf-ray: a4b233f1da9e1f56-LAX
+```
+Body, with every required field asserted programmatically:
+```json
+{
+  "client_id": "https://auth.kooshapari.com/oauth/client-metadata.json",
+  "client_name": "Jcode",
+  "redirect_uris": ["http://127.0.0.1:47290/oauth/callback"],
+  "response_types": ["code"],
+  "grant_types": ["authorization_code", "refresh_token"],
+  "token_endpoint_auth_method": "none",
+  "scope": "openid offline_access"
+}
+```
+`client_id` equals the URL it is served from, auth method is `none`, scopes and
+grants match what Portal's authorization server advertises.
+
+### Scope and blast radius
+| Request | Result |
+|---|---|
+| `/oauth/client-metadata.json` | **200 application/json** |
+| `/` on auth subdomain | 522 (no Worker route — correct) |
+| `/oauth/` on auth subdomain | 522 |
+| `/anything` on auth subdomain | 522 |
+| `https://kooshapari.com/` (apex) | **200 text/html — Vercel, unaffected** |
+
+The document is served at exactly one path, and the existing site is unchanged.
+
+### Remaining: the Portal allow-list append
+Not done. It requires a signed-in Portal session, which expired during the Xirp
+reinstall, and it is an authentication-policy change. When done it must be an
+**append** to the existing four patterns, never a replacement — the field help
+states a custom list supersedes Backstage's implicit Claude, VS Code and
+built-in CLI defaults. Pattern to add:
+`https://auth.kooshapari.com/oauth/client-metadata.json`

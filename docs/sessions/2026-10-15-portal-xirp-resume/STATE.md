@@ -186,15 +186,26 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
   loopback with an arbitrary port, so the derived port does not need to be
   pre-registered. Question (e) should be dropped from the vendor ask.
 
-  The concrete edit, when authorized: add exactly one pattern,
-  `https://kooshapari.com/oauth/client-metadata.json`, serving the committed CIMD
-  template, with the redirect port derived for that exact URL by
-  `scripts/derive_callback_port.py` (18586).
+  **The document half is now DONE** (operator authorised "go" on 2026-10-15):
+  the `jcode-cimd` Worker is deployed and verified live at
+  `https://auth.kooshapari.com/oauth/client-metadata.json`, returning HTTP 200
+  `application/json` from Cloudflare with every required field asserted. It
+  answers at exactly one path and the `kooshapari.com` apex is untouched. Full
+  evidence in `APPENDICES-OAUTH.md` Appendix G.
 
-  Not done by me. Appending a client ID pattern is a change to authentication
-  policy that admits a new client to authenticate against this Portal. That is a
-  permission change, which the task constraints place outside automatic action,
-  so it is documented and left for deliberate execution.
+  Note the URL changed from the apex to a subdomain, because the apex is a
+  DNS-only CNAME to Vercel and Workers routes silently do not fire on unproxied
+  names. That changed the derived callback port from 18586 to **47290**.
+
+  **Only the append remains.** Pattern to add:
+  `https://auth.kooshapari.com/oauth/client-metadata.json`. It must be
+  **appended** to the existing four patterns, never a replacement, because a
+  custom list supersedes Backstage's implicit Claude, VS Code and built-in CLI
+  defaults.
+
+  Not done yet: the Portal session expired during the Xirp reinstall, and the
+  append is an authentication-policy change that admits a new client to
+  authenticate against this Portal.
 - **B7 — `gh pr edit` requires inbox approval.** The corrected PR 67 description
   is staged at `/tmp/pr67-body-2.md`; the command was deferred by the pre_tool
   hook and has not been applied. The live PR body still contains two now-false
