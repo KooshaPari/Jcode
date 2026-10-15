@@ -7,6 +7,11 @@ reading chat history. Update after every meaningful change.
 
 ## How to read this file
 
+**This file is split in two.** `RESUME.md` (this file) holds the verified evidence.
+`STATE.md` holds the continuation half: exact revisions, completed work,
+remaining tasks, blockers, constraints, open questions and the evidence file map.
+Start here, then read `STATE.md`.
+
 Sections separate **verified outcomes** (something observed, with the command
 that observed it) from **claims** (believed, not proven) and **blockers**.
 Anything in "Claims" must not be reported as working setup.
@@ -282,168 +287,53 @@ Net: the auth server is capable of PKCE + public client. The blocker is
 pre-registered static client id, or operator authorization to add a CIMD URL to
 the allowed patterns. Neither can be minted from this session.
 
+### 1.10 Bridge selection for XJ-03 — DECIDED, not yet deployed
 
-## 2. Exact revisions at time of writing
+Read-only research (no installs, no config writes). Full report preserved at
+`evidence/mcp-bridge-research.md`.
 
-| Artifact | Revision | State |
-|---|---|---|
-| `KooshaPari/Jcode` PR #67 | head `e4583f6a9679078625de726fd3512c93bc27c5a2` | OPEN, DRAFT, base `master` |
-| PR #67 branch | `chore/xirp-custom-harness-discovery-20261014` | same SHA on origin |
-| Local jcode checkout | `~/CodeProjects/Phenotype/repos/jcode`, `master` @ `cd974614d2c8e7e36357724a73be61dbb62e16e1` | has unrelated untracked work, left untouched |
-| Isolated PR-67 worktree | `/tmp/jcode-pr67-wt` on branch `chore/xirp-custom-harness-discovery-20261014` | **/tmp — recreate after reboot** |
-| `KooshaPari/PhenoRegistry` PR #619 | head `8be56b971813265f468e88aa90a616992abe41c9` | OPEN, DRAFT, MERGEABLE |
-| Local registry checkout | `~/CodeProjects/Phenotype/repos/phenotype-registry`, branch `polish/audit-sibling-links-20261014` @ `c480ba31f0f612e12154c34f19ac4ba47540c1aa` | **different branch from PR 619** |
+**Verdict: `punkpeye/mcp-remote` (npm `mcp-remote`) is the only viable bridge.**
 
-Gotcha that cost time: inside the jcode checkout, plain `gh pr view 67`
-resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
-`-R KooshaPari/Jcode`. Symptom is
-`Could not resolve to a PullRequest with the number of 67`.
+| Candidate | Streamable HTTP | OAuth PKCE | DCR | **CIMD** | Verdict |
+|---|---|---|---|---|---|
+| `mcp-remote` v0.15.1 (2026-10-14) | yes | yes | yes | **yes** (`--client-metadata-url`) | **SELECTED** |
+| `sparfenyuk/mcp-proxy` v0.13.0 | yes | **no PKCE, no refresh** | no | no | static-bearer only |
+| `mikluko/mcp-proxy` v0.1.0 (2024-11) | yes | yes | yes | no | unmaintained, ~2 commits |
+| official MCP org | — | — | — | — | **no official stdio-to-remote bridge exists** |
 
----
+CIMD support is the discriminator: only `mcp-remote` implements SEP-991. That is
+exactly what Portal needs, since CIMD is the mechanism its allow-list is built
+around. Caveat recorded honestly: CIMD support was verified from the live README,
+not by reading the TypeScript source.
 
-## 3. Completed work this session
+**Rejected sample config.** The research proposed pointing the bridge at Xirp's
+own CIMD URL:
+```
+"--client-metadata-url", "https://xirp.spotify.com/oauth/client-metadata.json"
+```
+This would authenticate **as Xirp** — `client_name: "Xirp"`. That is
+impersonation of a supported agent, which is explicitly out of bounds, and it
+would make Portal's audit trail attribute Jcode's actions to Xirp. **Rejected.**
 
-1. Established Xirp/Jcode/KCode versions and binary paths.
-2. Launched Xirp.app (it was installed but not running).
-3. Captured full Xirp CLI surface (`xirp skill`, all subcommand help).
-4. **Answered XJ-01 with reproducible evidence** (5 independent proofs).
-5. Ran `scripts/probe_xirp_jcode.py` on this Mac for the first time — both CLIs
-   exit 0, no timeouts. Recorded that the probe alone was insufficient.
-6. Verified Jcode's ACP adapter end-to-end with a real JSON-RPC handshake.
-7. Resolved the README-vs-binary MCP contradiction in favor of the README,
-   with the exact skip-logic source line and a live skipped server as proof.
-8. Refreshed the repo inventory; established 46 (not 42) and owner=User.
-9. Confirmed both PRs (#67, #619) still exist at their checkpoint SHAs.
-10. Rewrote `docs/XIRP_CUSTOM_HARNESS.md` in PR 67 with the evidence, corrected
-    the stale "probe not executed / no Mac access" claim, and drafted the vendor
-    question.
-11. Created this resume record.
+The correct config needs **our own** CIMD document, which requires authorization
+to add a pattern to Portal's allowed-client list (B6). Sketch only, not applied:
+```jsonc
+{
+  "mcpServers": {
+    "phenotype-spotify": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote@<pinned-version>",
+               "https://phenotype.spotifyportal.com/api/mcp-actions/v1",
+               "--transport", "http-first",
+               "--client-metadata-url", "<OUR-HTTPS-CIMD-URL>",
+               "--resource", "https://phenotype.spotifyportal.com/api/mcp-actions/v1"]
+    }
+  }
+}
+```
+Version must be pinned, not `@latest`, for reproducibility.
 
-## 4. Remaining tasks
-
-| # | Task | Blocked by |
-|---|---|---|
-| A | Commit + push PR 67 doc updates | **DONE** (`ff5e0a47f`, `8d1002352`) |
-| B | Verify Portal catalog force-sync outcome (was "Syncing" on Oct 14) | B2 browser bridge |
-| C | Diagnose private-source retrieval failure with actual errors | B2 browser bridge |
-| D | Rename `kcode.yaml` -> `jcode.yaml` and reconcile descriptors (1.6) | B2 — defer so ingestion is observed, not guessed |
-| E | Decide bridge for Portal MCP (XJ-03) | B6 client allow-listing |
-| F | Authorize + send vendor question | **operator authorization** |
-| G | Complete local PR 619 checks; keep description accurate | local validation, $0 CI |
-| H | Verify authenticated Portal tool discovery + bounded workspace read | B2 + B6 |
-| I | Review 5 pending wiki suggestions against exact current sources | B2 browser bridge |
-| J | Full launch -> context -> result -> transcript flow | blocked on B and F |
-| K | Apply corrected PR 67 description | inbox approval (deferred by hook) |
-
-## 5. Blockers (explicit)
-
-- **B1 — Vendor lock on XJ-02/04/05.** Not a skill gap. Spotify must change
-  `@chirp/squab`. No amount of Jcode-side work unblocks these. Exact missing
-  interface: an `AgentSessionAdapter` implementation + launchable spec for
-  `jcode`, OR a generic ACP-backed harness entry point in squab.
-- **B2 (NEW, blocks Portal inspection) — browser bridge not connected.** Portal
-  catalog/source/wiki work needs a live signed-in browser session. The bridge
-  fails in **both** available browsers:
-  - Safari: `xcodebuild failed` during `safari-web-extension-converter`; manual
-    enable required in Safari > Settings > Extensions.
-  - Chrome: extension not installed in the Default profile. Manual steps:
-    `chrome://extensions` -> Developer mode -> Load unpacked ->
-    `/Users/kooshapari/.jcode/browser/extensions/chromium`
-    (expected extension id `ijifgeepmnbalajhfjnpbnobfobflfkk`), then re-run
-    `jcode browser setup chrome`.
-  This needs ~2 minutes of human action in a browser. Until then, tasks B, C, H
-  and I cannot start. Firefox and Edge are installed but untested as bridges.
-- **B3 — Portal MCP is reachable but unauthenticated.** Confirmed by direct probe:
-  `GET https://phenotype.spotifyportal.com/api/mcp-actions/v1` -> `200` on the
-  site root, and the MCP endpoint correctly returns
-  `{"error":{"name":"AuthenticationError","message":"Missing credentials"},...,"statusCode":401}`.
-  No Portal MCP server is configured in `~/.jcode/mcp.json` (1 server total, none
-  Portal-related) and `spotifyportal` appears 0 times in `~/.claude.json`. So
-  authenticated tool discovery still needs a real credential, which must come
-  from the Portal UI (CIMD OAuth or a scoped static token), not from chat.
-- **B4 — Transient files in /tmp.** Inventory JSON, probe output, extracted asar,
-  and the PR-67 worktree all live in /tmp and are lost on reboot. Relocate any of
-  these that must survive.
-- **B5 — Unauthorized actions deliberately NOT taken.** No support message sent.
-  No allowed-client-pattern widening. No credential minting/replacement. No
-  destructive catalog preview applied. No transcript uploaded. No PR merged.
-- **B6 (NEW) — Portal OAuth client allow-listing.** The authorization server
-  supports PKCE (`S256`) and public clients (`token_endpoint_auth_method:
-  none`), so the protocol is capable. The obstacle is identity: there is **no**
-  `registration_endpoint`, so Dynamic Client Registration is unavailable, and CIMD
-  requires a reachable HTTPS client-metadata document whose URL matches an
-  allow-listed pattern. The current patterns are `https://claude.ai/*`,
-  `https://chatgpt.com/oauth/codex/*/client.json`,
-  `https://backstage.spotify.com/chirp.json`,
-  `https://xirp.spotify.com/oauth/client-metadata.json`. None is ours.
-  Unblocking needs either a pre-registered static client id or operator
-  authorization to widen the pattern list. Both are outside current authority.
-  Details and the verified reference document shape are in 1.9.
-- **B7 — `gh pr edit` requires inbox approval.** The corrected PR 67 description
-  is staged at `/tmp/pr67-body-2.md`; the command was deferred by the pre_tool
-  hook and has not been applied. The live PR body still contains two now-false
-  claims (probe reported both CLIs absent; app was not probed).
-
-### 5.1 CI cost check — $0 confirmed for this session's push
-`git push` of commit `ff5e0a47f` (docs only) triggered **no** workflow runs:
-`gh run list --branch chore/xirp-custom-harness-discovery-20261014` returns
-`no workflow runs recorded for this branch`. The two runs stuck in `queued`
-(`Require Linked Issue`, `CI`, ids 38644605078 / 38644605215) belong to branch
-`fix/ci-unused-deps` at sha `c76abc890`, created 2026-10-14T22:00:58Z, i.e.
-before this session's push at ~00:21Z. They are not attributable to this work and
-are not a remediation target here (paid Actions remains permanently excluded).
-
-## 6. Constraints that remain in force
-
-- GitHub Actions spend stays at **$0**. Use local validation or free capacity.
-  Paid Actions is permanently excluded as remediation.
-- Preserve the Tracera + AgilePlus pilot and its specification/design gates.
-  AgilePlus #1100 merged at `ca999fd05741f9db19945e7f54057043b77b078b`.
-  Tracera #1101 last head `f6392ca2350d3f68a7b49b305bef8cdbb8efba4e`.
-- Do not merge merely because a PR is mergeable. #619 is MERGEABLE and still
-  draft, with known-incomplete validation. Leave it.
-- Never request passwords or OTPs in chat; use secure input.
-- Portal is an index/context projection. Repository intent, accepted specs, ADRs,
-  tests and evidence keep their own authority. No universal PhenoRegistry
-  override. Tracera/AgilePlus retain product-management authority.
-- Workspace launch needs an eligible catalog **Component** resolving to a
-  repository. Attaching repository Resources alone is insufficient.
-
-## 7. Open questions
-
-1. ~~Why did the prior count say 42 when GitHub reports 46?~~ **SOLVED — see 1.6.**
-   Three different numbers were being compared: 46 total owned non-zz, 31 public
-   static catalog, 42 Portal App selected. Plus 3 stale descriptor entries
-   (`kcode.yaml`, `github.yaml`, `parpoura-experiment-0.yaml`).
-2. Is the Oct 14 catalog force-sync still running, and did it complete? Root
-   cause of the original preview (3 Locations only, predicted deletion of both
-   pilot Projects) is still unknown. Do not apply a destructive preview.
-   **Blocked on B2 (browser bridge).**
-3. Are the 4 additional repos private and therefore invisible to Portal, or
-   genuinely absent from the GitHub App installation? Partially answered: 17 of
-   46 are private, and the GitHub App was recorded as having exactly 42 selected.
-   That 42 is now suspect and must be compared against Portal's stored list.
-   **Blocked on B2.**
-4. Does squab have any build-time (not runtime) harness extension, e.g. an env var
-   or a generated catalog file read at startup? Not yet exhaustively ruled out.
-   Lower priority: the runtime path is definitively closed, and a build-time hook
-   would not be user-usable anyway.
-5. **NEW — should `kcode.yaml` be renamed to `jcode.yaml` in PR 619?** The
-   descriptor references a repo name that no longer exists. This is a safe,
-   evidence-backed fix but touches the catalog that Portal ingests, so it is
-   deferred until B2 lets us observe ingestion rather than guess at it.
-
-## 8. Evidence file map (all under /tmp, ephemeral)
-
-| Path | Contents |
-|---|---|
-| `/tmp/xirp-probe-20261015/agents-final.txt` | `agents:list` raw output |
-| `/tmp/xirp-probe-20261015/skill.md` | Xirp full command reference |
-| `/tmp/xirp-probe-20261015/session-help.txt` | `xirp session --help` |
-| `/tmp/xirp-probe-20261015/features.txt` | `xirp features` + the ECONNREFUSED error |
-| `/tmp/xirp-probe-20261015/probe-output.json` | PR-67 probe output (first run on Mac) |
-| `/tmp/xirp-probe-20261015/acp-stderr.txt` | `jcode acp` stderr (empty = clean) |
-| `/tmp/xirp-probe-20261015/repo-inventory.json` | 46 non-zz repos with immutable IDs |
-| `/tmp/xirp-probe-20261015/repo-inventory-summary.txt` | human-readable inventory |
-| `/tmp/xirp-asar-extract/` | extracted Xirp app.asar (461 .js files) |
-| `/tmp/jcode-pr67-wt/` | isolated worktree for PR 67 |
+**Hard parts flagged for whoever builds it:** token refresh must be serialized to
+avoid refresh-token rotation races (7-day refresh lifetime, 30-day max session);
+token cache needs `chmod 0600`; `token_endpoint_auth_method` must be read from
+server metadata rather than assumed `none`.
