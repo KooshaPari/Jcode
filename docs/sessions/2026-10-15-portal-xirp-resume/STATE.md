@@ -45,25 +45,38 @@ Verified the main checkout's unrelated untracked work is untouched:
 `stash-dumps/jcode.patch`) and `docs/sessions/2026-10-14-m31-restore-fix/` all
 still present.
 
-### Browser bridge regression: healthy status, dead content scripts
+### Browser bridge: partial, not dead (corrected)
 
-`browser status` reports "Browser bridge is installed and responding in Firefox"
-and `browser setup firefox` says "already set up and responding. No setup action
-was needed." But **every** `get_content` fails with
-`Could not establish connection. Receiving end does not exist.` — including on
-`about:sessionrestore`, which is not a network page at all. `new_tab` and `open`
-both load the URL but the content script never attaches.
+My first read of this was too strong and is corrected here. `browser status` says
+"installed and responding", `browser setup firefox` says "already set up", and
+**`get_content` on the pre-existing tab 1 (`whatsnew/157`) succeeded**, returning
+the full page. So the bridge is not dead.
 
-So the status check is not sufficient evidence that the bridge works; only an
-actual page read is. This is a distinct, worse failure than the earlier
-out-of-date-extension flap, which at least let some reads through. Until it is
-fixed, Portal UI state cannot be re-verified and the daily automation results
-(whether Wiki Synthesis ran on schedule, whether the suggestion count moved from
-16, whether the private-repo sync rows changed) cannot be confirmed.
+The real pattern, established by testing rather than assumed:
 
-Workaround for the next session: `jcode browser setup chrome`, which needs one
-manual "Load unpacked" step in `chrome://extensions` for
-`/Users/kooshapari/.jcode/browser/extensions/chromium`.
+- Tabs that existed **before** the extension loaded in this Firefox session
+  cannot be read: `Could not establish connection. Receiving end does not exist.`
+  This applied to the old `about:sessionrestore` tab, to `about:blank` tabs, and to
+  every Portal tab carried over from before the gap.
+- Tabs **created after** the extension loads read fine, which is why tab 1 works.
+- `new_tab` and `open` load the URL but the content script does not attach to the
+  new tab either — Portal is an SPA that never reports load completion, so
+  `new_tab` times out, and the retry then fails on content-script injection.
+
+Firefox also **updated itself to 157 during the gap** (`whatsnew/157`,
+`oldversion=156.0.1`), which restarted it and invalidated every tab. That is the
+root cause of the whole situation, not an extension fault.
+
+Practical rule for the next session: after a Firefox restart, **do not reuse old
+tab ids**. Check `list_tabs`, and if a target page is stale, expect the content
+script not to attach. Chrome remains the fallback but needs a manual "Load
+unpacked" of `/Users/kooshapari/.jcode/browser/extensions/chromium`, and only one
+browser can own the bridge at a time.
+
+Consequence: the 13 hours of Portal automation activity are still unverified.
+Whether Wiki Synthesis ran on schedule, whether the suggestion count moved from
+16, and whether the private-repo sync rows changed are all **unknown** rather
+than assumed.
 
 ## 2. Exact revisions at time of writing
 
