@@ -1398,24 +1398,35 @@ where
     Ok(sender)
 }
 
+/// Shared shape for the telemetry and transcript background senders: lazily
+/// initialize one OnceLock-held worker and borrow it.
+fn sender<'a>(
+    slot: &'a OnceLock<Option<SyncSender<Value>>>,
+    capacity: usize,
+    deliver: impl Fn(Value) + Send + 'static,
+) -> Option<&'a SyncSender<Value>> {
+    let init = || match spawn_background_worker(capacity, deliver) {
+        Ok(sender) => Some(sender),
+        Err(err) => {
+            logging::warn(&format!("telemetry background worker failed to start: {err}"));
+            None
+        }
+    };
+    slot.get_or_init(init).as_ref()
+}
+
 fn background_sender() -> Option<&'static SyncSender<Value>> {
-    TELEMETRY_BACKGROUND_SENDER.get_or_init(|| {
-        spawn_background_worker(BACKGROUND_QUEUE_CAPACITY, |payload| {
-            let _ = post_payload_with_retry(payload, ASYNC_SEND_TIMEOUT);
-        })
-        .ok()
+    // A worker thread has no caller to report to: delivery outcome is
+    // intentionally discarded, and both callees already log their own failure.
+    sender(&TELEMETRY_BACKGROUND_SENDER, BACKGROUND_QUEUE_CAPACITY, |payload| {
+        drop(post_payload_with_retry(payload, ASYNC_SEND_TIMEOUT));
     })
-    .as_ref()
 }
 
 fn transcript_background_sender() -> Option<&'static SyncSender<Value>> {
-    TRANSCRIPT_BACKGROUND_SENDER.get_or_init(|| {
-        spawn_background_worker(64, |payload| {
-            let _ = post_transcript_payload(payload, ASYNC_SEND_TIMEOUT);
-        })
-        .ok()
+    sender(&TRANSCRIPT_BACKGROUND_SENDER, 64, |payload| {
+        drop(post_transcript_payload(payload, ASYNC_SEND_TIMEOUT));
     })
-    .as_ref()
 }
 
 fn send_transcript_payload(payload: Value) -> bool {
@@ -1502,7 +1513,7 @@ fn send_payload(mut payload: serde_json::Value, mode: DeliveryMode) -> bool {
                 let spawned = std::thread::Builder::new()
                     .name("jcode-telemetry-blocking".to_string())
                     .spawn(move || {
-                        let _ = tx.send(post_payload(payload_for_thread, timeout));
+                        drop(tx.send(post_payload(payload_for_thread, timeout)));
                     });
                 match spawned {
                     Ok(_) => rx.recv_timeout(timeout).unwrap_or(false),

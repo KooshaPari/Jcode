@@ -489,7 +489,7 @@ impl FlowInner {
         }
         // Best-effort cleanup; if the lock is poisoned, the child is already
         // stuck and the calling thread will surface the real error.
-        let _ = self.child.lock().map(|mut c| c.take());
+        drop(self.child.lock().map(|mut c| c.take()));
         result
     }
 }
