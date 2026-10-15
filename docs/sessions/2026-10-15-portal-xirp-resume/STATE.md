@@ -52,7 +52,7 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 | F | Authorize + send vendor question | **operator authorization** |
 | G | Complete local PR 619 checks | **PARTIAL** — gate is flaky (8.2); re-run before relying on the commit |
 | H | Verify authenticated Portal tool discovery | B6 edit (admin, one field) |
-| I | Review 5 pending wiki suggestions | B2 |
+| I | Review 16 pending wiki suggestions | done: 3 fail, 2 pass, 11 identity-clean but body-unreviewed |
 | J | Full launch -> context -> result -> transcript flow | blocked on B and F |
 | K | Apply corrected PR 67 description | inbox approval (deferred by hook) |
 | L | **NEW** Fix the `editorconfig` hook deletion bug | see 8.1; small, safe, but changes repo tooling |

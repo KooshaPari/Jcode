@@ -148,10 +148,11 @@ session, cross-checked row-by-row against live GitHub state:
    suggestions**, not the "6 sources / 5 suggestions" previously recorded. The
    Oct 14 force sync **finished without producing anything**:
    `Catalog Entities` reads `No catalog entities yet`. The required review was
-   then performed and **five suggestions failed it** (four cite repositories that
-   do not exist, one claims `PhenoDesign` is un-ingested when it is synced). Two
-   passed: Portfolio Evidence and Coverage, and Open Questions and Risks. Nothing
-   was accepted; bulk `Accept all (16)` was deliberately not used.
+   then performed. **Three suggestions fail it** (two cite repositories that do not
+   exist, one claims `PhenoDesign` is un-ingested when it is synced). Two pass.
+   The remaining 11 are identity-clean but their bodies could not be read, so
+   they are unreviewed rather than approved. Nothing was accepted; bulk
+   `Accept all (16)` was deliberately not used.
 
 Full row-level tables, the 11 affected repos, the 16 suggestion titles, and the
 specific disproved claim are in `PORTAL-FINDINGS.md`.

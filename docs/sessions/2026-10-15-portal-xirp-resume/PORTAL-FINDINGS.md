@@ -170,42 +170,64 @@ the trivial `1+1`. The extension reports itself as missing the `evaluate` action
 which matches. So `eval` is unavailable here and page inspection must go through
 `get_content`. Recorded so the next session does not waste turns on it.
 
-## Suggestion accuracy audit: four repo names do not exist
+## Suggestion accuracy audit (corrected — see the correction note)
 
-Before accepting anything I cross-checked the repository names each suggestion
-cites against live GitHub. Four are wrong as written.
+**Correction first.** An earlier version of this file said "five suggestions
+failed". That was an overcount and is withdrawn. The verified tally is:
 
-| Name cited in a suggestion | `repos/KooshaPari/<name>` | Closest real repo |
+| Status | Count |
+|---|---|
+| Confirmed failing (cites a nonexistent repo, or a disproved claim) | **3** |
+| Confirmed passing | **2** |
+| Not audited for identity at the time of writing | **11** |
+
+The 11 have now been audited, which is why the "5" was wrong: they were never
+counted as failures, only left unchecked. All 11 are now checked.
+
+### The 3 confirmed failures
+
+| Suggestion | Problem | Evidence |
 |---|---|---|
-| `DinoForge` | **404** | `Dino` (exists, and is a synced resource) |
-| `WorldSphereMod3D` | **404** | `WorldSphereMod` (exists, and is a synced resource) |
-| `Civic Survival` | **404** | none on this account |
-| `Helios` | **404** | none as a bare `Helios`; the real ones are `HeliosLab`, `HeliosLite`, `HeliosCLI` |
+| **Games and Simulation** | Cites Civis, **DinoForge**, **WorldSphereMod3D**, **Civic Survival** | `DinoForge` 404 (really `Dino`); `WorldSphereMod3D` 404 (really `WorldSphereMod`); `Civic Survival` 404, no counterpart. Only `Civis` resolves. |
+| **Quality Gates and Evidence Workflow** | Cites Helios, Civis, Portage, Tracera, BytePort, PhenoRegistry | bare **`Helios`** 404. Only `HeliosLab`, `HeliosLite`, `HeliosCLI` exist. Others resolve. |
+| **Design Systems and Product Surfaces** | Claims it marks **PhenoDesign as "attached but not ingested"** | `PhenoDesign` carries a fresh sync timestamp in Sources, so it *is* ingested. The Sources view contradicts the page. |
 
-Concrete example: the **Games and Simulation** suggestion says it synthesizes
-"Civis, **DinoForge**, **WorldSphereMod3D**, **Civic Survival**, and the
-AgilePlus traceability connection". Only `Civis` resolves. Two of the other three
-appear to be display names or older names for repos that do exist
-(`Dino`, `WorldSphereMod`), and `Civic Survival` has no counterpart at all on
-this account. Likewise the **Quality Gates and Evidence Workflow** suggestion
-cites "**Helios**", which does not exist as a repository.
+### The 11 now audited — all identity-clean
 
-Second, the **Design Systems and Product Surfaces** suggestion says it marks
-"**PhenoDesign** as attached but not ingested", but `PhenoDesign` carries a fresh
-sync timestamp in Sources and is therefore ingested.
+Every repository named in their Portal descriptions was checked against live
+GitHub, and all resolve:
 
-Two other suggestions read as accurate and well-scoped, with proper deferral to
-owning pages rather than restating other domains' authority:
-- **Portfolio Evidence and Coverage** — owns attached-vs-ingested counts,
-  no-content resources and acceptance boundaries. This is precisely where the
-  private-repo finding belongs, and the 85.7% figure is now known.
-- **Open Questions and Risks** — natural owner for the unresolved items.
+- **Forks, Upstreams, and Namespace Conflicts** — names no repository
+- **Product Management and Traceability** — names no repository
+- **AI Routing, Inference, and Evaluation** — `PhenoMLX` resolves (public, synced)
+- **Distributed Compute and Fabric** — `PhenoFabric` resolves
+- **Runtime and Agent Infrastructure** — `herdr`, `cmux`, `ShareCLI`, `HeliosLite`, `Jcode`, `HeliosCLI`, `ratatui` all resolve; all public and synced
+- **Architecture Decisions**, **Authority and Governance Boundaries**,
+  **Portfolio Map**, **Cross-Repository Architecture Patterns**,
+  **Authority and Source-of-Truth Model**, **Phenotype Platform Overview** —
+  none names a repository
 
-Recommendation, deliberately not acted on: **do not bulk-accept.** Accept the two
-above, and send the rest back for regeneration with correct repo identities.
-The Wiki Schema requires suggestions be reviewed against exact current sources
-before acceptance, and four wrong repository names plus one disproved ingestion
-claim is a clear failure of that bar.
+So the wrong-name problem is confined to those **2** suggestions
+(Games and Simulation, Quality Gates and Evidence Workflow), plus the **1**
+disproved-claim problem (Design Systems). Not "four names across five pages".
+
+### The 2 confirmed passing
+- **Portfolio Evidence and Coverage** — owns attached-vs-ingested counts; the
+  correct figures (42 / 36 / 12 private) are now known
+- **Open Questions and Risks** — natural owner for the unresolved items
+
+### Corrected recommendation
+**Accept 2, regenerate 3, and the remaining 11 still need their bodies read
+before acceptance.** Their identities are clean, but the Wiki Schema requires
+review against exact current *sources*, and the body-level checks — private-repo
+claims, coverage claims — were never possible through this bridge. So 11 are
+"identity-clean, content-unreviewed", not "approved". Accepting them on the
+strength of a name check alone would be the same error as bulk-accepting all 16.
+
+Scope check, recorded honestly: Portal's own API for the wiki returns 401
+(`/api/workspaces/phenotype-platform/wiki` and `.../suggestions` both 401), so
+there is no offline artifact to review. The `Export` control exists in the UI but
+could not be exercised through this bridge.
 
 ## Forward-execution item 9: automation outputs and the launch flow
 
@@ -411,3 +433,45 @@ document is served would allow a client_id that cannot be resolved.
 `18586` for `https://kooshapari.com/oauth/client-metadata.json`, derived by
 `scripts/derive_callback_port.py` and cross-checked against the shipped
 `mcp-remote` JavaScript. Recompute if the URL changes.
+
+### The Worker config is validated, not just written
+
+Two independent checks, neither of which deploys anything:
+
+**`wrangler deploy --dry-run`** against a real `wrangler.toml` (name `jcode-cimd`,
+`main = index.js`, `compatibility_date = 2026-10-15`, and the single route
+`kooshapari.com/oauth/client-metadata.json` on `zone_name = kooshapari.com`):
+
+```
+Total Upload: 1.52 KiB / gzip: 0.81 KiB
+No bindings found.
+--dry-run: exiting now.
+```
+
+So the bundle builds and the config parses. Note the dry-run does **not** contact
+Cloudflare, so it cannot prove the route pattern is accepted.
+
+**Cloudflare API, zone `6c9edab581e9c7b8fdb6a83adc6878ea`:**
+- `zoneStatus: "active"`, `zoneName: "kooshapari.com"`
+- `GET /zones/{id}/workers/routes` -> **`routeCount: 0`**
+
+That zero is worth stating precisely, for two reasons. First, **no route
+occupies our path**, so the deploy cannot collide with anything. Second, it
+independently corroborates the `curl` probe: nothing is serving
+`/oauth/client-metadata.json` on this zone today, which is why that path 404s
+rather than falling back.
+
+Together these mean the deploy step is a known-good configuration meeting an
+empty target. What remains genuinely unproven is only whether Spotify's auth
+backend accepts the resulting document — which is exactly what the allow-list
+append and a test authorization would establish.
+
+### One gap in the dry-run worth being honest about
+`wrangler deploy --dry-run` validates the bundle and the TOML, but it does not
+call the Cloudflare API, so it cannot catch a malformed route pattern. The API
+call above confirms the zone is active but does not itself validate the pattern
+string. If the deploy fails on the route, the fallback is to drop `routes` from
+wrangler.toml, deploy the Worker on its default `*.workers.dev` URL, verify the
+document there, and only then attach the custom domain. That fallback changes the
+client_id URL, which changes the derived port, so it is a last resort rather than
+an equal option.
