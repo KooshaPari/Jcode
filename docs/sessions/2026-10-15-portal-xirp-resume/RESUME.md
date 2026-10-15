@@ -139,9 +139,11 @@ session, cross-checked row-by-row against live GitHub state:
 3. **Coverage is 42 attached / 36 ingested = 85.7%, with 16 pending wiki
    suggestions**, not the "6 sources / 5 suggestions" previously recorded. The
    Oct 14 force sync **finished without producing anything**:
-   `Catalog Entities` reads `No catalog entities yet`. No suggestion was
-   accepted; bulk `Accept all (16)` was deliberately not used, and at least one
-   suggestion contains a claim contradicted by the Sources view.
+   `Catalog Entities` reads `No catalog entities yet`. The required review was
+   then performed and **five suggestions failed it** (four cite repositories that
+   do not exist, one claims `PhenoDesign` is un-ingested when it is synced). Two
+   passed: Portfolio Evidence and Coverage, and Open Questions and Risks. Nothing
+   was accepted; bulk `Accept all (16)` was deliberately not used.
 
 Full row-level tables, the 11 affected repos, the 16 suggestion titles, and the
 specific disproved claim are in `PORTAL-FINDINGS.md`.

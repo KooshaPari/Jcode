@@ -92,11 +92,9 @@ Two suggestions are worth accepting first, on evidence rather than enthusiasm:
 - **Open Questions and Risks** — the natural home for the unresolved items.
 
 **None accepted.** The Wiki Schema requires suggestions be reviewed against
-exact current sources before acceptance, and review is the operator's call. One
-substantive caution: the "Design Systems and Product Surfaces" suggestion says it
-marks "PhenoDesign as attached but not ingested" — but `PhenoDesign` shows a
-**fresh 1m sync timestamp** in Sources, so that specific claim looks stale or
-wrong and is a concrete reason not to bulk-accept. Bulk `Accept all (16)` was
+exact current sources before acceptance, and that review has now been done — and
+**five suggestions failed it**. See "Suggestion accuracy audit" below for the
+identity table and the recommendation. Bulk `Accept all (16)` was deliberately
 **not** used.
 
 ### 1.5d Catalog Entities: still empty, confirming 1.6c
@@ -110,3 +108,101 @@ against a now-private PhenoRegistry.
 
 Pull Requests also read `No PRs yet`, and the Overview shows `Sessions 0`,
 `Tasks 0`, `PRs 0`. Wiki pages: 2 (`Wiki Schema`, revision 2).
+
+## Live reproduction: a private refresh resolves back to blank (2026-10-15)
+
+This is the strongest evidence yet, because it was observed as a *transition*
+rather than inferred from a static row.
+
+On the workspace Overview, the three private rows initially showed
+`Refreshing...` next to their names — the app was actively retrying them:
+
+- `https://github.com/KooshaPari/shopping-home` — **Refreshing...**
+- `https://github.com/KooshaPari/job-cockpit` — **Refreshing...**
+- `https://github.com/KooshaPari/HarnessDesk` — **Refreshing...**
+
+Re-read the same page after they settled. All three returned to a **blank**
+`Synced` cell:
+
+- `https://github.com/KooshaPari/shopping-home` — *(blank)*
+- `https://github.com/KooshaPari/job-cockpit` — *(blank)*
+- `https://github.com/KooshaPari/HarnessDesk` — *(blank)*
+
+Meanwhile the public rows in the same view continued to advance normally
+(`herdr` showed `Synced 6m`).
+
+**Why this matters.** It rules out the remaining benign explanations. The sync is
+not merely "not running yet" and not a rendering gap — Portal actively attempts
+the fetch, the attempt completes, and the result is empty. Combined with the
+row-by-row privacy partition, that is a clean causal chain: the request is made,
+the GitHub App cannot read a private repository, the response carries no usable
+content, and the row is left blank. Retrying will not change this.
+
+It also explains the Oct 14 force-sync behaviour recorded as "stuck on Syncing":
+a retrying refresh against un-readable private sources looks exactly like a sync
+that never settles.
+
+## Authenticated MCP tool discovery: still blocked, and now for a precise reason
+
+Attempted from the signed-in session. Result: **not achievable with the browser
+session alone.**
+
+- The MCP actions endpoint requires an OAuth bearer, not a Portal cookie. All of
+  `/api/mcp-actions/v1`, `/api/mcp-actions/v1/tools` and
+  `/api/mcp-actions/v1/tools/list` return **401** to an unauthenticated caller.
+- `/.well-known/oauth-protected-resource/v1` still resolves anonymously and
+  still declares `resource: https://phenotype.spotifyportal.com/api/mcp-actions/v1`
+  with `authorization_servers: ["https://phenotype.spotifyportal.com/api/auth"]`.
+  Discovery is fine; the **bearer token** is what is missing.
+- The workspace `/settings` route rendered an empty shell and never painted its
+  content through this bridge, so the MCP client-configuration UI was not read
+  directly. Workspace MCP actions are described as enabled in the workspace
+  description, which is a stored claim rather than something I verified in the UI.
+
+So tool discovery still depends on B6 (client allow-listing). Signing in to
+Portal did **not** unblock it, and that is worth stating plainly: the browser
+session and the MCP bearer are separate authentication surfaces.
+
+## Bridge limitation found
+
+`browser action=eval` returns `null` for every script on this build, including
+the trivial `1+1`. The extension reports itself as missing the `evaluate` action,
+which matches. So `eval` is unavailable here and page inspection must go through
+`get_content`. Recorded so the next session does not waste turns on it.
+
+## Suggestion accuracy audit: four repo names do not exist
+
+Before accepting anything I cross-checked the repository names each suggestion
+cites against live GitHub. Four are wrong as written.
+
+| Name cited in a suggestion | `repos/KooshaPari/<name>` | Closest real repo |
+|---|---|---|
+| `DinoForge` | **404** | `Dino` (exists, and is a synced resource) |
+| `WorldSphereMod3D` | **404** | `WorldSphereMod` (exists, and is a synced resource) |
+| `Civic Survival` | **404** | none on this account |
+| `Helios` | **404** | none as a bare `Helios`; the real ones are `HeliosLab`, `HeliosLite`, `HeliosCLI` |
+
+Concrete example: the **Games and Simulation** suggestion says it synthesizes
+"Civis, **DinoForge**, **WorldSphereMod3D**, **Civic Survival**, and the
+AgilePlus traceability connection". Only `Civis` resolves. Two of the other three
+appear to be display names or older names for repos that do exist
+(`Dino`, `WorldSphereMod`), and `Civic Survival` has no counterpart at all on
+this account. Likewise the **Quality Gates and Evidence Workflow** suggestion
+cites "**Helios**", which does not exist as a repository.
+
+Second, the **Design Systems and Product Surfaces** suggestion says it marks
+"**PhenoDesign** as attached but not ingested", but `PhenoDesign` carries a fresh
+sync timestamp in Sources and is therefore ingested.
+
+Two other suggestions read as accurate and well-scoped, with proper deferral to
+owning pages rather than restating other domains' authority:
+- **Portfolio Evidence and Coverage** — owns attached-vs-ingested counts,
+  no-content resources and acceptance boundaries. This is precisely where the
+  private-repo finding belongs, and the 85.7% figure is now known.
+- **Open Questions and Risks** — natural owner for the unresolved items.
+
+Recommendation, deliberately not acted on: **do not bulk-accept.** Accept the two
+above, and send the rest back for regeneration with correct repo identities.
+The Wiki Schema requires suggestions be reviewed against exact current sources
+before acceptance, and four wrong repository names plus one disproved ingestion
+claim is a clear failure of that bar.
