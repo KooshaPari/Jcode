@@ -676,10 +676,9 @@ impl Tool for DiscoverToolsTool {
                 // an internal error rather than panicking in production.
                 Some(name) => name,
                 None => {
-                    return Err(DiscoveryError {
-                        failure_reason: "missing tool name for details action",
-                        http_status: None,
-                    });
+                    return Err(anyhow::anyhow!(
+                        "missing tool name for details action"
+                    ));
                 }
             };
             let details = validate_details(&params)?;

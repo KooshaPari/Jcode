@@ -2456,7 +2456,7 @@ impl App {
                                 saved_label,
                                 crate::storage::app_config_dir()
                                     .map(|d| d.join(&env_file).display().to_string())
-                                    .unwrap_or_else(|| "<unknown config dir>".to_string()),
+                                    .unwrap_or_else(|_| "<unknown config dir>".to_string()),
                                 guidance,
                                 model_hint
                             ),
@@ -2657,7 +2657,7 @@ impl App {
                                  jcode will use it with the native Cursor HTTPS transport.",
                                 crate::storage::app_config_dir()
                                     .map(|d| d.join("cursor.env").display().to_string())
-                                    .unwrap_or_else(|| "<unknown config dir>".to_string())
+                                    .unwrap_or_else(|_| "<unknown config dir>".to_string())
                             ),
                         }));
                     }
@@ -3460,7 +3460,7 @@ impl App {
                             .display()
                             .to_string()
                     })
-                    .unwrap_or_else(|| "<unknown config dir>".to_string()),
+                    .unwrap_or_else(|_| "<unknown config dir>".to_string()),
                 auth_note,
             ),
         }));

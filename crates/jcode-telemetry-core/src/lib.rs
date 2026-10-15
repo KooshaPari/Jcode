@@ -1432,7 +1432,8 @@ fn send_transcript_payload(payload: Value) -> bool {
 
 fn send_payload(mut payload: serde_json::Value, mode: DeliveryMode) -> bool {
     concurrency::mark_legacy_concurrency_unavailable(&mut payload);
-    if cfg!(test) {
+    #[cfg(test)]
+    {
         tests::TEST_DELIVERY_MODES
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
