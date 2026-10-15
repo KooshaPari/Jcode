@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 use std::fs::OpenOptions;
-use std::io::{self, BufRead, Write};
+use std::io::{self, BufRead, BufReader, Write};
 
 fn append_log(value: &Value) -> io::Result<()> {
     let path = std::env::var("JCODE_FAKE_GROK_ACP_LOG")
