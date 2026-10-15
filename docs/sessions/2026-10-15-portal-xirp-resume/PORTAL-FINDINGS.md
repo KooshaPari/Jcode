@@ -285,3 +285,62 @@ but it is inference, not something verified, so it is recorded as such.
 The test session was deleted and verified gone (`Session not found`). No worktree
 was created (`worktreePath: null`), no branch was made (`branch: null`), and the
 Jcode checkout's pre-existing untracked files are untouched.
+
+## CIMD hosting: where the document can actually be served (2026-10-15)
+
+Tested candidate hosts before recommending the append. Two of them look right and
+are not, which is worth writing down so nobody repeats the check.
+
+### Both obvious domain choices fail
+
+| Host | Probe | Result |
+|---|---|---|
+| `https://kooshapari.com/oauth/client-metadata.json` | anonymous GET | **404** |
+| `https://jcode.sh/oauth/client-metadata.json` | anonymous GET | **200 — but `text/html`, 98,237 bytes** |
+| `https://jcode.sh/definitely-not-real-xyz` (control) | anonymous GET | **200, `text/html`, 98,425 bytes** |
+
+`jcode.sh` is a Cloudflare-hosted SPA (`server: cloudflare`) that returns the
+HTML shell with **HTTP 200 for every path**. So the 200 on the CIMD path is the
+identical SPA-fallback trap already found on Portal's
+`/.well-known/oauth-client-metadata.json`. **Content-type must be checked; a 200
+proves nothing on an SPA host.** Neither `kooshapari.com` nor `jcode.sh` can
+serve the document as it stands.
+
+### raw.githubusercontent is the viable route, with one caveat
+
+`KooshaPari/Jcode` is `private: false, visibility: public, fork: true`, and
+anonymous raw fetches work — e.g. `README.md` and `Cargo.toml` both return 200.
+So a CIMD document committed to that repo would be anonymously fetchable.
+
+**Caveat, stated honestly:** raw serves JSON as `content-type: text/plain`.
+Verified against a real file (`fork-prompt-session-rich-summary.json` -> 200,
+`text/plain`). Whether Spotify's auth backend accepts a client-metadata document
+served as `text/plain` is **not established**, because the only allow-listed
+document that could serve as a comparison point, Xirp's, is served as
+`application/json` from a normal web host. If the fetcher is strict, raw is the
+wrong host and a small static host or Cloudflare Worker returning
+`application/json` would be required.
+
+Two of my own earlier 404s during this check were my error, not a property of
+raw: I probed `package.json` and `biome.json`, neither of which exists at Jcode
+master root. Corrected by listing the directory first.
+
+### Net hosting recommendation
+1. **Preferred:** a static host that serves `application/json` at a stable HTTPS
+   path — a small Cloudflare Worker is the natural fit given the account already
+   runs one for `jcode.sh`.
+2. **Fallback:** a file committed to a public repo and served via
+   `raw.githubusercontent.com`, accepting the `text/plain` risk and testing it
+   against the real authorization endpoint before relying on it.
+
+Either way, the allow-list pattern appended in App Settings must match the URL
+actually used, and the redirect port must be re-derived by
+`scripts/derive_callback_port.py` for that exact URL. The port is 18586 for
+`https://kooshapari.com/oauth/client-metadata.json` and **35683** for
+`https://jcode.sh/oauth/client-metadata.json`, so it changes with the choice.
+
+### Bridge state during this work
+The Firefox bridge flapped again and stopped responding, and `browser setup
+firefox` could not complete — it needs a manual "Add" click in the extension
+prompt. This is the same flap already documented in STATE.md section 13. It did
+not block this work, because everything above was done with `curl`.
