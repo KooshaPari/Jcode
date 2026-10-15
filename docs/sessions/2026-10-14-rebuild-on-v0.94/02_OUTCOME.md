@@ -150,3 +150,87 @@ The 5-key rotation documented for `~/ocgo.env.rtf` may be needed.
 Separately, two harness server reloads destroyed in-flight background cargo
 work. Long Rust builds should be launched detached (`nohup ... & disown`)
 rather than via a tracked background task.
+---
+
+## Final state (2026-10-15T08:18Z)
+
+Everything below is merged. Ten PRs, no KCode PRs remaining open.
+
+| PR | Contents | Merged |
+|---|---|---|
+| #66 | TUI SSH auth 19 -> 0 | 04:47Z |
+| #68 | picker precedence fix | 06:15Z |
+| #69 | SDK auth/ssh 13 -> 0 | 06:34Z |
+| #70 | telemetry + grok-runtime 15 -> 1 | 06:17Z |
+| #71 | 17 small modules 32 -> 0 | 06:19Z |
+| #72 | fork panic refactor 145 -> 61 | 06:41Z |
+| #74 | ratchet baseline 140 -> 62 | 06:40Z |
+| #77 | swallowed-error + file-size gate fix | 07:57Z |
+| #78 | ui_inline_interactive size | 08:15Z |
+| #79 | fork swallowed-error (5 tokens) | 08:15Z |
+
+### m3.1 session-restore fix
+Shipped in both repos: `6eb00b35d` upstream, `29c240ffb` fork. The fail-before
+evidence the earlier handoff flagged as missing was produced by building an
+isolated worktree at the pre-fix commit `eb0949585` and running the regression
+test there:
+
+```
+panicked at crates/jcode-app-core/src/agent_tests.rs:1171:
+  left:  Some("MiniMax-M3.1-Flash-Preview")
+  right: Some("unknown")
+```
+
+That is the operator's exact repro. Pass-after: target test green, full
+`jcode-app-core --lib` suite `1274 passed; 0 failed`.
+
+### Model picker
+Root cause was a built-in login-provider profile sharing the id
+`openai-compatible`, which shadowed the user's `[providers.openai-compatible]`
+block at `provider/startup.rs:97-100`. The user's block was parsed and then
+discarded. Fixed in #68; the regression test fails on unfixed master and passes
+on the fix.
+
+The operator's `~/.jcode/config.toml` was also corrected (config-side, not
+code-side): a real `base_url`, an `api_key_env`, and an `env_file` matching the
+name the live session actually expects (`openai-compatible.env`, which did not
+previously exist). Verified end to end against the live endpoint: `/models`
+returns 200 and `/chat/completions` returns 200 for
+`MiniMax-M3.1-Flash-Preview`.
+
+Correction worth keeping: an earlier conclusion that the model did not exist
+was wrong. It is absent from `/models` but is served normally. Absence from a
+catalog listing is not absence from service.
+
+### Panic-prone ratchet
+Upstream master `1262747b9`: baseline **62 across 20 files** (from 140/46).
+The ratchet has teeth again — adding a single `.unwrap()` fails the gate at
+`62 -> 63`.
+
+Gates on merged upstream master: panic OK, swallowed-error improved, test-size
+OK, module-files OK. `check_code_size_budget.py` still fails on
+`crates/jcode-tui/src/tui/mod.rs` (2072 -> 2077), which is **pre-existing**:
+commit `f396d0fd7` landed 2026-10-14T17:23, eleven hours before this work's
+first merge.
+
+Fork master `9a62906d6`: panic budget 145 -> 61. This arc's contribution to
+the fork's swallowed-error count is now **0** (measured at 5 across #72, then
+removed in #79; 3454 versus a 3455 pre-refactor baseline). The fork's remaining
+swallowed-error and code-size failures (`src/cli/dispatch.rs`,
+`src/cli/login.rs`, `src/cli/provider_init.rs`) are pre-existing and none are
+in this work's diff.
+
+### Method note
+Every gate failure above was found by running the gates against the **merged**
+tree. Branch-level checks could not see them: the regressions only appear when
+the new code and the old baseline coexist on master. Two of them were found
+only after merging, and each was fixed and re-verified on a clean checkout of
+the committed result.
+
+### Operational hazards hit
+- Two harness server reloads destroyed in-flight background cargo work. Long
+  builds must be launched detached (`nohup ... & disown`).
+- GitHub GraphQL intermittently reported a false "no commits between master and
+  <branch>" for branches that clearly had them; the REST API worked.
+- `opencode-go` failed with an auth error on three workers. Dispatch demoted
+  cross-provider to `openai-compatible:MiniMax-M3` and work continued.
