@@ -125,30 +125,65 @@ lists exactly **31** repository descriptors plus `owner.yaml`. Its own descripti
 says "Public non-zz repository snapshot ... Private records belong only in
 Portal." So 31 is a *public* count, and it will never equal the 46 total.
 
-**(b) Three descriptor entries no longer match GitHub.**
-| Descriptor entry | Reality |
-|---|---|
-| `kcode.yaml` | Stale. KCode was renamed to Jcode. `jcode.yaml` returns 404; `kcode.yaml` exists at sha `6ef9ed0bef37292ca0829b059c681cc479bc2328` |
-| `github.yaml` | Not a KooshaPari repo |
-| `parpoura-experiment-0.yaml` | Not among the 46 current non-zz repos (likely renamed to `zz-pause-inc-Parpoura`, i.e. excluded by the zz filter) |
+**Correction to an earlier error in this same record:** I first reported
+`kcode.yaml` as stale because I compared *filenames* to repo names. That was
+wrong. `kcode.yaml` correctly declares
+`github.com/project-slug: KooshaPari/Jcode`, repo id `1365855438`, and carries
+`phenotype.dev/former-name: "KCode"`. It is accurate. Likewise `github.yaml`
+correctly maps to `KooshaPari/.github` (id 1199812615), which my zz-filtered
+inventory omitted only because the name begins with a dot. Do not "fix" either.
 
-**(c) Eighteen current repos have no descriptor at all.**
-All 18 are either **private** (correct — private records belong in Portal, not the
-public repo) or **archived**. Breakdown:
-- Private, active (6): `HarnessDesk`, `job-cockpit`, `PhenoApps`, `PhenoBot`, `PhenoLab`, `shopping-home`
-- Private, archived (10): `.audit-run-v37`, `PhenoAI`, `phenoDesign-visual-production-v2`, `PhenoMLX-temp`, `phenotype-canonicalization`, `phenotype-cvp-audit-2026-09-14`, `Pine`, `ResearchLedger`, `SessionLedger`, `Substrate`
-- Public, active, missing (1): `.github`
+**(c) Eighteen current repos have no descriptor at all.** All are private or
+archived, which is consistent with the public-only design, except `.github`
+(see above, it IS described).
+- Private, active (6): `HarnessDesk`, `job-cockpit`, `PhenoApps`, `PhenoBot`,
+  `PhenoLab`, `shopping-home`
+- Private, archived (10): `.audit-run-v37`, `PhenoAI`,
+  `phenoDesign-visual-production-v2`, `PhenoMLX-temp`,
+  `phenotype-canonicalization`, `phenotype-cvp-audit-2026-09-14`, `Pine`,
+  `ResearchLedger`, `SessionLedger`, `Substrate`
 
-**Timing evidence that no new repos explain the delta.** Newest non-zz repo
-`created_at` is `herdr` at 2026-10-09T06:32:17Z, i.e. on or before the Oct 9
-snapshot date. So the +4 cannot be new repositories. Four repos
-(`Pine`, `ResearchLedger`, `SessionLedger`, `Substrate`) were pushed on
-2026-10-13/14 and are now **archived** — consistent with an archive pass that ran
-after the snapshot. Archived count went 9 -> 14.
+**Timing evidence that no new repositories explain the delta.** Newest non-zz
+repo `created_at` is `herdr` at 2026-10-09T06:32:17Z, i.e. on or before the Oct 9
+snapshot date. So the +4 cannot be new repositories. Four repos (`Pine`,
+`ResearchLedger`, `SessionLedger`, `Substrate`) were pushed on 2026-10-13/14 and
+are now **archived**, consistent with an archive pass that ran after the
+snapshot. Archived count went 9 -> 14.
 
-Rule of thumb to carry forward: **46 = total owned non-zz; 31 = public static
-catalog; 42 = Portal GitHub App selected count, now suspect.** Reconcile against
-Portal's stored list before changing any count in a PR.
+Rule of thumb: **46 = total owned non-zz; 31 = public static catalog; 42 = Portal
+GitHub App selected count, now suspect.**
+
+### 1.6b PR 619 local validation — 29 of 31 clean, 2 real defects
+
+Ran entirely locally against the PR head `8be56b97` (extracted from a tarball, no
+CI, $0). No files in the registry repo were modified.
+
+**Passing:**
+- All 31 descriptors parse as YAML without error.
+- Referential integrity is perfect: all 32 `catalog-info.yaml` targets resolve
+  (31 repositories + `owner.yaml`), and there are zero unreferenced descriptors.
+- Secret scan across the whole `catalog/spotify-portal/` tree: clean.
+- 29 of 31 descriptors match live GitHub on immutable repo id **and** archived
+  flag. Archived flags for `herdr-forgecode`, `herdr-helioslite`, `herdr-jcode`,
+  `PhenoInfra` are all correctly `true`.
+
+**Two genuine defects to fix in PR 619:**
+
+1. `parpoura-experiment-0.yaml` describes a repository that **no longer exists**.
+   `gh api repos/KooshaPari/parpoura-experiment-0` returns
+   `{"message":"Not Found",...,"status":"404"}`. The repo appears to have been
+   renamed to `zz-pause-inc-Parpoura`, which the non-zz rule excludes. So this
+   descriptor now points at a 404 and also violates the non-zz scope rule.
+2. `phenoregistry.yaml` is **private** on GitHub (verified live:
+   `{"id":1201113097,"name":"PhenoRegistry","private":true}`) yet sits in the
+   public catalog, whose own description says private records belong only in
+   Portal. The checkpoint notes PhenoRegistry became private *after* this
+   snapshot was taken, which explains the drift.
+
+Both are evidence-backed and low-risk to correct, but I am **not** applying them
+yet: changing the descriptor set changes what Portal ingests, and the original
+destructive-preview root cause is still unknown (B2 blocks observing ingestion).
+Fix, then verify ingestion rather than guess.
 
 ### 1.7 Session detection/sync of externally-launched sessions: NOT supported for Jcode
 
