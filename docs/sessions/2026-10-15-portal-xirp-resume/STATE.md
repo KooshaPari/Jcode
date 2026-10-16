@@ -468,3 +468,18 @@ remain under /tmp and are lost on reboot.
 | `/tmp/xirp-probe-20261015/repo-inventory-summary.txt` | human-readable inventory |
 | `/tmp/xirp-asar-extract/` | extracted Xirp app.asar (461 .js files) |
 | `/tmp/jcode-pr67-wt/` | isolated worktree for PR 67 |
+
+## 15. Allow-list landed; one wiki accept (2026-10-16)
+
+Signed-in App Settings still had exactly four patterns: `https://claude.ai/*`,
+`https://chatgpt.com/oauth/codex/*/client.json`,
+`https://backstage.spotify.com/chirp.json`,
+`https://xirp.spotify.com/oauth/client-metadata.json`. Appended
+`https://auth.kooshapari.com/oauth/client-metadata.json` as row 5 and saved.
+Reload showed all five. CIMD toggle stayed on. Authorize probe then returned
+**302** to `/oauth2/authorize/...`.
+
+Wiki suggestions were 13, each rewritten 17h after the old review. Accepted only
+**Open Questions and Risks**. It is now on Pages, and Suggestions fell to 12.
+Left **Portfolio Evidence and Coverage** unaccepted: its 17h update limits the
+42-repo register to 8 ingested sources, against the verified 36.
