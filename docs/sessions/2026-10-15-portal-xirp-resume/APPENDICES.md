@@ -269,3 +269,20 @@ recorded so it is auditable: the change is docs and YAML only
 code, and the full gate passed 17/17 on three independent standalone runs
 immediately before the push. `--no-verify` here bypassed a flaky gate, not a
 real failure. **Re-run the gate properly before relying on that commit.**
+
+## Appendix I. Operator steps for GitHub App private-repo access
+
+Rechecked 2026-10-16. This is still not grantable from `gh`.
+`gh auth status` scopes are `gist`, `read:org`, `repo`, `workflow`.
+The Portal GitHub App is Spotify-owned. No user-token scope adds repository
+access to that installation.
+
+Do this in GitHub, in the org that owns the private repos:
+
+1. Open **Settings → GitHub Apps → the Portal app → Configure**.
+2. Under **Repository access**, add the missing private repos, including
+   **PhenoRegistry**, or choose **All repositories**.
+3. If GitHub asks to approve a new **Contents: Read** permission, approve it.
+
+That one change is the source fix for both the empty catalog and the unsynced
+private rows. Do not mint a new token and do not change `gh` scopes to attempt it.

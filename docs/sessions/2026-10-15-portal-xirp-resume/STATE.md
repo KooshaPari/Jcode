@@ -151,14 +151,15 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
     `jcode browser setup chrome`.
   This needs ~2 minutes of human action in a browser. Until then, tasks B, C, H
   and I cannot start. Firefox and Edge are installed but untested as bridges.
-- **B3 — Portal MCP is reachable but unauthenticated.** Confirmed by direct probe:
-  `GET https://phenotype.spotifyportal.com/api/mcp-actions/v1` -> `200` on the
-  site root, and the MCP endpoint correctly returns
-  `{"error":{"name":"AuthenticationError","message":"Missing credentials"},...,"statusCode":401}`.
-  No Portal MCP server is configured in `~/.jcode/mcp.json` (1 server total, none
-  Portal-related) and `spotifyportal` appears 0 times in `~/.claude.json`. So
-  authenticated tool discovery still needs a real credential, which must come
-  from the Portal UI (CIMD OAuth or a scoped static token), not from chat.
+- **B3 — Portal MCP is configured, still unauthenticated.** Rechecked 2026-10-16:
+  `GET /api/mcp-actions/v1` returns `401 AuthenticationError: Missing credentials`.
+  `phenotype-portal` is in the user config for Cursor, Claude, Codex, Jcode,
+  Kcode, and Forge (`~/.forge/.mcp.json`). HeliosLite has no MCP file.
+  `~/.forge/` takes precedence, so no `~/.helioslite/.mcp.json` was created.
+  Authorize with `client_id=https://auth.kooshapari.com/oauth/client-metadata.json`
+  is still **400 Invalid client_id**. The allow-list append has not landed.
+  `gh` scopes are still `gist`, `read:org`, `repo`, `workflow`. Private-repo
+  access stays Spotify-admin-only. The operator steps are Appendix I.
 - **B4 — Transient files in /tmp.** Inventory JSON, probe output, extracted asar,
   and the PR-67 worktree all live in /tmp and are lost on reboot. Relocate any of
   these that must survive.
