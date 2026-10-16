@@ -139,9 +139,9 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
   `@chirp/squab`. No amount of Jcode-side work unblocks these. Exact missing
   interface: an `AgentSessionAdapter` implementation + launchable spec for
   `jcode`, OR a generic ACP-backed harness entry point in squab.
-- **B2 (NEW, blocks Portal inspection) — browser bridge not connected.** Portal
-  catalog/source/wiki work needs a live signed-in browser session. The bridge
-  fails in **both** available browsers:
+- **B2 (historical) — browser bridge was not connected when this was written.**
+  Portal catalog/source/wiki work needs a live signed-in browser session. At
+  that time the bridge failed in **both** browsers then tested:
   - Safari: `xcodebuild failed` during `safari-web-extension-converter`; manual
     enable required in Safari > Settings > Extensions.
   - Chrome: extension not installed in the Default profile. Manual steps:
@@ -149,8 +149,8 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
     `/Users/kooshapari/.jcode/browser/extensions/chromium`
     (expected extension id `ijifgeepmnbalajhfjnpbnobfobflfkk`), then re-run
     `jcode browser setup chrome`.
-  This needs ~2 minutes of human action in a browser. Until then, tasks B, C, H
-  and I cannot start. Firefox and Edge are installed but untested as bridges.
+  Superseded for the allow-list and the wiki accept: section 15 is the later
+  signed-in result. Do not treat this paragraph as the current bridge state.
 - **B3 — Anonymous Portal MCP is still 401. Two harnesses are connected.**
   Rechecked 2026-10-16: a credential-less `GET /api/mcp-actions/v1` is **401**.
   Authorize for the Worker client id is **302** (section 15, Appendix J).
@@ -163,13 +163,14 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
   and the PR-67 worktree all live in /tmp and are lost on reboot. Relocate any of
   these that must survive.
 - **B5 — Unauthorized actions deliberately NOT taken.** No support message sent.
-  No allowed-client-pattern widening. No credential minting/replacement. No
-  destructive catalog preview applied. No transcript uploaded. No PR merged.
-- **B6 — Portal OAuth client allow-listing. SOLVED IN SUBSTANCE; needs one
-  deliberate edit.** Earlier this was recorded as needing vendor authorization.
+  No credential minting/replacement. No destructive catalog preview applied.
+  No transcript uploaded. No PR merged. The one allowed-client change is the
+  section 15 append. Do not add further patterns.
+- **B6 — Portal OAuth client allow-listing. SOLVED. The append landed.**
+  Earlier this was recorded as needing vendor authorization.
   That is wrong. `kooshapari@kooshapari.com` is a member of **Portal Admins**, and
   the allow-list is an editable field: `App Settings -> General -> MCP ->
-  Allowed client ID patterns`, currently holding exactly 4 inputs and an
+  Allowed client ID patterns`, which then held exactly 4 inputs and an
   "Add item" control. The 4 inputs match the 4 patterns in the checkpoint,
   corroborating that record.
 
@@ -198,22 +199,10 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
   DNS-only CNAME to Vercel and Workers routes silently do not fire on unproxied
   names. That changed the derived callback port from 18586 to **47290**.
 
-  **Only the append remains.** Pattern to add:
-  `https://auth.kooshapari.com/oauth/client-metadata.json`. It must be
-  **appended** to the existing four patterns, never a replacement, because a
-  custom list supersedes Backstage's implicit Claude, VS Code and built-in CLI
-  defaults.
-
-  **Acceptance test is now defined and needs no UI.** With the document live,
-  `GET /api/auth/v1/authorize?client_id=https://auth.kooshapari.com/oauth/client-metadata.json&...`
-  returns **400 `InputError: Invalid client_id`** — it resolves the URL, rejects
-  purely on allow-list grounds, identical to every other non-allow-listed URL we
-  tested. After the append the same request must return **302** to
-  `/oauth2/authorize/...`. That 400 -> 302 flip is the precise success signal.
-
-  Not done yet: the Portal session expired during the Xirp reinstall, and the
-  append is an authentication-policy change that admits a new client to
-  authenticate against this Portal.
+  **The append is done.** See section 15. Do not append again. The historical
+  acceptance test was 400 `Invalid client_id` before the append, then **302**
+  after it. A fresh probe on 2026-10-16 05:07Z is still **302** to
+  `/oauth2/authorize/1f17d232-bd18-4032-b4cb-c46d6cd07490`.
 - **B7 — `gh pr edit` requires inbox approval.** The corrected PR 67 description
   is staged at `/tmp/pr67-body-2.md`; the command was deferred by the pre_tool
   hook and has not been applied. The live PR body still contains two now-false
@@ -482,3 +471,12 @@ Wiki suggestions were 13, each rewritten 17h after the old review. Accepted only
 **Open Questions and Risks**. It is now on Pages, and Suggestions fell to 12.
 Left **Portfolio Evidence and Coverage** unaccepted: its 17h update limits the
 42-repo register to 8 ingested sources, against the verified 36.
+
+Fresh checks on 2026-10-16 05:07Z: authorize still **302** to the id above,
+CIMD still **200** `application/json`, unauthenticated MCP still **401**.
+Claude `mcp get` reports **Connected**. Codex lists the server enabled OAuth.
+Jcode lists it with no stored OAuth credentials. Kcode has no `mcp` command.
+All seven user configs still contain the URL. Wiki was not re-queried on this
+pass. The prior live tool read showed 19 pages, including Open Questions and
+Risks, and 12 suggestions, including Portfolio Evidence and Coverage. A page
+with that title already exists, so the suggestion stays unaccepted.
