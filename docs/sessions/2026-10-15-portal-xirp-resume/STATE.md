@@ -92,8 +92,10 @@ than assumed.
 | PR #67 branch | `chore/xirp-custom-harness-discovery-20261014` | same SHA on origin |
 | Local jcode checkout | `~/CodeProjects/Phenotype/repos/jcode`, `master` @ `cd974614d2c8e7e36357724a73be61dbb62e16e1` | has unrelated untracked work, left untouched |
 | Isolated PR-67 worktree | `/tmp/jcode-pr67-wt` on branch `chore/xirp-custom-harness-discovery-20261014` | **/tmp — recreate after reboot** |
-| `KooshaPari/PhenoRegistry` PR #619 | head `8be56b971813265f468e88aa90a616992abe41c9` | OPEN, DRAFT, MERGEABLE |
+| `KooshaPari/PhenoRegistry` PR #619 | head `8be56b971813265f468e88aa90a616992abe41c9` | OPEN, DRAFT, MERGEABLE — verified 2026-10-16 |
 | Local registry checkout | `~/CodeProjects/Phenotype/repos/phenotype-registry`, branch `polish/audit-sibling-links-20261014` @ `c480ba31f0f612e12154c34f19ac4ba47540c1aa` | **different branch from PR 619** |
+| Audit correction | `chore/xirp-custom-harness-discovery-20261014` @ `2652bc65a` | applied 2026-10-16; 6 record defects + 1 deleted stub |
+| End-to-end MCP probe | `codex exec` real `auth.who-am-i` | returned Backstage User `kooshapari`; 45,857 tokens, 1m 57s |
 
 Gotcha that cost time: inside the jcode checkout, plain `gh pr view 67`
 resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
