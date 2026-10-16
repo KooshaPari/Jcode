@@ -31,8 +31,13 @@
 //!
 //!   * startup handle equals the current handle -> the original console is
 //!     still ours -> alive;
-//!   * current probe reports no console at all, or a *different* window handle
-//!     -> the startup console is gone -> abandoned.
+//!   * the current probe reports no console at all -> the startup console is
+//!     gone -> abandoned.
+//!
+//! Abandonment is reported only on that explicit "no console any more" signal.
+//! A nonzero handle that merely differs from the startup one is ambiguous and
+//! is treated as alive, because a false positive here would terminate a live,
+//! healthy user session (see [`windows_console_abandoned`] for the reasoning).
 //!
 //! This is the direct analogue of Linux's `tty_nr` collapsing to 0, and it
 //! catches the same orphaning failure the module was written for.
@@ -189,12 +194,19 @@ fn windows_console_identity() -> Option<u64> {
 /// is the value captured at startup (a console window `HWND` as `u64`, or `0`
 /// when the process never had a console window) and `now` is a fresh probe.
 ///
-/// Unlike the Unix implementations this also treats a *different* nonzero
-/// handle as abandonment, because a stable console keeps the same window for
-/// the life of the process: only the startup console surviving matters. (On
-/// macOS the comparable value, the foreground process group, legitimately
-/// changes while a shell runs a foreground program, which is why that rule
-/// must not leak into the Unix path.)
+/// The rule deliberately matches the Unix implementations exactly: fire only
+/// on an *explicit* loss signal (no console attached any more), and assume
+/// alive in every ambiguous case.
+///
+/// In particular, a nonzero handle that merely *differs* from the startup one
+/// is treated as ALIVE, not abandoned. Treating it as abandoned would depend on
+/// the unverified claim that a console window keeps the same `HWND` for the life
+/// of the process, and the downside of being wrong is asymmetric and severe:
+/// a false positive terminates a live, healthy user session, whereas a missed
+/// detection only leaves the pre-existing orphan in place for one more tick of
+/// an already-degraded scenario. Since this code path cannot be exercised
+/// without a Windows console, the safe reading is the one that cannot kill a
+/// live session.
 #[cfg_attr(not(windows), allow(dead_code))]
 fn windows_console_abandoned(initial: u64, now: Option<u64>) -> bool {
     // Never had a console window (headless/piped, or a ConPTY pseudoconsole):
@@ -202,13 +214,8 @@ fn windows_console_abandoned(initial: u64, now: Option<u64>) -> bool {
     if initial == 0 {
         return false;
     }
-    // Still attached to the exact console window we started with: alive.
-    match now {
-        Some(current) if current == initial => false,
-        // No console now, a different console now, or the lost sentinel `0`:
-        // the startup console is gone.
-        _ => true,
-    }
+    // Explicit loss only: no console attached any more, or the lost sentinel.
+    matches!(now, None | Some(0))
 }
 
 #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
@@ -258,12 +265,18 @@ mod tests {
 
     #[test]
     fn windows_console_lost_is_abandoned() {
-        // No console attached any more: abandoned.
+        // No console attached any more: explicit loss.
         assert!(windows_console_abandoned(0x1234, None));
-        // Lost-tty sentinel: abandoned.
+        // Lost-tty sentinel: explicit loss.
         assert!(windows_console_abandoned(0x1234, Some(0)));
-        // A different console window replaced ours: abandoned.
-        assert!(windows_console_abandoned(0x1234, Some(0x5678)));
+    }
+
+    #[test]
+    fn windows_different_console_handle_is_assumed_alive() {
+        // A nonzero handle that differs from the startup one is ambiguous: we
+        // have no verified evidence the console went away, so we assume alive
+        // rather than risk terminating a live user session on a false positive.
+        assert!(!windows_console_abandoned(0x1234, Some(0x5678)));
     }
 
     #[test]
