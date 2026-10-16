@@ -655,13 +655,33 @@ For the built-in OpenAI login flow, jcode opens a local callback on
 <img width="2877" height="1762" alt="Screenshot from 2026-04-02 14-28-51" src="https://github.com/user-attachments/assets/530684c0-9d12-4363-aa0e-1b39a0d4e1be" />
 The above image is the first page of provider logins
 
-### Supported provider
+### Provider surface
 
-- **Native / first-party style providers:** `claude`, `openai`, `copilot`, `gemini`, `azure`, `alibaba-coding-plan`
-- **Aggregator / compatibility providers:** `openrouter`, `orcarouter`, `openai-compatible`
-- **Additional provider integrations:** `opencode`, `opencode-go`, `zai` / `kimi`, `302ai`, `baseten`, `cortecs`, `deepseek`, `firmware`, `huggingface`, `moonshotai`, `nebius`, `scaleway`, `stackit`, `groq`, `mistral`, `perplexity`, `togetherai`, `deepinfra`, `fireworks`, `novita`, `minimax`, `xai`, `lmstudio`, `ollama`, `chutes`, `cerebras`, `cursor`, `antigravity`, `google`
+jcode's provider surface is **two-tier**:
 
-Jcode also supports easy multi-account switching. Ran out of tokens on your first ChatGPT Pro subscription? /account and quickly switch to your second. 
+**11 first-class provider adapter crates** under `crates/jcode-provider-*/` — each implements provider-specific streaming, OAuth refresh, and tool/usage handling:
+
+- `claude` (subscription OAuth) and `anthropic-api` (API key) — `jcode-provider-anthropic` + `jcode-provider-anthropic-runtime`
+- `openai` (OAuth, ChatGPT/Codex) and `openai-api` (API key) — `jcode-provider-openai` + `jcode-provider-openai-runtime`
+- `gemini` (OAuth + API key) — `jcode-provider-gemini` + `jcode-provider-gemini-runtime`
+- `copilot` (GitHub device flow + standard OAuth) — `jcode-provider-copilot` + `jcode-provider-copilot-runtime`
+- `openrouter` (live catalog merge) — `jcode-provider-openrouter` + `jcode-provider-openrouter-runtime`
+- `bedrock` (AWS sigv4) — `jcode-provider-bedrock`
+- `antigravity` (drives the Antigravity CLI binary) — `jcode-provider-antigravity` + `jcode-provider-antigravity-runtime`
+- `claude-cli` (reuses Claude Code's CLI as a backend) — `jcode-provider-claude-cli-runtime`
+- `cursor` (drives Cursor's local daemon) — `jcode-provider-cursor-runtime`
+- `grok-build` (drives the Grok CLI binary) — `jcode-provider-grok-build-runtime`
+- `forgecode` (drives the Forge CLI binary) — `jcode-provider-forgecode-runtime`
+
+**An `openai-compatible` profile harness** — any service that speaks OpenAI's `/v1/chat/completions` API works through one shared runtime. Built-in named profiles fill in the base URL and key environment variable for you:
+
+- Aggregators and hosted providers: `orcarouter`, `opencode` (OpenCode Zen), `opencode-go`, `zai` / `kimi`, `302ai`, `baseten`, `cortecs`, `deepseek`, `firmware`, `huggingface`, `moonshotai`, `nebius`, `scaleway`, `stackit`, `groq`, `mistral`, `perplexity`, `togetherai`, `deepinfra`, `fireworks`, `novita`, `minimax`, `xai`, `alibaba-coding-plan`
+- Local and self-hosted runtimes: `lmstudio`, `ollama`, `chutes`, `cerebras`, plus a generic `openai-compatible` profile for any custom endpoint
+- `azure` — handled by the separate `jcode-azure-auth` credential crate (auth only), pairing with the openai-compatible runtime for the API calls
+
+`jcode login --provider <profile-id>` wires the named profiles; you still pick the model with `/model` (or `--model`). Run `jcode login` with no provider to see the interactive list. **Note:** `openrouter` is listed above in both tiers on purpose — it has a dedicated adapter for live catalog merge and falls back to the openai-compatible path when the merged catalog is empty.
+
+Jcode also supports easy multi-account switching. Ran out of tokens on your first ChatGPT Pro subscription? /account and quickly switch to your second.
 
 ---
 
