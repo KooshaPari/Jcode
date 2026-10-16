@@ -21,14 +21,16 @@ use std::time::{Duration, Instant, SystemTime};
 mod update_dev_guard;
 #[path = "update_metadata.rs"]
 mod update_metadata;
+#[path = "update_product.rs"]
+mod update_product;
 #[path = "update_rate_limit.rs"]
 mod update_rate_limit;
 pub use update_metadata::UpdateMetadata;
 use update_metadata::{record_release_update_duration, record_source_update_duration};
+pub use update_product::GITHUB_REPO;
+use update_product::fork_update_disallowed_error;
 pub use update_rate_limit::{RATE_LIMIT_ERROR_PREFIX, is_rate_limit_error};
 use update_rate_limit::{clear_rate_limit_backoff, rate_limit_error};
-
-const GITHUB_REPO: &str = "1jehuang/jcode";
 /// Minimum gap between *automatic* update checks.
 ///
 /// Every automatic check costs one or two unauthenticated `api.github.com`
@@ -142,6 +144,12 @@ pub fn should_auto_update() -> bool {
         return false;
     }
 
+    // Fork builds never auto-update: the background check must not fire, because
+    // the only upstream it would find is upstream jcode, not this product.
+    if update_product::update_repo().is_none() {
+        return false;
+    }
+
     if !is_release_build() {
         return false;
     }
@@ -190,10 +198,10 @@ fn is_inside_git_repo(path: &std::path::Path) -> bool {
 }
 
 pub fn fetch_latest_release_blocking() -> Result<GitHubRelease> {
-    let url = format!(
-        "https://api.github.com/repos/{}/releases/latest",
-        GITHUB_REPO
-    );
+    let Some(repo) = update_product::update_repo() else {
+        return Err(fork_update_disallowed_error());
+    };
+    let url = format!("https://api.github.com/repos/{}/releases/latest", repo);
 
     let client = reqwest::blocking::Client::builder()
         .timeout(UPDATE_CHECK_TIMEOUT)
@@ -242,7 +250,10 @@ fn github_api_request(
 }
 
 fn latest_main_sha_blocking() -> Result<String> {
-    let url = format!("https://api.github.com/repos/{}/commits/main", GITHUB_REPO);
+    let Some(repo) = update_product::update_repo() else {
+        return Err(fork_update_disallowed_error());
+    };
+    let url = format!("https://api.github.com/repos/{}/commits/main", repo);
     let client = reqwest::blocking::Client::builder()
         .timeout(UPDATE_CHECK_TIMEOUT)
         .user_agent("jcode-updater")
@@ -308,6 +319,8 @@ fn verify_asset_checksum_if_available(
 }
 
 fn synthetic_main_release(latest_sha: &str) -> GitHubRelease {
+    // Only reachable via the main-channel path, which resolves a repo slug first
+    // and bails on a fork, so upstream is the correct provenance here.
     GitHubRelease {
         tag_name: format!("main-{}", latest_sha),
         _name: Some(format!("Built from main ({})", latest_sha)),
