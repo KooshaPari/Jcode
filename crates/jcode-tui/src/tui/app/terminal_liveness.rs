@@ -17,10 +17,50 @@
 //! a terminal window does not reliably deliver SIGHUP, it probes the foreground
 //! process group of the controlling TTY. A revoked PTY makes `tcgetpgrp` fail,
 //! which lets the event loops terminate instead of keeping the window alive.
+//!
+//! # Windows
+//!
+//! Windows has no `tty_nr`, so the same "did my startup terminal go away?"
+//! question is answered with the console window handle instead. A process
+//! attached to a classic console is hosted by a conhost window, and
+//! [`GetConsoleWindow`] returns a stable `HWND` identifying that window for as
+//! long as the process stays attached to it. The startup handle is captured in
+//! the shared `INITIAL_TTY_NR` slot (the same slot Linux and macOS use, with
+//! the `HWND` playing the role of `tty_nr`), and later probes compare against
+//! it:
+//!
+//!   * startup handle equals the current handle -> the original console is
+//!     still ours -> alive;
+//!   * current probe reports no console at all, or a *different* window handle
+//!     -> the startup console is gone -> abandoned.
+//!
+//! This is the direct analogue of Linux's `tty_nr` collapsing to 0, and it
+//! catches the same orphaning failure the module was written for.
+//!
+//! Two honest limits of the Windows approach, which are deliberately *not*
+//! claimed to be covered:
+//!
+//!   * A process attached to a pseudoconsole (ConPTY, as used by herdr on
+//!     Windows, by Windows Terminal, and by `conhost` in ConPTY mode) has no
+//!     visible console window, so `GetConsoleWindow` returns NULL for it from
+//!     the very first probe. Such a process takes the "never had a console"
+//!     path and is never reported abandoned. Detecting ConPTY teardown would
+//!     require the pseudoconsole host's pipe handles, which the child process
+//!     does not own, so it is out of scope here.
+//!   * A process whose std handles are pipes (headless or piped usage, e.g. the
+//!     server, or the video-export path) also reports no console, which
+//!     correctly lands on the same "never had a console" path.
+//!
+//! In both cases the correct answer is "not abandoned", because a process that
+//! never had a console has no controlling terminal to lose. That keeps the
+//! `initial == 0` short-circuit in [`terminal_abandoned`] doing exactly the job
+//! it already does on the Unix platforms.
 
 use std::sync::OnceLock;
 
-/// tty_nr captured on first call. `None` until initialized, `Some(0)` when
+/// Identity of the controlling terminal captured on first call, using each
+/// platform's own notion of it (Linux `tty_nr`, macOS foreground process group
+/// id, Windows console window handle). `None` until initialized, `Some(0)` when
 /// the process never had a controlling terminal (piped/headless usage), in
 /// which case abandonment is never reported.
 static INITIAL_TTY_NR: OnceLock<u64> = OnceLock::new();
@@ -33,18 +73,28 @@ pub(crate) fn capture_initial_tty() {
 }
 
 /// True when this process started with a controlling terminal that has since
-/// disappeared. Cheap (one small `/proc` read), safe to call from tick loops.
+/// disappeared. Cheap (one small `/proc` read on Linux, one `GetConsoleWindow`
+/// probe on Windows), safe to call from tick loops.
 pub(crate) fn terminal_abandoned() -> bool {
     capture_initial_tty();
     let initial = INITIAL_TTY_NR.get().copied().unwrap_or(0);
-    if initial == 0 {
-        // Never had a controlling terminal: nothing to lose.
-        return false;
+
+    #[cfg(windows)]
+    {
+        return windows_console_abandoned(initial, current_tty_nr());
     }
-    match current_tty_nr() {
-        Some(0) => true,
-        // Unreadable /proc or a live tty: assume alive.
-        _ => false,
+
+    #[cfg(not(windows))]
+    {
+        if initial == 0 {
+            // Never had a controlling terminal: nothing to lose.
+            return false;
+        }
+        match current_tty_nr() {
+            Some(0) => true,
+            // Unreadable /proc or a live tty: assume alive.
+            _ => false,
+        }
     }
 }
 
@@ -69,7 +119,99 @@ fn current_tty_nr() -> Option<u64> {
     }
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+/// Probe the console window that currently hosts this process.
+///
+/// Windows has no `tty_nr`, so the console window `HWND` stands in for it and is
+/// mapped onto the same convention the Unix platforms use:
+///
+///   * `Some(hwnd)` -> attached to a console whose window handle is `hwnd`,
+///     nonzero and stable while that console is alive;
+///   * `Some(0)`    -> no console window to identify (no console attached, or a
+///     pseudoconsole, which has no visible window), which
+///     `terminal_abandoned` reads as the lost-tty sentinel.
+///
+/// `HWND` is a pointer, so the cast to `u64` is lossless on both 32- and
+/// 64-bit Windows.
+#[cfg(windows)]
+fn current_tty_nr() -> Option<u64> {
+    windows_console_identity().or(Some(0))
+}
+
+/// Thin syscall boundary for the Windows probe. Returns the console window
+/// handle when a console is attached *and* has a window identity:
+///
+///   * `Some(hwnd)` -> attached to a console with a resolvable window handle,
+///   * `None`       -> no console attached, or a pseudoconsole (ConPTY child)
+///                     which has no visible window handle.
+///
+/// All of the abandon/not-abandon *decision* lives in the pure
+/// [`windows_console_abandoned`] helper so that logic is unit-testable on any
+/// host, not just on Windows.
+#[cfg(windows)]
+fn windows_console_identity() -> Option<u64> {
+    use windows_sys::Win32::Foundation::INVALID_HANDLE_VALUE;
+    use windows_sys::Win32::System::Console::{
+        CONSOLE_MODE, GetConsoleMode, GetConsoleWindow, GetStdHandle, STD_OUTPUT_HANDLE,
+    };
+
+    unsafe {
+        // A std handle we can query proves a console is attached to this
+        // process, including in a pseudoconsole child whose window handle is
+        // NULL. This mirrors the style already used by
+        // `jcode-core::console::enable_stderr_vt_processing`.
+        let std_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+        let mut mode: CONSOLE_MODE = 0;
+        let has_console = !std_handle.is_null()
+            && std_handle != INVALID_HANDLE_VALUE
+            && GetConsoleMode(std_handle, &mut mode) != 0;
+
+        if !has_console {
+            return None;
+        }
+
+        // A pseudoconsole has no visible window, so there is no handle identity
+        // to compare. Collapsing that to `None` matches "no console"; the
+        // startup identity is `None` too in that case, so the decision helper
+        // treats it as "never had a console" and stays quiet.
+        let hwnd = GetConsoleWindow();
+        if hwnd.is_null() {
+            None
+        } else {
+            Some(hwnd as u64)
+        }
+    }
+}
+
+/// Pure decision helper for the Windows abandon check.
+///
+/// Compiled on every platform so the cross-platform semantics are exercised by
+/// unit tests on whichever host CI runs, rather than only on Windows. `initial`
+/// is the value captured at startup (a console window `HWND` as `u64`, or `0`
+/// when the process never had a console window) and `now` is a fresh probe.
+///
+/// Unlike the Unix implementations this also treats a *different* nonzero
+/// handle as abandonment, because a stable console keeps the same window for
+/// the life of the process: only the startup console surviving matters. (On
+/// macOS the comparable value, the foreground process group, legitimately
+/// changes while a shell runs a foreground program, which is why that rule
+/// must not leak into the Unix path.)
+#[cfg_attr(not(windows), allow(dead_code))]
+fn windows_console_abandoned(initial: u64, now: Option<u64>) -> bool {
+    // Never had a console window (headless/piped, or a ConPTY pseudoconsole):
+    // nothing to lose, stay quiet.
+    if initial == 0 {
+        return false;
+    }
+    // Still attached to the exact console window we started with: alive.
+    match now {
+        Some(current) if current == initial => false,
+        // No console now, a different console now, or the lost sentinel `0`:
+        // the startup console is gone.
+        _ => true,
+    }
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
 fn current_tty_nr() -> Option<u64> {
     None
 }
@@ -106,5 +248,30 @@ mod tests {
     #[test]
     fn missing_paren_yields_none() {
         assert_eq!(parse_tty_nr("garbage"), None);
+    }
+
+    #[test]
+    fn windows_console_still_attached_is_not_abandoned() {
+        // Same console window handle as at startup: alive.
+        assert!(!windows_console_abandoned(0x1234, Some(0x1234)));
+    }
+
+    #[test]
+    fn windows_console_lost_is_abandoned() {
+        // No console attached any more: abandoned.
+        assert!(windows_console_abandoned(0x1234, None));
+        // Lost-tty sentinel: abandoned.
+        assert!(windows_console_abandoned(0x1234, Some(0)));
+        // A different console window replaced ours: abandoned.
+        assert!(windows_console_abandoned(0x1234, Some(0x5678)));
+    }
+
+    #[test]
+    fn windows_never_had_console_is_not_abandoned() {
+        // Headless/piped or a ConPTY pseudoconsole: never had a console
+        // window, so there is nothing to lose and we never report abandoned.
+        assert!(!windows_console_abandoned(0, None));
+        assert!(!windows_console_abandoned(0, Some(0)));
+        assert!(!windows_console_abandoned(0, Some(0x5678)));
     }
 }
