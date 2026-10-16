@@ -41,8 +41,9 @@
  *
  * Note: Portal's documented default for "Allowed redirect URI patterns" permits
  * HTTP loopback redirects on localhost, 127.0.0.1 and [::1] on any port and
- * path when no list is configured, so 18586 is recorded for correctness but the
- * exact port is not expected to be a hard gate.
+ * path when no list is configured, so the exact port is not expected to be a
+ * hard gate; CALLBACK_PORT below is the value derived by
+ * scripts/derive_callback_port.py for this URL.
  */
 
 const CLIENT_METADATA_URL = "https://auth.kooshapari.com/oauth/client-metadata.json";

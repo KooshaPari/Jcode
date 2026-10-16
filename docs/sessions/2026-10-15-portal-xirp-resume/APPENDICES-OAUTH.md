@@ -319,7 +319,7 @@ intermediate attempt to `cp -R` the Electron framework failed on
 `Xirp.app.0.49.0-partial`. The 0.54.0 copy `Xirp.app.0.54.0.active` is intact and
 verified, and `/Applications/Xirp.app` is the live 0.54.0 install.
 
-## Appendix G. CIMD document DEPLOYED and verified live (2026-15-22)
+## Appendix G. CIMD document DEPLOYED and verified live (2026-10-15)
 
 The Worker is deployed and serving. This closes the "host the document" step;
 only the Portal allow-list append remains.

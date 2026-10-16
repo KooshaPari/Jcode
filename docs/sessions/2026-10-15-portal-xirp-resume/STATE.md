@@ -17,8 +17,9 @@ head=191f0e088  branch=chore/xirp-custom-harness-discovery-20261014  base=master
 
 The closure landed roughly six minutes after my last commit (08:07Z), so it was
 a deliberate action, not a side effect. It was **not merged** — `mergedAt` is null
-and no merge commit exists. The branch itself **survives on origin at the same
-SHA `191f0e088`**, and all ten record files are still readable from it, so no work
+and no merge commit exists. The branch itself **survives on origin** — it was at
+`191f0e088` when the PR closed and has since advanced to `7c52f8d` (two later
+doc commits), and all ten record files are still readable from it, so no work
 was lost.
 
 The PR body was **not** updated before closing. It now opens with
@@ -80,9 +81,14 @@ than assumed.
 
 ## 2. Exact revisions at time of writing
 
+> **SUPERSEDED — kept only as a point-in-time snapshot.** Section 1b is
+> authoritative for the state of PR #67. The `e4583f6a...` row below is the
+> *stale* value: the PR was subsequently CLOSED at `191f0e088`, and the branch
+> has since advanced to `7c52f8d`. Do not act on the PR rows without reading §1b.
+
 | Artifact | Revision | State |
 |---|---|---|
-| `KooshaPari/Jcode` PR #67 | head `e4583f6a9679078625de726fd3512c93bc27c5a2` | OPEN, DRAFT, base `master` |
+| `KooshaPari/Jcode` PR #67 | head `e4583f6a9679078625de726fd3512c93bc27c5a2` | ~~OPEN, DRAFT~~ **STALE — actually CLOSED at `191f0e088`** (see §1b) |
 | PR #67 branch | `chore/xirp-custom-harness-discovery-20261014` | same SHA on origin |
 | Local jcode checkout | `~/CodeProjects/Phenotype/repos/jcode`, `master` @ `cd974614d2c8e7e36357724a73be61dbb62e16e1` | has unrelated untracked work, left untouched |
 | Isolated PR-67 worktree | `/tmp/jcode-pr67-wt` on branch `chore/xirp-custom-harness-discovery-20261014` | **/tmp — recreate after reboot** |

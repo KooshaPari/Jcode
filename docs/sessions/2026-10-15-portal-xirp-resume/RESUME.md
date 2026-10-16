@@ -212,6 +212,16 @@ wrong. `kcode.yaml` correctly declares
 correctly maps to `KooshaPari/.github` (id 1199812615), which my zz-filtered
 inventory omitted only because the name begins with a dot. Do not "fix" either.
 
+**(b) The 42 figure is the GitHub App's repository grant.** I could not
+verify this directly (`/user/installations` returns HTTP 403 with the current
+`gh` token, because the endpoint requires the GitHub Apps management scope,
+not the user token). It is therefore a stored claim that 42 is the count of
+repositories the Portal GitHub App has been granted access to. If true, the
+gap is "16 private repos outside the App grant". If false, the 42 is the App
+selection and the 46 − 42 = 4 gap is something else entirely. Resolve by
+owner-side check at GitHub → Settings → GitHub Apps → the Portal app →
+Configure → Repository access.
+
 **(c) Eighteen current repos have no descriptor at all.** All are private or
 archived, which is consistent with the public-only design, except `.github`
 (see above, it IS described).
