@@ -311,15 +311,37 @@ before a browser opens because this build only does dynamic client registration
 and binds a random loopback port. The authorization server has no registration
 endpoint, so that login cannot use the Worker client id.
 
-Claude Code lists `phenotype-portal` as "Needs authentication". `claude mcp
-login phenotype-portal` exited 1 here because stdin is not a terminal.
+Claude Code later completed consent. `claude mcp list` now reports
+`phenotype-portal` as **Connected** at
+`https://phenotype.spotifyportal.com/api/mcp-actions/v1`.
 
 `forge mcp list` and `helioslite mcp list` produced no output and were stopped
-at 6 seconds. The URL is in `~/.forge/.mcp.json`. The CLI did not confirm it.
-Kcode v0.0.0-dev has no `mcp` subcommand, so `~/.kcode/mcp.json` is unproven.
-Xirp's enabled modules include portal connection and transcript upload. This
-build has no MCP server command.
+at 6 seconds. The URL is in `~/.forge/.mcp.json` and, later, in
+`~/.helioslite/.mcp.json`. HeliosLite still stops because no default provider
+is configured. Kcode v0.0.0-dev has no `mcp` subcommand, so
+`~/.kcode/mcp.json` is unproven. Xirp's enabled modules include portal
+connection and transcript upload. This build has no MCP server command.
 
 Wiki Pages still includes Open Questions and Risks. Portfolio Evidence and
 Coverage is still one of the 12 suggestions and was left there on purpose.
-`gh` scopes are unchanged.
+The wiki UI was not re-opened on the closing tick: the Firefox bridge was
+missing required actions. `gh` scopes are unchanged.
+
+### Closing recheck (2026-10-16, after 7116992ac)
+
+Repeated against the live endpoints, not copied from the earlier note:
+
+- Authorize for `https://auth.kooshapari.com/oauth/client-metadata.json`
+  returned **302** to `/oauth2/authorize/178f9db2-1b53-4d9d-9145-58e545486a94`.
+- `GET /oauth/client-metadata.json` with a browser user agent returned **200**
+  `application/json`. `client_id` matches that URL. The callback is
+  `http://127.0.0.1:47290/oauth/callback`.
+- `https://auth.kooshapari.com/` returned **522**. `https://kooshapari.com/`
+  returned **200** `text/html`.
+- A credential-less `GET /api/mcp-actions/v1` returned **401**.
+- `codex mcp list` shows phenotype-portal **enabled OAuth**. There is no
+  `codex mcp` tools/list command, and the stored secret is age-encrypted, so
+  this tick did not repeat the earlier 34-tool call.
+- No Portal ownership heartbeat is queued. Other sessions' schedules were
+  left alone.
+

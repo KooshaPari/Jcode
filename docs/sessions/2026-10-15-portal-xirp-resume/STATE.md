@@ -126,8 +126,8 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 | E2 | **Host the CIMD document** | **DONE** — deployed and live at auth.kooshapari.com |
 | F | Authorize + send vendor question | **operator authorization** |
 | G | Complete local PR 619 checks | **PARTIAL** — gate is flaky (8.2); re-run before relying on the commit |
-| H | Verify authenticated Portal tool discovery | needs Portal sign-in again, then the append |
-| I | Review 16 pending wiki suggestions | done: 3 fail, 2 pass, 11 identity-clean but body-unreviewed |
+| H | Verify authenticated Portal tool discovery | **PARTIAL** — Claude Connected, Codex enabled OAuth; see Appendix J |
+| I | Wiki suggestions | **PARTIAL** — Open Questions is a page; Portfolio Evidence left unaccepted |
 | J | Full launch -> context -> result -> transcript flow | blocked on B and F |
 | K | Apply corrected PR 67 description | inbox approval (deferred by hook) |
 | L | **NEW** Fix the `editorconfig` hook deletion bug | see 8.1; small, safe, but changes repo tooling |
@@ -151,15 +151,14 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
     `jcode browser setup chrome`.
   This needs ~2 minutes of human action in a browser. Until then, tasks B, C, H
   and I cannot start. Firefox and Edge are installed but untested as bridges.
-- **B3 — Portal MCP is configured, still unauthenticated.** Rechecked 2026-10-16:
-  `GET /api/mcp-actions/v1` returns `401 AuthenticationError: Missing credentials`.
-  `phenotype-portal` is in the user config for Cursor, Claude, Codex, Jcode,
-  Kcode, and Forge (`~/.forge/.mcp.json`). HeliosLite has no MCP file.
-  `~/.forge/` takes precedence, so no `~/.helioslite/.mcp.json` was created.
-  Authorize with `client_id=https://auth.kooshapari.com/oauth/client-metadata.json`
-  is still **400 Invalid client_id**. The allow-list append has not landed.
-  `gh` scopes are still `gist`, `read:org`, `repo`, `workflow`. Private-repo
-  access stays Spotify-admin-only. The operator steps are Appendix I.
+- **B3 — Anonymous Portal MCP is still 401. Two harnesses are connected.**
+  Rechecked 2026-10-16: a credential-less `GET /api/mcp-actions/v1` is **401**.
+  Authorize for the Worker client id is **302** (section 15, Appendix J).
+  Claude `mcp list` reports phenotype-portal **Connected**. Codex lists it
+  enabled OAuth. The URL is in the Cursor, Jcode, Kcode, Forge, and HeliosLite
+  user configs. Jcode and Forge still cannot finish login: Portal has no
+  dynamic-registration endpoint. `gh` scopes are still `gist`, `read:org`,
+  `repo`, `workflow`. Private-repo access stays Spotify-admin-only (Appendix I).
 - **B4 — Transient files in /tmp.** Inventory JSON, probe output, extracted asar,
   and the PR-67 worktree all live in /tmp and are lost on reboot. Relocate any of
   these that must survive.
