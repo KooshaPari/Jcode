@@ -18,9 +18,9 @@ head=191f0e088  branch=chore/xirp-custom-harness-discovery-20261014  base=master
 The closure landed roughly six minutes after my last commit (08:07Z), so it was
 a deliberate action, not a side effect. It was **not merged** — `mergedAt` is null
 and no merge commit exists. The branch itself **survives on origin** — it was at
-`191f0e088` when the PR closed and has since advanced to `7c52f8d` (two later
-doc commits), and all ten record files are still readable from it, so no work
-was lost.
+`191f0e088` when the PR closed and has since advanced to `26a8aadb3` (five
+later doc commits including the audit-correction commit `2652bc65a`), and
+all ten record files are still readable from it, so no work was lost.
 
 The PR body was **not** updated before closing. It now opens with
 `## **User description**` followed by the original text claiming "the probe
@@ -84,7 +84,8 @@ than assumed.
 > **SUPERSEDED — kept only as a point-in-time snapshot.** Section 1b is
 > authoritative for the state of PR #67. The `e4583f6a...` row below is the
 > *stale* value: the PR was subsequently CLOSED at `191f0e088`, and the branch
-> has since advanced to `7c52f8d`. Do not act on the PR rows without reading §1b.
+> has since advanced to `26a8aadb3` (audit correction at `2652bc65a` + this
+> row addition). Do not act on the PR rows without reading §1b.
 
 | Artifact | Revision | State |
 |---|---|---|
