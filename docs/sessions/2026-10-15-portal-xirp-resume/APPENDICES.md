@@ -286,3 +286,40 @@ Do this in GitHub, in the org that owns the private repos:
 
 That one change is the source fix for both the empty catalog and the unsynced
 private rows. Do not mint a new token and do not change `gh` scopes to attempt it.
+
+## Appendix J. Harness login results (2026-10-16)
+
+Checked against the live Portal endpoints and the installed CLIs.
+
+Our CIMD client still gets **302** from `/api/auth/v1/authorize` to
+`/oauth2/authorize/{uuid}`. The metadata document is still **200**
+`application/json`. An anonymous MCP GET is still **401** Missing credentials.
+Discovery says CIMD is supported, PKCE S256 is supported, public clients are
+supported, and there is no registration endpoint.
+
+Codex login completed. `codex mcp login phenotype-portal
+--oauth-client-registration cimd` exited 0 with "Successfully logged in to MCP
+server 'phenotype-portal'." The client id it sent was
+`https://chatgpt.com/oauth/codex/dxPWjxFnOIRn/client.json`, not the Worker URL.
+That Codex document is already allow-listed: the same authorize call returns
+**302**. Its published redirect is loopback with no fixed port. No separate
+tools/list call was made after login.
+
+Jcode v0.98.1 reaches the server and then stops. `jcode mcp test
+phenotype-portal` returns "requires authorization". `jcode mcp login` fails
+before a browser opens because this build only does dynamic client registration
+and binds a random loopback port. The authorization server has no registration
+endpoint, so that login cannot use the Worker client id.
+
+Claude Code lists `phenotype-portal` as "Needs authentication". `claude mcp
+login phenotype-portal` exited 1 here because stdin is not a terminal.
+
+`forge mcp list` and `helioslite mcp list` produced no output and were stopped
+at 6 seconds. The URL is in `~/.forge/.mcp.json`. The CLI did not confirm it.
+Kcode v0.0.0-dev has no `mcp` subcommand, so `~/.kcode/mcp.json` is unproven.
+Xirp's enabled modules include portal connection and transcript upload. This
+build has no MCP server command.
+
+Wiki Pages still includes Open Questions and Risks. Portfolio Evidence and
+Coverage is still one of the 12 suggestions and was left there on purpose.
+`gh` scopes are unchanged.
