@@ -97,7 +97,7 @@ than assumed.
 | Local registry checkout | `~/CodeProjects/Phenotype/repos/phenotype-registry`, branch `polish/audit-sibling-links-20261014` @ `c480ba31f0f612e12154c34f19ac4ba47540c1aa` | **different branch from PR 619** |
 | Audit correction | `chore/xirp-custom-harness-discovery-20261014` @ `2652bc65a` | applied 2026-10-16; 6 record defects + 1 deleted stub |
 | End-to-end MCP probe | `codex exec` real `auth.who-am-i` | returned Backstage User `kooshapari`; 45,857 tokens, 1m 57s |
-| Grade-gate follow-up | `chore/xirp-custom-harness-discovery-20261014` (this commit) | §8.2.a/b/c in APPENDICES.md: coverage step is a deterministic hang, 48 leaked cargo/rustc, operator action required to reap before next grade run |
+| Grade-gate follow-up | `chore/xirp-custom-harness-discovery-20261014` @ `dd626990a` | §8.2.a/b/c in APPENDICES.md: coverage step is a deterministic hang, 48 leaked cargo/rustc, operator action required to reap before next grade run |
 
 Gotcha that cost time: inside the jcode checkout, plain `gh pr view 67`
 resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
@@ -289,6 +289,10 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 | `KooshaPari/Jcode` | same | `ea5a90e8b` | PR 619 local validation + 2 defects |
 | `KooshaPari/Jcode` | same | `0eb66ea5c` | Bridge decision + record split |
 | `KooshaPari/PhenoRegistry` | `chore/portal-non-zz-catalog-20261009` | `2b13afb91` | **removed deleted-repo descriptor, corrected scope figures** |
+| `KooshaPari/Jcode` | `chore/xirp-custom-harness-discovery-20261014` | `2652bc65a` | **6 audit corrections: STATE §1b/§2 bump, RESUME §1.6 (b), APPENDICES-OAUTH Appendix G date, CIMD template port, worker comment, deleted 0-byte jcode-acp-stderr.txt** |
+| `KooshaPari/Jcode` | same | `26a8aadb3` | **purge 4 stale rows from STATE §2, add Audit correction + End-to-end MCP probe rows** |
+| `KooshaPari/Jcode` | same | `4de538618` | **bump 2 historical branch-tip pins from 7c52f8d to 26a8aadb3 after re-audit found the same defect shape** |
+| `KooshaPari/Jcode` | same | `dd626990a` | **§8.2.a/b/c grade-gate diagnostic: coverage is the deterministic hang, 48 leaked cargo/rustc on host, operator reaps before next run** |
 
 PR 619 is still a **draft** and was not merged. Both pilot PRs untouched.
 
