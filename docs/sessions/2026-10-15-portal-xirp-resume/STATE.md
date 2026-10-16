@@ -97,6 +97,7 @@ than assumed.
 | Local registry checkout | `~/CodeProjects/Phenotype/repos/phenotype-registry`, branch `polish/audit-sibling-links-20261014` @ `c480ba31f0f612e12154c34f19ac4ba47540c1aa` | **different branch from PR 619** |
 | Audit correction | `chore/xirp-custom-harness-discovery-20261014` @ `2652bc65a` | applied 2026-10-16; 6 record defects + 1 deleted stub |
 | End-to-end MCP probe | `codex exec` real `auth.who-am-i` | returned Backstage User `kooshapari`; 45,857 tokens, 1m 57s |
+| Grade-gate follow-up | `chore/xirp-custom-harness-discovery-20261014` (this commit) | §8.2.a/b/c in APPENDICES.md: coverage step is a deterministic hang, 48 leaked cargo/rustc, operator action required to reap before next grade run |
 
 Gotcha that cost time: inside the jcode checkout, plain `gh pr view 67`
 resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
@@ -140,7 +141,7 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 | J | Full launch -> context -> result -> transcript flow | blocked on B and F |
 | K | Apply corrected PR 67 description | inbox approval (deferred by hook) |
 | L | **NEW** Fix the `editorconfig` hook deletion bug | see 8.1; small, safe, but changes repo tooling |
-| M | **NEW** Root-cause the flaky `pre-push` grade gate | see 8.2 |
+| M | **NEW** Root-cause the flaky `pre-push` grade gate | see 8.2.a/b/c in APPENDICES.md — coverage is the deterministic hang, 48 leaked cargo/rustc, operator reaps before next run |
 
 ## 5. Blockers (explicit)
 

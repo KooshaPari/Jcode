@@ -270,6 +270,47 @@ code, and the full gate passed 17/17 on three independent standalone runs
 immediately before the push. `--no-verify` here bypassed a flaky gate, not a
 real failure. **Re-run the gate properly before relying on that commit.**
 
+**8.2.a 2026-10-16 follow-up — coverage step is the deterministic hang.**
+Ran `just grade` once on `phenotype-registry` `main` (`f716ff6f3`) with a
+600s budget, captured at `/tmp/grade-runs/run-1.log`:
+
+| Step | Result |
+|---|---|
+| build, test-unit, fmt, clippy, deny, doc, test-snapshot, test-fuzz | 8 / 8 PASS |
+| `cargo llvm-cov --workspace --exclude pheno-registry-python --fail-under-lines 85` | **never produced a line of output; signal 15 after 600s** |
+
+The 5x variance-capture experiment originally planned for this row was
+abandoned after the first run: five 10-minute hangs on the same fingerprint
+do not produce variance data. Host load is the cause, not gate nondeterminism.
+
+**8.2.b 2026-10-16 host load (48 leaked cargo/rustc).**
+`ps -A | grep -E "cargo|rustc" | wc -l` returned 19 cargo + 29 rustc
+processes (48 total), with elapsed times from 6m to 42m, all from past
+sessions. One true orphan (PID 51685, `PPID=1`). All 48 are competing for:
+- `~/CodeProjects/phenotype-registry/target/`
+- `~/.cargo/registry/cache/`
+- `target/.rustc_info.json` and the per-crate file locks
+
+A previous `.grade-reports/coverage.log` from an earlier session shows the
+same fingerprint: stuck at `Compiling clap v4.6.6` after a few `Compiling`
+lines, then nothing. The grade shell script has no per-step timeout
+(`run_check` at `grade.sh:66-90` calls `cargo llvm-cov` and waits for it to
+return), and `cargo llvm-cov` has no `CARGO_BUILD_JOBS` override here, so
+a hung `cargo` invocation hangs the entire gate.
+
+**8.2.c Operator action required (not an agent action).**
+1. Reap the 48 leaked cargo/rustc processes. The orphan PID 51685 can
+   be killed without ceremony; the rest should be checked against the
+   session PIDs that own them before reaping.
+2. After reaping, re-run `just grade` standalone. Expected wall-time on
+   a clean host: 5-10 minutes (matches the 145s observed in §8.2 with the
+   prior 8 minutes of cargo build cache still warm).
+3. THEN re-attempt the 5x variance capture with a real budget. If 3 of 5
+   runs still hit 11/17 in 30s, the prior evidence stands; if all 5 reach
+   17/17 in ~150s, the host load was the entire defect.
+
+Do not run another `just grade` in this session until step 1 completes.
+
 ## Appendix I. Operator steps for GitHub App private-repo access
 
 Rechecked 2026-10-16. This is still not grantable from `gh`.
