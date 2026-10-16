@@ -78,6 +78,37 @@ pub fn fork_update_disallowed_error() -> anyhow::Error {
     )
 }
 
+/// Resolve the repo slug for a network update call, or fail with
+/// [`fork_update_disallowed_error`].
+///
+/// Keeping this here means the call sites in [`super::update`] do not each
+/// repeat the resolve-or-bail boilerplate, which keeps that already oversized
+/// module from growing.
+pub fn resolve_update_repo() -> anyhow::Result<&'static str> {
+    update_repo().ok_or_else(fork_update_disallowed_error)
+}
+
+/// True when `path` sits inside a git work tree.
+///
+/// The updater refuses to run from a developer checkout; that check happens
+/// on the hot path in [`super::update`], so the walk lives here to keep the
+/// oversized updater module from carrying it.
+pub fn is_inside_git_repo(path: &std::path::Path) -> bool {
+    let mut dir = if path.is_dir() {
+        Some(path)
+    } else {
+        path.parent()
+    };
+
+    while let Some(d) = dir {
+        if d.join(".git").exists() {
+            return true;
+        }
+        dir = d.parent();
+    }
+    false
+}
+
 /// The semver this build uses for update comparisons, honoring the fast-release
 /// wrapper's runtime override exactly as the updater itself does.
 fn current_semver() -> &'static str {
