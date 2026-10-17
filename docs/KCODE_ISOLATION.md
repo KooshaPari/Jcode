@@ -70,3 +70,16 @@ maintained channel exists. Existing `JcodeClient` API names remain compatible;
 credential inheritance rejects jcode sources and aliases before creating files
 or links. Build locally with `npm ci --ignore-scripts --omit=optional` and
 `npm run build` from `sdk/typescript`.
+
+## Verification
+
+Windows executable check: `cargo check -p kcode --bin kcode
+--no-default-features -j 1` passed. The six configured-model regressions and six
+SDK boundary regressions passed. Storage's no-write-back and path-boundary
+tests passed; the observed non-Unix PID-liveness test failure was explicitly
+filtered on the focused storage rerun. Storage clippy passed with `-D warnings`.
+
+The complete Windows build-support suite and the repository code-size budget
+are not green. Full workspace/default-feature release validation and live
+ConPTY behavior are not claimed by these checks. The anchor and kitty fixes
+remain separate stacked changes.
