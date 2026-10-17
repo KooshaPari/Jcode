@@ -101,6 +101,7 @@ than assumed.
 | Wiki suggestion closure | `chore/xirp-custom-harness-discovery-20261014` @ `7687c630a` | WBS 0.6 closed: 2 PASS, 3 FAIL, 11 IDENTITY-CLEAN + content-unreviewed (B2); WBS 0.9 closed: /tmp worktrees already gone, canonical branch lives in /Users/kooshapari/wt-portal-record-fixes |
 | H verification | `claude mcp list` and `claude mcp get phenotype-portal` @ `d20634bfe` | 2026-10-17: Claude Connected confirmed at CLI level; phenotype-portal is one of 6 user-scoped MCPs; `tools/list` not CLI-exposable (no `claude mcp tools-list`, no `codex mcp tools-list`, Jcode v0.98.1 only does dynamic client registration). Full 34-tool inventory requires an in-app MCP session. |
 | L fix landed | `KooshaPari/PhenoRegistry` `fix/lefthook-editorconfig-deletion-20261017` @ `e1ae6d40` | PR #656 OPEN, MERGEABLE. Drop `test -f` wrapper, `--diff-filter=ACM`, actually call `editorconfig-checker` if on PATH. Push was --no-verify because the pre-push grade gate is the operator-blocked 8.2 bug (4/17, deterministic). see 8.1. |
+| Script label fix | `evidence/suggestion-audit.py` (this commit) | The script's print said 'NOT yet identity-audited: 11' but the 11 are actually identity-clean (per PORTAL-FINDINGS.md); relabeled to 'identity-clean, content-unreviewed' with a 6-line comment explaining the third category. Math unchanged (16 = 3 + 2 + 11). |
 
 Gotcha that cost time: inside the jcode checkout, plain `gh pr view 67`
 resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
@@ -300,6 +301,7 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 | `KooshaPari/Jcode` | same | `7687c630a` | **WBS 0.6 + 0.9 closure: 2 PASS / 3 FAIL / 11 IDENTITY-CLEAN + content-unreviewed (B2); /tmp worktrees already gone** |
 | `KooshaPari/Jcode` | same | `d20634bfe` | **H verification: `claude mcp list` confirms `phenotype-portal: ✔ Connected` (6 user-scoped MCPs); `tools/list` not CLI-exposable; full 34-tool inventory needs an in-app session** |
 | `KooshaPari/PhenoRegistry` | `fix/lefthook-editorconfig-deletion-20261017` | `e1ae6d40` | **L fix landed: drop `test -f` wrapper, add `--diff-filter=ACM`, call `editorconfig-checker` if on PATH. PR #656 OPEN, MERGEABLE. Push used `--no-verify` because pre-push grade is the 8.2 operator-blocked deterministic hang.** |
+| `KooshaPari/Jcode` | same | (this commit) | **Script label fix: `evidence/suggestion-audit.py` now says 'identity-clean, content-unreviewed' instead of 'NOT yet identity-audited' for the 11; math unchanged.** |
 
 PR 619 is still a **draft** and was not merged. Both pilot PRs untouched.
 
