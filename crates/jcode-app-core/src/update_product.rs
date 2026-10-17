@@ -43,6 +43,7 @@ pub fn update_repo_for(semver: &str) -> Option<&'static str> {
 }
 
 /// Whether this build is a fork of upstream jcode rather than upstream itself.
+#[allow(dead_code)] // Public API surface for fork decollision; not all builds call it.
 pub fn is_fork_build() -> bool {
     is_fork_build_for(current_semver())
 }
