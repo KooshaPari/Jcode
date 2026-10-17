@@ -326,6 +326,11 @@ pub enum Request {
         id: u64,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         title: Option<String>,
+        /// When set, rename the specified session instead of the
+        /// connection's own session. Used by the coordinator to rename
+        /// swarm member sessions from the TUI swarm panel.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        target_session_id: Option<String>,
     },
 
     /// Split the current session — clone conversation into a new session

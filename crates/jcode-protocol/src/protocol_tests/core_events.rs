@@ -203,6 +203,7 @@ fn test_rename_session_request_roundtrip() -> Result<()> {
     let req = Request::RenameSession {
         id: 10,
         title: Some("Release planning".to_string()),
+        target_session_id: None,
     };
     let json = serde_json::to_string(&req)?;
     assert!(json.contains("\"type\":\"rename_session\""));
@@ -221,6 +222,7 @@ fn test_rename_session_clear_request_roundtrip_omits_title() -> Result<()> {
     let req = Request::RenameSession {
         id: 11,
         title: None,
+        target_session_id: None,
     };
     let json = serde_json::to_string(&req)?;
     assert!(json.contains("\"type\":\"rename_session\""));
@@ -231,6 +233,44 @@ fn test_rename_session_clear_request_roundtrip_omits_title() -> Result<()> {
         return Err(anyhow!("wrong request type"));
     };
     assert!(title.is_none());
+    Ok(())
+}
+
+#[test]
+fn test_rename_session_target_session_id_roundtrip() -> Result<()> {
+    let req = Request::RenameSession {
+        id: 42,
+        title: Some("worker label".to_string()),
+        target_session_id: Some("session_worker_abc".to_string()),
+    };
+    let json = serde_json::to_string(&req)?;
+    assert!(json.contains("\"target_session_id\":\"session_worker_abc\""));
+    let decoded = parse_request_json(&json)?;
+    let Request::RenameSession {
+        title,
+        target_session_id,
+        ..
+    } = decoded
+    else {
+        return Err(anyhow!("wrong request type"));
+    };
+    assert_eq!(title.as_deref(), Some("worker label"));
+    assert_eq!(
+        target_session_id.as_deref(),
+        Some("session_worker_abc")
+    );
+    Ok(())
+}
+
+#[test]
+fn test_rename_session_without_target_session_id_omits_field() -> Result<()> {
+    let req = Request::RenameSession {
+        id: 43,
+        title: Some("self rename".to_string()),
+        target_session_id: None,
+    };
+    let json = serde_json::to_string(&req)?;
+    assert!(!json.contains("target_session_id"));
     Ok(())
 }
 
