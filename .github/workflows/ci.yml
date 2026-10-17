@@ -357,7 +357,7 @@ jobs:
         run: |
           python3 .github/scripts/run_with_timeout.py 600 \
             "$(rustup which cargo)" test --target ${{ matrix.target }} \
-            -p jcode-tui-markdown --lib -- --nocapture
+            -p jcode-tui-markdown --lib -- --nocapture --test-threads=1
 
       - name: Run jcode-provider-openai-runtime lib tests (audit B-7b)
         shell: bash
