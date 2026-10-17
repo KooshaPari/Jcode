@@ -2009,26 +2009,54 @@ pub(super) async fn handle_client(
                 handle_set_compaction_mode(id, mode, &agent, &client_event_tx).await;
             }
 
-            Request::RenameSession { id, title } => {
-                if reject_if_agent_busy_for_request(
-                    id,
-                    "rename_session",
-                    &client_session_id,
-                    client_is_processing,
-                    &agent,
-                    &client_event_tx,
-                ) {
-                    continue;
+            Request::RenameSession {
+                id,
+                title,
+                target_session_id,
+            } => {
+                if let Some(target_session_id) = target_session_id {
+                    let target_agent =
+                        { sessions.read().await.get(&target_session_id).cloned() };
+                    if let Some(target_agent) = target_agent {
+                        handle_rename_session(
+                            id,
+                            title,
+                            &target_agent,
+                            &target_session_id,
+                            &swarm_members,
+                            &client_event_tx,
+                        )
+                        .await;
+                    } else {
+                        let _ = client_event_tx.send(ServerEvent::Error {
+                            id,
+                            message: format!(
+                                "target session not found: {target_session_id}"
+                            ),
+                            retry_after_secs: None,
+                        });
+                    }
+                } else {
+                    if reject_if_agent_busy_for_request(
+                        id,
+                        "rename_session",
+                        &client_session_id,
+                        client_is_processing,
+                        &agent,
+                        &client_event_tx,
+                    ) {
+                        continue;
+                    }
+                    handle_rename_session(
+                        id,
+                        title,
+                        &agent,
+                        &client_session_id,
+                        &swarm_members,
+                        &client_event_tx,
+                    )
+                    .await;
                 }
-                handle_rename_session(
-                    id,
-                    title,
-                    &agent,
-                    &client_session_id,
-                    &swarm_members,
-                    &client_event_tx,
-                )
-                .await;
             }
 
             Request::NotifyAuthChanged {

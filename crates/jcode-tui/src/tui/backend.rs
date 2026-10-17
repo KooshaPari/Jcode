@@ -863,10 +863,17 @@ impl RemoteConnection {
     }
 
     /// Set or clear the custom session display title on the server.
-    pub async fn rename_session(&mut self, title: Option<String>) -> Result<()> {
+    /// When `target_session_id` is set, renames that specific session
+    /// (used by the coordinator to rename swarm members).
+    pub async fn rename_session(
+        &mut self,
+        title: Option<String>,
+        target_session_id: Option<String>,
+    ) -> Result<()> {
         let request = Request::RenameSession {
             id: self.next_request_id,
             title,
+            target_session_id,
         };
         self.next_request_id += 1;
         self.send_request(request).await

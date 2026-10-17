@@ -1818,6 +1818,9 @@ impl crate::tui::TuiState for App {
     fn swarm_rename_buffer(&self) -> &str {
         &self.swarm_rename_buffer
     }
+    fn drain_pending_swarm_rename(&mut self) -> Option<(String, String)> {
+        self.pending_swarm_rename.take()
+    }
     fn filtered_swarm_members(&self) -> Vec<crate::protocol::SwarmMemberStatus> {
         let members = self.inline_swarm_members();
         if self.swarm_filter_query.is_empty() {
@@ -2323,10 +2326,17 @@ impl App {
                 let new_label = self.swarm_rename_buffer.clone();
                 self.swarm_rename_active = false;
                 self.swarm_rename_buffer.clear();
-                // TODO: Send rename command to swarm coordinator
-                // SwarmCommand::RenameAgent { session_id, new_label }
-                let _ = new_label;
-                self.set_status_notice("Rename sent (TODO: wire to swarm coordinator)");
+                // Resolve the selected swarm member's session_id so the caller
+                // can dispatch Request::RenameSession to the server.
+                let members = self.filtered_swarm_members();
+                let ordered =
+                    crate::tui::info_widget::swarm_gallery::members_display_order(&members);
+                let idx = self
+                    .swarm_panel_selected
+                    .min(ordered.len().saturating_sub(1));
+                if let Some(session_id) = ordered.get(idx).cloned() {
+                    self.pending_swarm_rename = Some((session_id, new_label));
+                }
                 true
             }
             Some(SwarmPanelAction::RenameEscape) => {
