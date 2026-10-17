@@ -1938,7 +1938,7 @@ fn render_system_message_uses_connection_card_for_reconnect_status() {
     );
     assert!(plain.contains("Retrying · attempt 2 · 7s"));
     assert!(plain.contains("connection reset by server"));
-    assert!(plain.contains("jcode --resume koala"));
+    assert!(plain.contains("kcode --resume koala"));
 }
 
 #[test]

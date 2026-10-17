@@ -1,4 +1,4 @@
-//! `jcode cloud move` / `jcode cloud return`: carry a live session to another
+//! `kcode cloud move` / `kcode cloud return`: carry a live session to another
 //! machine and back.
 //!
 //! # Model
@@ -19,7 +19,7 @@
 //!   changes locally, so any failure is a no-op and the agent (still running
 //!   locally) can read the error and fix it.
 //!
-//! The remote half is the hidden `jcode cloud receive|activate|export`
+//! The remote half is the hidden `kcode cloud receive|activate|export`
 //! commands, invoked over `ssh <host>` (or `--transport` for tests).
 
 use anyhow::{Context, Result, bail};
@@ -112,7 +112,7 @@ impl Target {
             return Ok(host);
         }
         bail!(
-            "no cloud host configured: pass --host <ssh-alias> or set KCODE_CLOUD_HOST (for example the `jcode-cloud-alpha` alias in ~/.ssh/config)"
+            "no cloud host configured: pass --host <ssh-alias> or set KCODE_CLOUD_HOST (for example the `kcode-cloud-alpha` alias in ~/.ssh/config)"
         )
     }
 
@@ -121,7 +121,7 @@ impl Target {
             .clone()
             .or_else(|| std::env::var("KCODE_CLOUD_REMOTE_BINARY").ok())
             .filter(|s| !s.trim().is_empty())
-            .unwrap_or_else(|| "jcode".to_string())
+            .unwrap_or_else(|| "kcode".to_string())
     }
 
     /// Fail fast, with an actionable message, when the cloud host's jcode is
@@ -213,7 +213,7 @@ pub(crate) fn run_move(
     if let Some(lease) = storage::read_session_lease(&session_id)
         && let Some(away) = lease.away_host
     {
-        bail!("session {session_id} already lives on `{away}`. Use `jcode cloud return` first");
+        bail!("session {session_id} already lives on `{away}`. Use `kcode cloud return` first");
     }
     if !allow_active && storage::streaming_session_ids().contains(&session_id) {
         bail!(
@@ -331,8 +331,8 @@ pub(crate) fn run_move(
         repo_root: repo.as_ref().map(|r| r.root.clone()),
         snapshot: repo.as_ref().map(|r| r.snapshot.clone()),
         dry_run,
-        attach_command: format!("jcode cloud attach --session {session_id}"),
-        return_command: format!("jcode cloud return --session {session_id}"),
+        attach_command: format!("kcode cloud attach --session {session_id}"),
+        return_command: format!("kcode cloud return --session {session_id}"),
     };
     if dry_run {
         step(
@@ -818,7 +818,7 @@ fn snapshot_repo(
             "-p",
             &head,
             "-m",
-            &format!("jcode cloud snapshot for {session_id}"),
+            &format!("kcode cloud snapshot for {session_id}"),
         ],
         &identity_env(&root_path),
     )?;
@@ -926,7 +926,7 @@ fn restore_repo(
         let head_tree = git(&root, &["rev-parse", "HEAD^{tree}"]).ok();
         if !known.contains(&current) && head_tree.as_deref() != Some(current.as_str()) {
             bail!(
-                "{} on the cloud host has changes that were never returned; refusing to overwrite. Run `jcode cloud return` for the session that made them, or clean the checkout on the cloud host",
+                "{} on the cloud host has changes that were never returned; refusing to overwrite. Run `kcode cloud return` for the session that made them, or clean the checkout on the cloud host",
                 repo.root
             );
         }
@@ -1418,7 +1418,7 @@ fn append_arrival(sess: &mut session::Session, dangling: &[String], host: &str, 
         .map(|id| crate::message::ContentBlock::ToolResult {
             tool_use_id: id.clone(),
             content: format!(
-                "jcode cloud move completed. This session now runs on cloud host `{host}`. This tool call was interrupted by the move; rerun it here if its result still matters."
+                "kcode cloud move completed. This session now runs on cloud host `{host}`. This tool call was interrupted by the move; rerun it here if its result still matters."
             ),
             is_error: None,
         })
@@ -1477,7 +1477,7 @@ fn arrival_notice(manifest: &MoveManifest) -> String {
             manifest.mcp_servers.join(", ")
         ));
     }
-    lines.push("There is no local display, desktop, browser or ssh-agent on this host. Keep working on the task exactly where you left off. The user can bring the session back with /local (`jcode cloud return`). Git will merge your work with any local edits.".to_string());
+    lines.push("There is no local display, desktop, browser or ssh-agent on this host. Keep working on the task exactly where you left off. The user can bring the session back with /local (`kcode cloud return`). Git will merge your work with any local edits.".to_string());
     lines.join("\n")
 }
 
@@ -1690,7 +1690,7 @@ pub(crate) fn exec_handoff(handoff: crate::tui::CloudHandoff) -> Result<()> {
             command.arg("--resume").arg(&session_id);
             command.env(
                 "KCODE_CLOUD_CONTINUE_MESSAGE",
-                "[jcode cloud] This session just moved to the cloud host. Read the migration notice above, verify the environment you need is here, then continue the task exactly where you left off.",
+                "[kcode cloud] This session just moved to the cloud host. Read the migration notice above, verify the environment you need is here, then continue the task exactly where you left off.",
             );
         }
         crate::tui::CloudHandoff::Local { session_id } => {

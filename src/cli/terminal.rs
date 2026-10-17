@@ -313,7 +313,7 @@ mod crash_resume_hint_tests {
         let joined = lines.join("\n");
 
         assert!(
-            joined.contains("jcode --resume ses_koala_123"),
+            joined.contains("kcode --resume ses_koala_123"),
             "the direct resume command must still be offered: {joined}"
         );
         assert!(
@@ -338,7 +338,7 @@ mod crash_resume_hint_tests {
         let joined = lines.join("\n");
 
         assert!(joined.contains("2 sessions crashed"), "{joined}");
-        assert!(joined.contains("jcode --resume ses_koala_123"), "{joined}");
+        assert!(joined.contains("kcode --resume ses_koala_123"), "{joined}");
         assert!(joined.contains("List all:"), "{joined}");
     }
 }
@@ -801,7 +801,7 @@ mod tests {
             let mut output = Vec::new();
             write_session_resume_hint(&mut output, &session_id).unwrap();
             let output = String::from_utf8(output).unwrap();
-            let expected_cmd = format!("jcode --resume {}", session_id);
+            let expected_cmd = format!("kcode --resume {}", session_id);
             assert!(output.contains(&expected_cmd));
             assert!(output.contains("to resume"));
             assert!(!session_id.is_empty());

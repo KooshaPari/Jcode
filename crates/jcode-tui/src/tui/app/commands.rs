@@ -2524,7 +2524,7 @@ fn handle_selfdev_command(app: &mut App, trimmed: &str) -> bool {
                     "Created self-dev session {} but could not auto-open a supported terminal.\n\nRun manually:\n{}",
                     launch.session_id,
                     launch.command_preview().unwrap_or_else(|| format!(
-                        "jcode --resume {} self-dev",
+                        "kcode --resume {} self-dev",
                         launch.session_id
                     ))
                 )
