@@ -171,6 +171,36 @@ impl Agent {
         result
     }
 
+    /// Enter a native receipt turn. The durable state advances only after the
+    /// exact message has been committed to this session's transcript.
+    pub(crate) async fn run_once_streaming_mpsc_with_receipt(
+        &mut self,
+        message: &str,
+        receipt_id: &str,
+        event_tx: mpsc::UnboundedSender<ServerEvent>,
+    ) -> Result<()> {
+        self.announce_late_mcp_tools().await;
+        self.announce_late_skills();
+        self.append_user_context_message_with_display_role(
+            message,
+            Vec::new(),
+            Some(crate::session::StoredDisplayRole::System),
+            false,
+        )?;
+        // System-displayed inputs do not count as visible conversation for
+        // the normal first-save guard. Force the first snapshot before proof.
+        self.session.save_prepared()?;
+        self.session.sync_wake_turn_entry()?;
+        crate::server::wake_receipts::mark_awakened(receipt_id, self.session_id())?;
+        crate::telemetry::record_turn();
+        let started_at = Instant::now();
+        let start_message_index = self.message_count();
+        self.fire_turn_start_hook("native_wake_receipt");
+        let result = self.run_turn_streaming_mpsc(event_tx).await;
+        self.fire_turn_end_hook(&result, started_at, start_message_index);
+        result
+    }
+
     /// Append and persist a user message without starting a model turn.
     pub(crate) fn append_user_context_message(
         &mut self,

@@ -270,6 +270,19 @@ pub enum Request {
         message: String,
     },
 
+    /// Submit or inspect an idempotent wake for an existing session.
+    #[serde(rename = "notify_session_receipt")]
+    NotifySessionReceipt {
+        id: u64,
+        session_id: String,
+        message: String,
+        receipt_id: String,
+    },
+
+    /// Inspect a previously submitted wake without resending its message.
+    #[serde(rename = "get_wake_receipt")]
+    GetWakeReceipt { id: u64, receipt_id: String },
+
     /// The user pressed something in an agent-mounted applet instance. The
     /// server stores `state`, then wakes the agent (or resolves a waiting
     /// `applet` tool call).
