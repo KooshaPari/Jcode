@@ -22,6 +22,12 @@ impl TodoTool {
     }
 }
 
+impl Default for TodoTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Fold each incoming todo's confidence into its tool-maintained history.
 ///
 /// The model reports `confidence` while working and `completion_confidence` at
@@ -1099,17 +1105,21 @@ mod tests {
             .expect("alignment score should describe representation coverage");
         assert!(alignment_description.contains("what the user wants"));
         assert!(alignment_description.contains("when guessing"));
-        // Deferred continuation messages are intentionally concise. Preserve
-        // their actionable guidance without requiring the legacy long rubric.
+        // The detailed calibration rubric moved out of the always-on schema
+        // into deferred turn-finish continuation messages, which are paid only
+        // when the completed turn needs another quality pass. The current
+        // continuation message is intentionally a short nudge; the verbose
+        // wording is retained as `PRE_CONCISE_*` for backward-compat
+        // classification of persisted sessions, not for live model prompts.
+        let intent_message = crate::todo::TODO_INTENT_UNDERSTANDING_CONTINUATION_MESSAGE;
         for required_concept in [
             "Understand the user's intent better",
-            "Try to avoid asking the user",
-            "Make sure the todo is up to date",
+            "avoid asking the user",
+            "todo is up to date",
         ] {
             assert!(
-                crate::todo::TODO_INTENT_UNDERSTANDING_CONTINUATION_MESSAGE
-                    .contains(required_concept),
-                "intent gate message omitted {required_concept}"
+                intent_message.contains(required_concept),
+                "intent gate message omitted {required_concept}: {intent_message}"
             );
         }
         let feedback_description = goal_props["feedback_loop"]
@@ -1130,13 +1140,14 @@ mod tests {
         );
         for required_concept in [
             "Your feedback loop isn't good enough",
-            "Think about what feedback loops you need",
-            "Make sure the todo is up to date",
+            "what feedback loops you need",
+            "todo is up to date",
         ] {
             assert!(
                 crate::todo::TODO_CLOSED_FEEDBACK_LOOP_CONTINUATION_MESSAGE
                     .contains(required_concept),
-                "feedback gate message omitted {required_concept}"
+                "feedback gate message omitted {required_concept}: {}",
+                crate::todo::TODO_CLOSED_FEEDBACK_LOOP_CONTINUATION_MESSAGE
             );
         }
         assert!(

@@ -906,6 +906,7 @@ mod tests {
     #[cfg(target_os = "macos")]
     #[test]
     fn test_detect_fragile_glyph_cache_targets_macos_terminals() {
+        let _env_lock = crate::storage::lock_test_env();
         // Env override must not leak between cases.
         let prev = std::env::var("KCODE_GLYPH_SAFE_MODE").ok();
         unsafe {

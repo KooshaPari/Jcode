@@ -171,9 +171,22 @@ impl ScopedEnvVar {
         crate::env::set_var(key, value);
         // Config is cached with a recheck interval; config-backed env vars
         // such as KCODE_WAKE_MODE must be observed immediately.
-        crate::config::invalidate_config_cache();
+        if is_config_driven_key(key) {
+            crate::config::invalidate_config_cache();
+        }
         Self { key, prev }
     }
+}
+
+/// True if `key` participates in `jcode_base::config::CONFIG_ENV_KEYS`.
+///
+/// `CONFIG_ENV_KEYS` is module-private; the test code here only needs the
+/// subset of keys that affect the config snapshot under test (notably
+/// `KCODE_WAKE_MODE`, which gates whether background-task completion starts
+/// a new turn or emits a wake request). Adding a key here is safe as long
+/// as the corresponding test asserts the post-mutation config value.
+fn is_config_driven_key(key: &str) -> bool {
+    matches!(key, "KCODE_WAKE_MODE")
 }
 
 impl Drop for ScopedEnvVar {
@@ -183,7 +196,9 @@ impl Drop for ScopedEnvVar {
         } else {
             crate::env::remove_var(self.key);
         }
-        crate::config::invalidate_config_cache();
+        if is_config_driven_key(self.key) {
+            crate::config::invalidate_config_cache();
+        }
     }
 }
 
@@ -327,6 +342,16 @@ fn persisted_headless_member(
 
 #[tokio::test]
 async fn background_task_wake_runs_live_session_immediately_when_idle() {
+    // KCode fork: take the test-env mutex so this test serializes with
+    // `external_background_task_wake_emits_request_without_starting_turn` (and
+    // any other test that mutates `KCODE_WAKE_MODE`). Without the lock, the
+    // external test can set `KCODE_WAKE_MODE=external` while this test is
+    // still running on a parallel `--test-threads>1` worker; the cache will
+    // hand us `WakeMode::External`, `emit_external_wake` will short-circuit
+    // `run_live_turn_if_idle`, and the asserted `TextDelta` never arrives.
+    // The mutex is the existing process-wide serialization point for
+    // env-mutating tests in this crate, so we use it here too.
+    let _env_lock = crate::storage::lock_test_env();
     let provider = Arc::new(StreamingMockProvider::default());
     provider.queue_response(vec![
         StreamEvent::TextDelta("Build result processed.".to_string()),

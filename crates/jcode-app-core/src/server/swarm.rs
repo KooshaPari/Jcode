@@ -803,6 +803,10 @@ async fn broadcast_swarm_status_now(
                         } else {
                             Some(m.runtime.elapsed_secs.unwrap_or(0))
                         },
+                        input_tokens: m.runtime.input_tokens,
+                        output_tokens: m.runtime.output_tokens,
+                        queue_depth: m.runtime.queue_depth,
+                        cost_cents: m.runtime.cost_cents,
                     },
                 })
         })

@@ -21,6 +21,12 @@ impl OpenTool {
     }
 }
 
+impl Default for OpenTool {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct OpenInput {
     #[serde(default)]
@@ -491,6 +497,10 @@ async fn spawn_with_grace(mut cmd: Command, backend: &str) -> Result<()> {
             None => anyhow::bail!("Opener '{}' exited immediately", backend),
         }
     }
+
+    // The opener keeps running past the grace period, so collect its exit status
+    // instead of dropping the handle; an unreaped child becomes a zombie.
+    crate::platform::reap_detached(child);
 
     Ok(())
 }

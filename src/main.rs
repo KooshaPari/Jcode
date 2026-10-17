@@ -27,6 +27,51 @@ pub static malloc_conf: Option<&'static [u8; 78]> =
 
 use anyhow::Result;
 
+/// macOS 26+ / 27 (Tahoe beta) `taskgated` rejects binaries that carry the
+/// `com.apple.provenance` xattr with an "Invalid Signature" SIGKILL on every
+/// exec attempt, even when the binary is locally built and ad-hoc signed. This
+/// function is invoked at the very top of `run_main` so every successful
+/// launch self-heals before any heavy work (Tokio runtime, provider init,
+/// telemetry disclosure) starts. It is best-effort: any failure is swallowed
+/// because the launch path has already survived taskgated and we're now in
+/// user space, so failure means xattr/codesign tooling is unavailable and the
+/// binary is still usable as-is.
+#[cfg(target_os = "macos")]
+fn self_heal_macos_code_signature() {
+    use std::path::PathBuf;
+    let exe: PathBuf = match std::env::current_exe() {
+        Ok(p) => p,
+        Err(_) => return,
+    };
+    let exe_str = match exe.to_str() {
+        Some(s) => s,
+        None => return,
+    };
+
+    // Strip xattrs (best-effort; the binary can fail without them). We run
+    // xattr first because re-adhoc-signing refuses to operate on a binary
+    // that carries `com.apple.provenance`.
+    let _ = std::process::Command::new("/usr/bin/xattr")
+        .args(["-d", "com.apple.provenance", exe_str])
+        .status();
+    let _ = std::process::Command::new("/usr/bin/xattr")
+        .args(["-d", "com.apple.quarantine", exe_str])
+        .status();
+
+    // Re-adhoc-sign with the local linker identity (`-` = ad-hoc). Use
+    // `--force --deep` so the operation is idempotent and overwrites any
+    // stale embedded signature. Swallow errors: this is a recovery path and
+    // failure here means codesign is unavailable, which we still want to
+    // recover gracefully from.
+    let _ = std::process::Command::new("/usr/bin/codesign")
+        .args(["--force", "--deep", "--sign", "-", exe_str])
+        .status();
+}
+
+#[cfg(not(target_os = "macos"))]
+#[inline]
+fn self_heal_macos_code_signature() {}
+
 #[cfg(all(target_os = "linux", target_env = "gnu", not(feature = "jemalloc")))]
 fn configure_system_allocator() {
     unsafe extern "C" {
@@ -103,6 +148,13 @@ fn main() -> Result<()> {
 }
 
 fn run_main() -> Result<()> {
+    // Self-heal macOS code-signature xattrs (com.apple.provenance + quarantine)
+    // and re-adhoc-sign this binary on first launch. Must run before any heavy
+    // work so a freshly-installed binary that taskgated already accepted still
+    // repairs itself for the next launch — taskgated's re-validation can flip
+    // on a subsequent reboot even when the binary passed on the first try.
+    self_heal_macos_code_signature();
+
     configure_system_allocator();
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 
@@ -132,9 +184,31 @@ fn run_main() -> Result<()> {
         return jcode::cli::macos_notification_broker::run();
     }
 
-    let runtime = tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()?;
+    let mut builder = tokio::runtime::Builder::new_multi_thread();
+    builder.enable_all();
+    // Unhandled panics in spawned tasks previously shut the whole runtime
+    // down, leaving the backgrounded server to record the session as
+    // `Crashed` and the user's terminal stuck in raw mode (issue #214,
+    // investigation 2026-09-16). Switch to `Task` so a panicking task is
+    // killed in isolation; the panic hook in `cli::terminal` still writes
+    // the panic to `<session>.panic.log` and restores the terminal.
+    //
+    // `unhandled_panic` is gated behind `tokio_unstable` in Tokio 1.49;
+    // pass `--cfg tokio_unstable` (or `RUSTFLAGS=--cfg tokio_unstable`)
+    // when building this binary so the runtime honors the policy. Without
+    // that cfg the call is a no-op and the previous default (`Shutdown`)
+    // still applies, which preserves the existing behaviour for builds
+    // that do not opt in to the unstable surface.
+    #[allow(unexpected_cfgs)]
+    {
+        if true {
+            #[cfg(tokio_unstable)]
+            {
+                builder = builder.unhandled_panic(tokio::runtime::UnhandledPanic::Task);
+            }
+        }
+    }
+    let runtime = builder.build()?;
 
     runtime.block_on(async { jcode::run().await })
 }

@@ -140,6 +140,12 @@ async fn queue_soft_interrupt_for_session_persists_when_live_queue_is_unavailabl
         .save_prepared()
         .expect("save session snapshot");
 
+    // KCode fork: surface persistence regressions explicitly instead of via the queued==false panic.
+    assert!(
+        crate::session::session_exists(&session_id),
+        "test fixture should persist before checking queued"
+    );
+
     let queues: SessionInterruptQueues = Arc::new(RwLock::new(HashMap::new()));
     let sessions = Arc::new(RwLock::new(HashMap::new()));
 

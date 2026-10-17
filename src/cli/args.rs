@@ -71,6 +71,18 @@ pub(crate) struct Args {
     #[arg(long, global = true)]
     pub(crate) quiet: bool,
 
+    /// Force HERDR terminal runtime integration (for testing outside HERDR)
+    #[arg(long, global = true)]
+    pub(crate) herdr: bool,
+
+    /// Agent kind for HERDR reporting (jcode, forge, forgecode)
+    #[arg(long, global = true, default_value = "jcode")]
+    pub(crate) herdr_kind: String,
+
+    /// Agent operating mode: execute (default), manager (coordinate only), researcher (read-only)
+    #[arg(long, global = true, default_value = "execute")]
+    pub(crate) mode: String,
+
     /// Resume a session by ID, or list sessions if no ID provided
     #[arg(long, global = true, num_args = 0..=1, default_missing_value = "")]
     pub(crate) resume: Option<String>,
@@ -488,6 +500,9 @@ pub(crate) enum Command {
 
     /// Diagnose why a provider/model or the model picker is broken by walking the
     /// strict end-to-end checkpoints (catalog, picker, model-switch, chat, streaming, tools).
+    ///
+    /// Use the global `-m`/`--model` flag to test a specific model instead of the
+    /// auto-selected one, e.g. `jcode provider-doctor cerebras -m llama-4-scout-17b`.
     #[command(name = "provider-doctor", alias = "provider-strict-e2e")]
     ProviderDoctor {
         /// OpenAI-compatible provider id to diagnose (e.g. cerebras, fpt, nvidia-nim)
@@ -568,6 +583,12 @@ pub(crate) enum Command {
         #[arg(long, conflicts_with = "once")]
         json: bool,
     },
+
+    /// Show HERDR pane info (socket path, pane ID, agent state)
+    HerdrStatus,
+
+    /// Install screen manifests for jcode and ForgeCode to ~/.config/herdr/agent-detection/
+    HerdrInstall,
 
     /// Serve the stable harness API on a Unix socket, for SDK clients.
     ///

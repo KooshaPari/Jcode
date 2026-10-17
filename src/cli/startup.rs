@@ -31,6 +31,12 @@ pub async fn run() -> Result<()> {
     }
     // Snapshot user-supplied provider env before provider init rewrites it.
     super::provider_init::capture_user_openrouter_model_env();
+
+    // Propagate agent mode to env so tool-gating and status bar can read it.
+    let resolved_mode = jcode_config_types::AgentMode::parse(&args.mode)
+        .unwrap_or(jcode_config_types::AgentMode::Execute);
+    crate::env::set_var("KCODE_AGENT_MODE", resolved_mode.as_str());
+
     // Credential import must refuse existing stores without normal startup
     // hardening, migrations, telemetry, or provider discovery touching them.
     if args.ssh.is_none()
@@ -167,11 +173,22 @@ pub async fn run() -> Result<()> {
     let args = parse_and_prepare_args(args)?;
     spawn_background_update_check(&args);
 
+    // Initialize HERDR terminal runtime reporter. No-op when not inside
+    // a HERDR pane. Reports lifecycle state (working/idle/blocked) and
+    // session identity for restore.
+    if args.herdr {
+        crate::herdr::init_forced(&args.herdr_kind);
+    } else {
+        crate::herdr::init(&args.herdr_kind);
+    }
+
     if let Err(e) = dispatch::run_main(args).await {
         report_main_error(&e);
+        crate::herdr::shutdown().await;
         return Err(e);
     }
 
+    crate::herdr::shutdown().await;
     Ok(())
 }
 
@@ -246,6 +263,10 @@ pub fn register_external_provider_runtimes() {
     crate::provider::external::register_external_provider(
         crate::provider::external::ANTHROPIC_RUNTIME,
         || std::sync::Arc::new(jcode_provider_anthropic_runtime::AnthropicProvider::new()),
+    );
+    crate::provider::external::register_external_provider(
+        crate::provider::external::FORGECODE_RUNTIME,
+        || std::sync::Arc::new(jcode_provider_forgecode_runtime::ForgeCodeProvider::new()),
     );
     // OpenRouter serves several identities (aggregator, pinned API-key
     // runtime, direct OpenAI-compatible profiles, named config profiles)

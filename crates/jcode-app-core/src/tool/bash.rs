@@ -68,11 +68,8 @@ export -f cargo
     ))
 }
 
-/// Build a clear timeout message. The `timeout` param is in milliseconds, which
-/// agents frequently mistake for seconds (e.g. passing 1000 thinking it means
-/// 1000s when it is 1s). Spell out the seconds equivalent and, for suspiciously
-/// short timeouts, hint that the unit is milliseconds so the next attempt uses a
-/// sane value instead of repeating the same mistake.
+/// Build a clear timeout message. `timeout` is in milliseconds, which agents
+/// frequently mistake for seconds, so spell out the seconds equivalent too.
 fn timeout_message(timeout_ms: u64) -> String {
     let secs = timeout_ms as f64 / 1000.0;
     let mut msg = format!("Command timed out after {}ms ({:.1}s)", timeout_ms, secs);
@@ -164,17 +161,12 @@ fn summarize_background_command(description: Option<&str>, command: &str) -> Str
     {
         return truncate_str(description, 28).to_string();
     }
-
     let trimmed = command.trim();
     if trimmed.is_empty() {
         return "bash".to_string();
     }
-
     let tokens: Vec<&str> = trimmed.split_whitespace().collect();
-    let start = tokens
-        .iter()
-        .position(|token| !token.contains('='))
-        .unwrap_or(0);
+    let start = tokens.iter().position(|t| !t.contains('=')).unwrap_or(0);
     let tokens = &tokens[start..];
     if tokens.is_empty() {
         return truncate_str(trimmed, 28).to_string();
@@ -203,14 +195,13 @@ fn parse_progress_marker_with_checkpoint(line: &str) -> Option<(BackgroundTaskPr
     let marker: ProgressMarker = serde_json::from_str(payload).ok()?;
     let is_checkpoint =
         marker.checkpoint.unwrap_or(false) || matches!(marker.kind.as_deref(), Some("checkpoint"));
-    let kind = if marker.percent.is_some()
-        || matches!((marker.current, marker.total), (_, Some(total)) if total > 0)
-    {
+    let warm = marker.percent.is_some()
+        || matches!((marker.current, marker.total), (_, Some(total)) if total > 0);
+    let kind = if warm {
         BackgroundTaskProgressKind::Determinate
     } else {
         parse_progress_kind(marker.kind.as_deref())
     };
-
     Some((
         BackgroundTaskProgress {
             kind,
@@ -513,9 +504,9 @@ struct PromotedCommandProgress {
 impl PromotedCommandProgress {
     async fn record(&self, update: ProgressLineUpdate) {
         let direct = {
-            let mut pending = self.pending.lock().expect("progress mutex poisoned");
+            let mut guard = self.pending.lock().unwrap_or_else(|e| e.into_inner());
             if self.task_id.get().is_none() {
-                *pending = Some(update);
+                *guard = Some(update);
                 None
             } else {
                 Some(update)
@@ -530,7 +521,11 @@ impl PromotedCommandProgress {
 
     async fn attach_task(&self, task_id: &str) {
         let _ = self.task_id.set(task_id.to_string());
-        let pending = self.pending.lock().expect("progress mutex poisoned").take();
+        let pending = self
+            .pending
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take();
         if let Some(update) = pending {
             apply_progress_update(task_id, update).await;
         }
@@ -567,8 +562,7 @@ where
 ///
 /// Detached commands write directly to their output file, so nothing in-process
 /// sees their output as it streams. This follower polls the file while the task
-/// is `Running`, parsing complete lines from where it left off. It performs one
-/// final drain after the task leaves `Running` and then exits.
+/// is `Running`, parsing complete lines, then performs one final drain.
 #[cfg(unix)]
 fn spawn_detached_progress_follower(task_id: String, output_file: std::path::PathBuf) {
     tokio::spawn(async move {
@@ -809,6 +803,12 @@ pub struct BashTool;
 impl BashTool {
     pub fn new() -> Self {
         Self
+    }
+}
+
+impl Default for BashTool {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -1283,6 +1283,10 @@ impl BashTool {
                 // in-process reader sees their output. Follow the file to keep
                 // the task's progress bar live.
                 spawn_detached_progress_follower(info.task_id.clone(), info.output_file.clone());
+                // The command outlives this call, so hand the child to a reaper.
+                // Dropping a `std::process::Child` without `wait()` leaves the
+                // process as a <defunct> zombie parented to the server forever.
+                crate::platform::reap_detached(child);
 
                 let elapsed_ms = u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX);
                 let output = format!(
@@ -1341,6 +1345,9 @@ impl BashTool {
                     )
                     .await;
                 spawn_detached_progress_follower(info.task_id.clone(), info.output_file.clone());
+                // Same as the timeout handoff: the reloaded server will not own
+                // this child, so reap it here or it lingers as a zombie.
+                crate::platform::reap_detached(child);
                 let output = format!(
                     "Command continued in background due to reload.\n\nTask ID: {}\nOutput file: {}\nStatus file: {}\n\nUse `bg` with action=\"wait\" and task_id=\"{}\" after reload to wait for completion or the next progress checkpoint.",
                     info.task_id,

@@ -27,6 +27,11 @@ use std::sync::mpsc::{
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 
+/// One active subscription: id, optional session-id filter, and the sink that
+/// receives matched events. Aliased so the `subscribers` field type stays readable
+/// (`clippy::type_complexity`).
+type SubscriberList = Vec<(u64, Option<String>, Sender<ApiEvent>)>;
+
 /// How a client reaches the harness.
 pub struct ConnectOptions {
     /// Defaults to the resolved harness API socket path.
@@ -329,7 +334,7 @@ struct Inner {
     /// Requests waiting for their `reply_to` frame.
     pending: Mutex<HashMap<u64, Sender<ServerFrame>>>,
     /// Live subscriptions: (id, session filter, sink).
-    subscribers: Mutex<Vec<Subscriber>>,
+    subscribers: Mutex<SubscriberList>,
     next_id: AtomicU64,
     next_sub: AtomicU64,
     closed: AtomicBool,
@@ -1752,6 +1757,7 @@ fn start_global_child(parent: &JcodeClient, control: &Arc<GlobalEventControl>, s
 }
 
 /// The reader thread: correlates replies, fans stream events out.
+#[allow(clippy::while_let_loop)]
 fn spawn_reader(inner: Arc<Inner>, mut reader: Box<dyn BufRead + Send>) {
     std::thread::spawn(move || {
         while let Ok(frame) = read_frame::<_, ServerFrame>(&mut reader) {

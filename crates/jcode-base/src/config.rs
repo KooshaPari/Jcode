@@ -4,14 +4,15 @@
 //! Environment variables override config file settings.
 
 pub use jcode_config_types::{
-    AgentsConfig, AmbientConfig, AuthConfig, AutoJudgeConfig, AutoReviewConfig, CompactionConfig,
-    CompactionMode, CrossProviderFailoverMode, DiagramDisplayMode, DiagramPanePosition,
-    DiffDisplayMode, DisplayConfig, FeatureConfig, GatewayConfig, HookCommands, HooksConfig,
-    KeybindingsConfig, LatexRenderingMode, LaunchHotkeyEntry, LaunchHotkeysConfig,
-    MarkdownSpacingMode, NamedProviderAuth, NamedProviderConfig, NamedProviderModelConfig,
-    NamedProviderType, NativeScrollbarConfig, NotificationsConfig, PowerConfig, ProviderConfig,
-    ReasoningDisplayMode, SafetyConfig, SessionPickerResumeAction, SponsorsConfig, SwarmSpawnMode,
-    SwarmStripLayout, TerminalConfig, UpdateChannel, WebSearchConfig, WebSearchEngine,
+    AgentMode, AgentsConfig, AmbientConfig, AuthConfig, AutoJudgeConfig, AutoReviewConfig,
+    CompactionConfig, CompactionMode, CrossProviderFailoverMode, DiagramDisplayMode,
+    DiagramPanePosition, DiffDisplayMode, DisplayConfig, FeatureConfig, GatewayConfig,
+    HookCommands, HooksConfig, KeybindingsConfig, LatexRenderingMode, LaunchHotkeyEntry,
+    LaunchHotkeysConfig, MarkdownSpacingMode, NamedProviderAuth, NamedProviderConfig,
+    NamedProviderModelConfig, NamedProviderType, NativeScrollbarConfig, NotificationsConfig,
+    OverscrollStatusMode, PowerConfig, ProviderConfig, ReasoningDisplayMode, SafetyConfig,
+    SessionPickerResumeAction, SponsorsConfig, SwarmSpawnMode, SwarmStripLayout, TerminalConfig,
+    UpdateChannel, WebSearchConfig, WebSearchEngine,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -45,7 +46,6 @@ const CONFIG_ENV_KEYS: &[&str] = &[
     "KCODE_AUTOJUDGE_MODEL",
     "KCODE_AUTOREVIEW_ENABLED",
     "KCODE_AUTOREVIEW_MODEL",
-    "KCODE_AUTO_POKE",
     "KCODE_AUTO_SERVER_RELOAD",
     "KCODE_CHECK_UPDATES",
     "KCODE_BING_API_KEY",

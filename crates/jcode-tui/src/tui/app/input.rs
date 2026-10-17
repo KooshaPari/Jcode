@@ -91,9 +91,19 @@ pub(super) fn extract_input_shell_command(input: &str) -> Option<&str> {
 fn build_input_shell_command(command: &str) -> std::process::Command {
     #[cfg(windows)]
     {
-        let mut cmd = std::process::Command::new("cmd.exe");
-        cmd.arg("/C").arg(command);
-        cmd
+        use crate::terminal::shell::Shell;
+        match Shell::detect() {
+            Shell::PowerShell => {
+                let mut cmd = std::process::Command::new("pwsh.exe");
+                cmd.arg("-NoProfile").arg("-Command").arg(command);
+                cmd
+            }
+            _ => {
+                let mut cmd = std::process::Command::new("cmd.exe");
+                cmd.arg("/C").arg(command);
+                cmd
+            }
+        }
     }
 
     #[cfg(not(windows))]
@@ -2623,6 +2633,12 @@ pub(super) fn handle_modal_key(
     }
 
     if handle_scroll_overlay_key(app, code)? {
+        return Ok(true);
+    }
+
+    // Elicitation overlay takes highest priority among modal overlays.
+    if app.elicit_overlay.is_some() {
+        app.handle_elicit_key(code, modifiers);
         return Ok(true);
     }
 

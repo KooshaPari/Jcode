@@ -4,8 +4,10 @@ use serde::de::DeserializeOwned;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-pub mod session_import;
 pub mod product_paths;
+mod remove;
+pub mod session_import;
+pub use remove::{remove_durable_state_file, remove_state_file};
 
 #[cfg(windows)]
 use std::collections::{HashMap, HashSet};
@@ -277,7 +279,9 @@ pub fn harden_user_config_permissions() {
     {
         if let Some(config_dir) = dirs::config_dir() {
             let jcode_config_dir = config_dir.join("kcode");
-            if product_paths::require_kcode_path(&jcode_config_dir).is_ok() && jcode_config_dir.exists() {
+            if product_paths::require_kcode_path(&jcode_config_dir).is_ok()
+                && jcode_config_dir.exists()
+            {
                 schedule_windows_path_hardening(&jcode_config_dir, true);
             }
         }
@@ -293,7 +297,9 @@ pub fn harden_user_config_permissions() {
     {
         if let Some(config_dir) = dirs::config_dir() {
             let jcode_config_dir = config_dir.join("kcode");
-            if product_paths::require_kcode_path(&jcode_config_dir).is_ok() && jcode_config_dir.exists() {
+            if product_paths::require_kcode_path(&jcode_config_dir).is_ok()
+                && jcode_config_dir.exists()
+            {
                 let _ = jcode_core::fs::set_directory_permissions_owner_only(&jcode_config_dir);
             }
         }
@@ -791,6 +797,16 @@ mod windows_hardening_tests {
         assert!(!state.enqueue(&file, false, now));
         assert!(state.pending_files.is_empty());
     }
+}
+
+/// Serialize tests that mutate `KCODE_HOME` (or any other process-wide env
+/// var the storage layer reads). Shared by `active_pids` and `remove` test
+/// modules so they cannot race when both touch the env.
+#[cfg(test)]
+pub(crate) fn lock_env() -> std::sync::MutexGuard<'static, ()> {
+    use std::sync::Mutex;
+    static LOCK: Mutex<()> = Mutex::new(());
+    LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 #[cfg(test)]
