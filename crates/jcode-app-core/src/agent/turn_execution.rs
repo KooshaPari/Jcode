@@ -187,6 +187,10 @@ impl Agent {
             Some(crate::session::StoredDisplayRole::System),
             false,
         )?;
+        // System-displayed inputs do not count as visible conversation for
+        // the normal first-save guard. Force the first snapshot before proof.
+        self.session.save_prepared()?;
+        self.session.sync_wake_turn_entry()?;
         crate::server::wake_receipts::mark_awakened(receipt_id, self.session_id())?;
         crate::telemetry::record_turn();
         let started_at = Instant::now();

@@ -667,17 +667,17 @@ async fn native_receipt_remains_queued_until_exact_target_turn_saves_message() {
             "synthetic wake",
             receipt_id,
             &sessions,
-            ctx,
+            ctx.clone(),
         )
         .await
     );
     timeout(Duration::from_secs(5), async {
         loop {
-            if matches!(
-                member_event_rx.recv().await,
-                Some(ServerEvent::Done { id: 0 })
-            ) {
-                break;
+            match member_event_rx.recv().await {
+                Some(ServerEvent::Done { id: 0 }) => break,
+                Some(ServerEvent::Error { message, .. }) => panic!("receipt turn: {message}"),
+                None => panic!("receipt event stream closed"),
+                _ => {}
             }
         }
     })
@@ -694,6 +694,25 @@ async fn native_receipt_remains_queued_until_exact_target_turn_saves_message() {
     assert!(agent.lock().await.messages().iter().any(|message| {
         message.role == Role::User && message.content_preview().contains("synthetic wake")
     }));
+    let persisted = crate::session::Session::load(&session_id).expect("persisted transcript");
+    assert!(persisted.messages.iter().any(|message| {
+        message.role == Role::User && message.content_preview().contains("synthetic wake")
+    }));
+    // A delayed duplicate still carries its old queued submission snapshot.
+    // Once it reserves the now-idle agent, it must observe the durable final
+    // state and leave the transcript unchanged.
+    let message_count = agent.lock().await.messages().len();
+    assert!(
+        !super::live_turn::run_receipt_turn_if_idle(
+            &session_id,
+            "synthetic wake",
+            receipt_id,
+            &sessions,
+            ctx,
+        )
+        .await
+    );
+    assert_eq!(agent.lock().await.messages().len(), message_count);
 
     if let Some(old_home) = old_home {
         crate::env::set_var("JCODE_HOME", old_home);

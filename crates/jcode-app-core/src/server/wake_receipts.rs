@@ -38,7 +38,15 @@ fn load() -> Result<BTreeMap<String, WakeReceipt>> {
     if path.exists() {
         crate::storage::read_json(&path)
     } else {
-        Ok(BTreeMap::new())
+        // A Windows write can be interrupted after moving the primary to
+        // .bak and before installing the new file. Absence is only an empty
+        // store when neither generation exists.
+        let backup = path.with_extension("bak");
+        if backup.exists() {
+            crate::storage::read_json(&backup)
+        } else {
+            Ok(BTreeMap::new())
+        }
     }
 }
 
@@ -185,6 +193,44 @@ mod tests {
             crate::env::set_var("JCODE_NATIVE_WAKE_SESSION_ALLOWLIST", old_allowlist);
         } else {
             crate::env::remove_var("JCODE_NATIVE_WAKE_SESSION_ALLOWLIST");
+        }
+    }
+
+    #[test]
+    fn interrupted_replace_recovers_backup_without_erasing_history() {
+        let _guard = crate::storage::lock_test_env();
+        let temp = tempfile::TempDir::new().expect("temp dir");
+        let old_home = std::env::var_os("JCODE_HOME");
+        crate::env::set_var("JCODE_HOME", temp.path());
+
+        let first = submit("bridge:event:old", "ses_target", "first").expect("submit");
+        let primary = path().expect("receipt path");
+        let backup = primary.with_extension("bak");
+        std::fs::rename(&primary, &backup).expect("simulate interrupted Windows replace");
+        assert_eq!(
+            get(&first.receipt_id).expect("recover absent primary"),
+            Some(first)
+        );
+        submit("bridge:event:new", "ses_target", "second").expect("preserve recovered history");
+        assert!(get("bridge:event:old").expect("reload").is_some());
+        assert!(get("bridge:event:new").expect("reload").is_some());
+
+        // A corrupt primary must recover the prior generation as well.
+        std::fs::write(&primary, b"{").expect("simulate torn primary");
+        assert!(
+            get("bridge:event:old")
+                .expect("recover corrupt primary")
+                .is_some()
+        );
+        std::fs::write(&backup, b"{").expect("simulate corrupt backup");
+        std::fs::write(&primary, b"{").expect("simulate corrupt primary again");
+        assert!(get("bridge:event:old").is_err());
+        assert!(submit("bridge:event:third", "ses_target", "third").is_err());
+
+        if let Some(old_home) = old_home {
+            crate::env::set_var("JCODE_HOME", old_home);
+        } else {
+            crate::env::remove_var("JCODE_HOME");
         }
     }
 }

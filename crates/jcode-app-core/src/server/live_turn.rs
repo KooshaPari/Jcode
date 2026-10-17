@@ -272,6 +272,17 @@ pub(super) async fn run_receipt_turn_if_idle(
     let Some(agent) = idle_live_agent(session_id, sessions, &swarm.members).await else {
         return false;
     };
+    // The caller's queued snapshot may predate a completed turn. The agent
+    // reservation serializes live turns; re-read the durable receipt only now.
+    if !matches!(
+        super::wake_receipts::get(receipt_id),
+        Ok(Some(receipt))
+            if receipt.session_id == session_id
+                && receipt.message == message
+                && receipt.state == super::wake_receipts::WakeState::Queued
+    ) {
+        return false;
+    }
     let detail = Some(truncate_detail(message, 120));
     spawn_tracked_live_turn(
         session_id,
