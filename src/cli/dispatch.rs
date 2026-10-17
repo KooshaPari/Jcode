@@ -74,7 +74,9 @@ fn arm_debug_client_parent_death_signal() {}
 pub(crate) async fn run_main(mut args: Args) -> Result<()> {
     if let Some(Command::Session(SessionCommand::ImportJcode { session })) = &args.command {
         if args.ssh.is_some() {
-            anyhow::bail!("Session import is local; run it on the machine holding the jcode sessions");
+            anyhow::bail!(
+                "Session import is local; run it on the machine holding the jcode sessions"
+            );
         }
         return commands::session_commands::import_jcode_session_command(session);
     }

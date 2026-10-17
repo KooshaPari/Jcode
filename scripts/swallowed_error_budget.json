@@ -1,9 +1,9 @@
 {
-  "total": 3853,
+  "total": 3848,
   "totals_by_pattern": {
-    "dot_ok": 1467,
-    "let_underscore": 1437,
-    "unwrap_or_default": 949
+    "dot_ok": 1466,
+    "let_underscore": 1436,
+    "unwrap_or_default": 946
   },
   "tracked_files": {
     "crates/jcode-app-core/src/agent.rs": {
@@ -2081,11 +2081,6 @@
       "let_underscore": 0,
       "unwrap_or_default": 0
     },
-    "crates/jcode-tui-render/src/swarm_gallery.rs": {
-      "dot_ok": 0,
-      "let_underscore": 1,
-      "unwrap_or_default": 3
-    },
     "crates/jcode-tui-render/src/swarm_gallery/dock.rs": {
       "dot_ok": 0,
       "let_underscore": 0,
@@ -2637,7 +2632,7 @@
       "unwrap_or_default": 2
     },
     "crates/jcode-tui/src/tui/ui_input.rs": {
-      "dot_ok": 4,
+      "dot_ok": 3,
       "let_underscore": 0,
       "unwrap_or_default": 2
     },

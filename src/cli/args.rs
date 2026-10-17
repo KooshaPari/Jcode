@@ -4,9 +4,9 @@ use super::provider_init::ProviderChoice;
 
 mod google;
 mod session;
-pub(crate) use session::SessionCommand;
 #[allow(unused_imports)]
 pub(crate) use google::{GoogleAccessTierArg, GoogleLoginArgs};
+pub(crate) use session::SessionCommand;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
 pub(crate) enum TranscriptModeArg {

@@ -19,14 +19,14 @@ use std::time::{Duration, Instant, SystemTime};
 
 #[path = "update_dev_guard.rs"]
 mod update_dev_guard;
-#[path = "update_metadata.rs"]
-mod update_metadata;
-#[path = "update_rate_limit.rs"]
-mod update_rate_limit;
-#[path = "update_product.rs"]
-mod update_product;
 #[path = "update_display.rs"]
 mod update_display;
+#[path = "update_metadata.rs"]
+mod update_metadata;
+#[path = "update_product.rs"]
+mod update_product;
+#[path = "update_rate_limit.rs"]
+mod update_rate_limit;
 pub use update_display::print_centered;
 pub use update_metadata::UpdateMetadata;
 use update_metadata::{record_release_update_duration, record_source_update_duration};

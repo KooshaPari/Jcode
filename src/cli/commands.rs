@@ -1467,7 +1467,6 @@ struct SessionRenameOutput {
     cleared: bool,
 }
 
-
 async fn run_ambient_visible() -> Result<()> {
     use crate::ambient::VisibleCycleContext;
 

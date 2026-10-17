@@ -191,7 +191,6 @@ pub(crate) fn cached_live_models_for_openai_compatible_profile(
     cached_live_models_for_namespace(&resolved.id, &resolved.api_base)
 }
 
-
 fn direct_openai_compatible_profile_routes(
     profile: crate::provider_catalog::OpenAiCompatibleProfile,
 ) -> Vec<ModelRoute> {
@@ -225,8 +224,7 @@ fn direct_openai_compatible_profile_routes(
     for model in crate::provider_declared_models::config_declared_model_ids_for_profile(
         &resolved.id,
         &resolved.api_base,
-    )
-    {
+    ) {
         if !models.iter().any(|existing| existing == &model) {
             models.push(model);
         }
