@@ -144,3 +144,43 @@ the same three squash-merged PRs. The detection heuristic in
 same body-scrub + status-note treatment to PRs #64, #67, #75 on the
 Jcode fork if the operator wants a consistent record on both forks.
 This is a `gh pr edit` call; no git push required.
+
+## OPEN KCode PRs audit (2026-10-17T07:06Z)
+
+A third subagent was dispatched to audit the 9 (live: 13) OPEN
+KCode PRs for the same misleading-footer pattern
+(`session_blossom_1792220256689_983dcc32bb422ecd`, Tier 1 M3,
+read-only).
+
+**Result: zero §22-pattern matches.** The §22 finding is
+**contained to the 3 already-retargeted PRs**. The OPEN set is
+clean.
+
+| Status | PRs |
+|--------|-----|
+| Already correctly retargeted | #103 (the "Supersedes #67" paragraph is in place) |
+| No Closes/Fixes/Resolves footer | #8, #10, #58, #97, #99, #100, #105, #106, #107, #108, #109 |
+| "Fixes" prose (not an issue link) | #101 ("Fixes the README's incorrect claim" — no #N) |
+
+**Flagged for human review (NOT a §22 match, but adjacent):**
+
+- **PR #25** "feat(tui): add /poke context recovery launcher" has
+  "Closes #26" in its user description. **Issue/PR #26 does not
+  exist on `KooshaPari/KCode`** (`gh pr view 26` → "Could not
+  resolve"). `git log origin/master --grep="harness-compliant
+  squash-merge"` returns only the 3 already-retargeted PRs.
+  Conclusion: the "Closes #26" footer is misleading (references a
+  non-existent PR) but is **not** the §22 harness-squash-merge
+  pattern. This is a different class of problem; the subagent
+  flagged it per the stop condition and did NOT edit. **Operator
+  decision needed:** is #26 a pre-fork upstream PR, a planned
+  issue, or just a typo? Should the footer be removed/replaced?
+
+**§22 closed-loop conclusion (2026-10-17T07:06Z):** the §22
+finding is closed. Of all 200 PRs on `KooshaPari/KCode` and the
+109 PRs on `KooshaPari/Jcode`, exactly 3 PRs (#64, #67, #75 on
+both forks) exhibit the harness-squash-merge-but-`gh`-says-CLOSED
+pattern. All 3 have been retargeted with explicit "Status note"
+paragraphs naming the master commit, the harness-compliant path,
+and the `tx-intent` trailer. The §22 standalone doc is now the
+single source of truth for the pattern.
