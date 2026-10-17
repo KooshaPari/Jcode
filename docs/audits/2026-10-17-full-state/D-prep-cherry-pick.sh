@@ -6,7 +6,7 @@
 #
 # These 6 commits were verified to cherry-pick cleanly onto 748eeaa1e.
 # Only d0091d078 (code fix) was verified with cargo check --workspace (PASSED).
-# The rest are non-Rust additions (test, plist, nix, gitattributes, doc).
+# The batch also adds a Rust integration test, run explicitly below.
 set -euo pipefail
 
 cd /Users/kooshapari/CodeProjects/Phenotype/repos/jcode
@@ -49,7 +49,11 @@ echo "=== Running cargo check --workspace ==="
 cargo check --workspace
 
 echo ""
-echo "=== All cherry-picks applied and cargo check passed ==="
+echo "=== Running CLI exit-status integration tests ==="
+cargo test --test cli_exit_status
+
+echo ""
+echo "=== All cherry-picks applied, cargo check and CLI exit-status tests passed ==="
 echo "=== Branch: cherry-pick-batch-2026-10-17 ==="
 echo "=== Review with: git log --oneline 748eeaa1e..HEAD ==="
 echo ""

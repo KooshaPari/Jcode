@@ -16,19 +16,30 @@ From https://github.com/1jehuang/jcode
  ! [rejected]            v0.85.0    -> v0.85.0  (would clobber existing tag)
 
 $ git rev-list --left-right --count upstream/master...master
-2826    335
+2828    334
 
 $ git rev-list --left-right --count upstream/main...master
 fatal: ambiguous argument 'upstream/main...master': unknown revision
 ```
 
-- **Behind upstream:** **2,826 commits** (LEFT of `upstream/master...master`)
-- **Ahead of upstream:** **335 commits** (RIGHT)
+- **Behind upstream:** **2,828 commits** (LEFT of `upstream/master...master`)
+- **Ahead of upstream:** **334 commits** (RIGHT)
 - `upstream/main` does **not** exist — upstream's only default branch is `master`. The canonical comparison is `upstream/master...master`.
 - The fork's own docs claim (~144 ahead, ~2649 behind, generated 2026-10-12) are **stale by 4 days**:
-  - ahead: 144 → **335** (+191 ahead added)
-  - behind: 2649 → **2826** (+177 net upstream gains)
+  - ahead: 144 → **334** (+190 ahead added)
+  - behind: 2649 → **2828** (+179 net upstream gains)
 - Tag `v0.85.0` was rejected during fetch (would clobber the fork's existing tag). All other upstream tags fetched cleanly.
+
+Counts corrected by re-running against the immutable tips below:
+
+```sh
+git rev-list --left-right --count 4a4c678f15e5d10b34712c3f18feb56fe84f7b89...748eeaa1e1f45a87a5d6d230963c6ad98495525b
+# 2828 334
+```
+
+The original transcript above contained incorrect counts; the corrected values
+are shown. D-prep-cherrypick-analysis.md compares a later upstream tip and
+therefore reports 2,840 behind, also 334 ahead.
 
 ### Tip SHAs (2026-10-16 23:09 UTC)
 
@@ -59,7 +70,7 @@ edition = "2024"
 ```
 
 - Upstream is at **v0.98.1** (released 2026-10-14, 2 days before this audit).
-- Fork's Cargo.toml: `name = "jcode"`, `version = "0.85.1-k1.1.1"`. The fork pin is from **v0.85.1** of upstream; **13 releases of drift** (v0.86.0 → v0.98.1) plus 2,826 commits behind.
+- Fork's Cargo.toml: `name = "jcode"`, `version = "0.85.1-k1.1.1"`. The fork pin is from **v0.85.1** of upstream; **13 releases of drift** (v0.86.0 → v0.98.1) plus 2,828 commits behind.
 
 ---
 
@@ -80,7 +91,7 @@ edition = "2024"
 
 ### Verdict on the fork's own claims
 
-- The 2,649 / 142 numbers are stale by 4 days; the authoritative figures are 2,826 / 335.
+- The 2,649 / 142 numbers are stale by 4 days; the authoritative figures are 2,828 / 334.
 - The fork's grouping of fork-only vs upstream-friendly is structurally sound and the 9 PR-candidate bundles still map cleanly onto today's ahead-set (the ahead set has grown but intent categories are stable).
 - The sync-status diagnosis (worktree debris blocking merge) is structurally correct AND STILL UNRESOLVED.
 
@@ -98,7 +109,7 @@ edition = "2024"
 
 ### What the fork adds (the real delta)
 
-The 335 ahead-commits, grouped by intent (from UPSTREAM-DELTA.md, expanded with new code investigation):
+The 334 ahead-commits, grouped by intent (from UPSTREAM-DELTA.md, expanded with new code investigation):
 
 1. **TUI rendering & UX (~30+ commits):** status bar readability, ellipsis truncation, Unicode symbol replacement, swarm strip/dock active-vs-idle differentiation, per-role border colors, swarm plan DAG viz, agent search/filter (`/`), elapsed/effort/auth in detail card, agent rename UI (`r`), multi-select batch ops, synchronized draw calls (DECSET 2026), token/cost/queue in detail card, elicitation wiring, swarm dispatch stats, terminal ASCII logo, tiny-terminal resume.
 2. **Provider additions:** OpenCode Go `/responses` routing for Muse/Grok/GPT, `grok-build` lifecycle normalization, catalog sweeper at provider init, `orcarouter` choice table wiring, **ForgeCode runtime provider (fork-only, Herdr-coupled)**.
@@ -120,7 +131,7 @@ The 335 ahead-commits, grouped by intent (from UPSTREAM-DELTA.md, expanded with 
 
 ## Step 6 — Fork DEFICIT: major upstream capabilities since v0.85 the fork lacks
 
-Spanning **v0.86.0 → v0.98.1** (13 releases, 2,826 commits):
+Spanning **v0.86.0 → v0.98.1** (13 releases, 2,828 commits):
 
 | Version | Title | Top capability the fork lacks |
 |---|---|---|
@@ -178,7 +189,7 @@ Spanning **v0.86.0 → v0.98.1** (13 releases, 2,826 commits):
 ### (b) Full re-merge of upstream master onto the fork
 
 - **Effort:** 2–4 hours for merge attempt + ~10–20 hours of conflict resolution. Once conflicts are resolved, ~2–4 hours for full `cargo check --workspace` + `cargo test --workspace` + `cargo clippy` validation. ~1–2 days total.
-- **Risk:** High. `git merge upstream/master --no-edit` is currently **ABORTED** because 47 untracked paths conflict. Even after operator-approved cleanup of those, the merge will have 2,826 commits of conflict surface across all the fork-only crates (`jcode-herdr`, `jcode-auto-dream`, `jcode-micro-compact`, `jcode-perm-bubble`, `jcode-cache-vectors`) and many of the shared files. Per-file conflict resolution is non-trivial.
+- **Risk:** High. `git merge upstream/master --no-edit` is currently **ABORTED** because 47 untracked paths conflict. Even after operator-approved cleanup of those, the merge will have 2,828 commits of conflict surface across all the fork-only crates (`jcode-herdr`, `jcode-auto-dream`, `jcode-micro-compact`, `jcode-perm-bubble`, `jcode-cache-vectors`) and many of the shared files. Per-file conflict resolution is non-trivial.
 - **What it breaks:** the entire `jcode-herdr` crate may need to be re-based manually against upstream's changes to `jcode-app-core`; same for the 4 new crates. Herdr integration tests may need re-authoring. The fork loses granular history (becomes one or a few merge commits).
 - **Outcome:** fork jumps to upstream v0.98.1 in one shot, fork-only commits rebased on top. Faster than (a) if all conflicts resolve cleanly, but the failure mode is catastrophic (full re-merge fails to compile = same situation as PR #33).
 
@@ -198,7 +209,7 @@ Spanning **v0.86.0 → v0.98.1** (13 releases, 2,826 commits):
 1. It is the only option that **preserves all current fork work** without mass-replaying the decollision risk that already burned PR #33.
 2. Per-commit `cargo check` (issue #43's acceptance criterion #5) is already a documented operator preference — this path is on-policy.
 3. The fork is missing 13 releases, but the releases are atomic and reviewable; ~40–80 hours of work is much cheaper than rebuilding the entire fork (c).
-4. (b) is too risky given PR #33 just failed a 2,260-commit squash — a full merge of 2,826 commits has even higher conflict density.
+4. (b) is too risky given PR #33 just failed a 2,260-commit squash — a full merge of 2,828 commits has even higher conflict density.
 5. (c) is the cleanest end-state but discards everything the fork has built; it is appropriate **only if** the operator wants to reset the fork's identity, which the 2026-10-15 binding memo (no upstream publishing from `KooshaPari/`) and the recent repo rename to `KCode` suggest is NOT the intent.
 6. As a **side benefit**, option (a) generates the 9 upstream-clean PR candidates the fork's delta doc already enumerates — these can go to `1jehuang/jcode` first, reducing the long-term debt by half even before the fork catches up.
 
@@ -216,8 +227,8 @@ Spanning **v0.86.0 → v0.98.1** (13 releases, 2,826 commits):
 
 ## Summary (≤30 lines)
 
-- **Behind:** 2,826 commits; **ahead:** 335. (Fork's own docs claim 2,649/144 — stale by 4 days.)
-- **Upstream:** v0.98.1 (released 2026-10-14). **Fork pin:** v0.85.1-k1.1.1. **Drift:** 13 releases + 2,826 commits.
+- **Behind:** 2,828 commits; **ahead:** 334. (Fork's own docs claim 2,649/144 — stale by 4 days.)
+- **Upstream:** v0.98.1 (released 2026-10-14). **Fork pin:** v0.85.1-k1.1.1. **Drift:** 13 releases + 2,828 commits.
 - **Fork delta (intent groups):** TUI UX (~30), providers/ForgeCode, Herdr (FORK-ONLY), elicitation, 4 new crates (auto-dream/micro-compact/perm-bubble/cache-vectors, FORK-ONLY), decollision (net-zero), `/loop`+`/goal`+ambient, clippy sweeps (~12), build/CI (~13), process/OS fixes (3), TUI-render refactors, test/fixture fixes, docs, misc. 9 upstream-clean PR candidates + 24 demos already enumerated.
 - **Top missing upstream capabilities:** v0.86 Jev handoff + memory recall; v0.87/v0.88 Claude Opus 5.5 + multi-browser + banked resets; v0.89 voice input + pinned status + applets; v0.90 provider-native web search; v0.91 Google Calendar + speed tiers + `/desktop`; v0.92 codemode; v0.93 instant startup (~20ms paint); v0.94 queued commands; v0.95 OpenCode Go Responses routing; v0.96 remote MCP over HTTP/SSE; v0.97 custom JSON search providers; v0.98 reduced idle + `user_response` tool.
 - **Decollision truth:** GitHub repo renamed to `KooshaPari/KCode`. Rust source is 100% `jcode` (Cargo.toml `name = "jcode"`, 92 `jcode-*` crate dirs, `jcode` binary). PR #33 (2,260-commit rename) **broke and was reverted by PR #36**. Issue #43 (per-commit `cargo check`) is **OPEN, not started**. Sync ritual remains **BLOCKED** by 47 untracked paths + 96 decollision debris.

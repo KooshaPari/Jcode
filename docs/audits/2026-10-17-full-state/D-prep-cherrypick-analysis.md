@@ -5,9 +5,22 @@
 - **Fork HEAD:** `748eeaa1e` (docs(handoff): name the real root cause of the Actions block)
 - **Fork version:** `0.85.1-k1.1.1` (Cargo.toml)
 - **Last upstream sync point:** v0.85.0 (merge-base `752df77d3`)
-- **Commits behind upstream (since v0.85.0):** 2,856
-- **Commits ahead of upstream (since merge-base):** 7,762
+- **Commits behind upstream (since v0.85.0):** 2,840
+- **Commits ahead of upstream (since merge-base):** 334
 - **Upstream release tags available:** v0.85.0 through v0.98.1 + master
+
+Counts reverified using immutable tips (objects fetched only from the fork origin):
+
+```sh
+git rev-list --left-right --count 6f2926e0c63d885f5858daed5246566a7838e948...748eeaa1e1f45a87a5d6d230963c6ad98495525b
+# 2840 334
+git rev-list --count 752df77d3c13fa7a648eda257dbfcb8d3ea5974d..748eeaa1e1f45a87a5d6d230963c6ad98495525b
+# 334
+```
+
+The earlier 7,762 ahead figure was incorrect. D-fork-delta.md uses an older
+upstream tip (`4a4c678f1`); its corrected comparison is 2,828 behind / 334 ahead.
+The two upstream snapshots differ by 12 upstream-only commits.
 
 ## Scope of analysis
 - Analyzed upstream commits from v0.85.0 through upstream/master (6f2926e0c)
