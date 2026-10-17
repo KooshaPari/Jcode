@@ -61,7 +61,13 @@ impl Agent {
             .map(|message| message.id.clone())
             .unwrap_or_else(|| "initial".to_string());
         self.begin_model_usage_turn(&message_id);
-        self.session.model_usage_turn_id.clone().unwrap()
+        // begin_model_usage_turn unconditionally sets model_usage_turn_id; fall
+        // back to an empty anchor only as a defensive guard against future
+        // refactors that could regress that invariant.
+        self.session
+            .model_usage_turn_id
+            .clone()
+            .unwrap_or_else(String::new)
     }
 
     pub(super) fn record_model_turn_usage(&self, turn_id: &str) {
@@ -115,6 +121,15 @@ impl Agent {
                 "Could not refresh compaction token budget after provider change: compaction manager is busy",
             ),
         }
+    }
+
+    /// The context window the server resolves for the active route.
+    ///
+    /// Sent to clients on `ModelChanged` so a remote panel does not have to
+    /// derive it from its own inert provider, which carries no model catalog and
+    /// therefore always answers the generic default.
+    pub fn provider_context_window(&self) -> usize {
+        self.provider.context_window()
     }
 
     #[cfg(test)]
@@ -274,11 +289,30 @@ impl Agent {
         self.session.provider_key = provider_key;
     }
 
+    /// Bookmark or unbookmark the session, returning the effective label.
+    pub fn set_session_saved(
+        &mut self,
+        saved: bool,
+        label: Option<String>,
+    ) -> Result<Option<String>> {
+        if saved {
+            self.session.mark_saved(label);
+        } else {
+            self.session.unmark_saved();
+        }
+        self.session.save()?;
+        Ok(self.session.save_label.clone())
+    }
+
     pub fn rename_session_title(&mut self, title: Option<String>) -> Result<String> {
         self.session.rename_title(title);
         self.log_env_snapshot("rename_session");
         self.session.save()?;
         Ok(self.session.display_title_or_name().to_string())
+    }
+
+    pub fn session_display_title_or_name(&self) -> String {
+        self.session.display_title_or_name().to_string()
     }
 
     pub fn autoreview_enabled(&self) -> Option<bool> {

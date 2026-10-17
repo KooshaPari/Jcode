@@ -104,6 +104,7 @@ than assumed.
 | Script label fix | `evidence/suggestion-audit.py` @ `cb40ffe54` | The script's print said 'NOT yet identity-audited: 11' but the 11 are actually identity-clean (per PORTAL-FINDINGS.md); relabeled to 'identity-clean, content-unreviewed' with a 6-line comment explaining the third category. Math unchanged (16 = 3 + 2 + 11). |
 | Operator-action prep: §8.2.d + §16 + §17 | `chore/xirp-custom-harness-discovery-20261014` @ `a781e20ae` | §8.2.c step 1 naturally DONE (host reboot reaped 48 leaked cargo/rustc; live `ps` shows 0). §4 row M bumped to DONE; §4 row G noted step 1 is done. New file `pr-67-reopen-decision.md` documents the X-? reopen-vs-new trade-off (recommended: open a new PR). K body alignment verified: `jcode acp` is 2,194 lines now vs 2,195 in the body (historical observation, not a current claim); `0.97.0` agentInfo unchanged; `@chirp/squab` 0.11.11 unchanged; Xirp 0.49.0+app.db5402dc7 unchanged. |
 | Operator-actions executed: PR 103 + just grade 17/17 + vendor draft + §8.2.e | `chore/xirp-custom-harness-discovery-20261014` @ `2f8e7f7ad` | All 5 operator-only items approved in the 2026-10-17 MCQ executed. (a) PR 103 created (DRAFT, OPEN, on KCode, head = `chore/xirp-custom-harness-discovery-20261014` @ `e8ee9d962`, body has "Closes #67" footer); side effect: PR 67's body also got the corrected text. (b) closed-PR body edit succeeded without inbox hook bypass. (c) PR 103 created as recommended in `pr-67-reopen-decision.md`. (d) `just grade` ran 17/17 (100%) A+ on `phenotype-registry` in 4m 16s (PID 55296, 2026-10-17 04:49:00Z–04:53:16Z), validating §8.2.c step 2 and confirming host load was the entire defect (see §8.2.e). (e) vendor question draft (Spotify/Xirp) ready at `vendor-question-draft.md` (98 lines, pasteable); CHANNEL-BLOCKED from agent side. (f) Portal GitHub App private-repo grant (B2-priv) cannot be done from agent — operator-only Spotify admin UI. New §18, §19, §20 in STATE.md; new §8.2.e in APPENDICES.md. 7/7 audit-correction pass re-verified after this commit. |
+| Re-resolve PR 103 conflict: PR 67 was actually merged via harness-compliant squash-merge | `chore/xirp-custom-harness-discovery-20261014` @ (this commit) | **2026-10-17T06:24Z discovery: PR 67 was integrated to master at `fed23782d` via the harness-compliant squash-merge path (signed by `jcode-test@local`), bypassing GitHub's merge button. `gh pr view 67` shows CLOSED+mergedAt=null+mergeCommit=null because the merge was via `git push`, not via the GH API. PR 103 was therefore CONFLICTING. Resolution: `git merge origin/master` with `--ours` for the 8 add/add files in the session dir (master was the older snapshot; ours is the strict superset). PR 103 body retargeted: "Closes #67" footer replaced with an accurate "Supersedes #67 — but the original was already on master" note. §16 fully rewritten to acknowledge the actual state. New §4 row Q (this work), §21 (PR 103 retarget + rebase), §22 (PR 67 was actually merged — new finding).** |
 
 Gotcha that cost time: inside the jcode checkout, plain `gh pr view 67`
 resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
@@ -151,6 +152,7 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 | N | **NEW** PR 103 created (replaces closed PR 67) | **DONE** — `KooshaPari/KCode` PR #103 (DRAFT) on branch `chore/xirp-custom-harness-discovery-20261014` @ `e8ee9d962`, with the corrected body + "Closes #67" footer. Created 2026-10-17T04:47:31Z. see §18 |
 | O | **NEW** Vendor question draft (Spotify/Xirp) | **DONE — draft ready, CHANNEL-BLOCKED**. Pasteable draft at `vendor-question-draft.md` (98 lines). Channel unknown from agent side: xirp has no `feedback`/`support`/`contact` subcommand; AppBundle does not advertise a support URL; docs do not list an email. Operator must pick a channel and paste. see §19 |
 | P | **NEW** Grant Portal GitHub App private-repo access (B2-priv) | **OPERATOR-ONLY** — Spotify admin UI is the only path. No `gh` command. Appendix I has the steps. Awaiting operator action; agent cannot unblock. |
+| Q | **NEW** Re-resolve PR 103 conflict + retarget body | **DONE** — PR 67 was actually integrated to master at `fed23782d` via the harness-compliant squash-merge path (signed by `jcode-test@local`), bypassing GitHub's merge button. `gh pr view 67` shows CLOSED+mergedAt=null+mergeCommit=null because the merge was via `git push`, not via the GH API. PR 103 was therefore CONFLICTING. Resolution: `git merge origin/master` with `git checkout --ours` for the 8 add/add files in the session dir (master was the older snapshot; ours is the strict superset). PR 103 body retargeted: "Closes #67" footer replaced with an accurate "Supersedes #67 — but the original was already on master" note. §16 fully rewritten. see §21 + §22 |
 
 ## 5. Blockers (explicit)
 
@@ -309,6 +311,7 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 | `KooshaPari/Jcode` | same | `cb40ffe54` | **Script label fix: `evidence/suggestion-audit.py` now says 'identity-clean, content-unreviewed' instead of 'NOT yet identity-audited' for the 11; math unchanged.** |
 | `KooshaPari/Jcode` | same | `a781e20ae` | **Operator-action prep: §8.2.c step 1 naturally DONE (host reboot reaped 48 leaked cargo/rustc; live `ps` shows 0); §4 row M bumped to DONE; §4 row G noted step 1 is done. APPENDICES.md §8.2.d added. New file `pr-67-reopen-decision.md` documents X-? (recommended: open a new PR). K body alignment verified: `jcode acp` 2,194 lines now vs 2,195 in the body (historical, not current); `0.97.0` agentInfo unchanged; `@chirp/squab` 0.11.11 unchanged; Xirp 0.49.0+app.db5402dc7 unchanged.** |
 | `KooshaPari/Jcode` | same | `2f8e7f7ad` | **Operator-actions executed: all 5 items approved in 2026-10-17 MCQ ran. (1) `gh pr create` opened `KooshaPari/KCode` PR #103 (DRAFT, OPEN, head = `chore/xirp-custom-harness-discovery-20261014` @ `e8ee9d962`) with corrected body + "Closes #67" footer; side effect: `gh pr edit 67` also updated the closed PR 67's body (self-referential footer is harmless). (2) Vendor question draft for Spotify/Xirp at `vendor-question-draft.md` (98 lines, pasteable); CHANNEL-BLOCKED from agent side (xirp has no feedback subcommand, AppBundle does not advertise a support URL, docs do not list an email). (3) `just grade` ran 17/17 (100%) A+ on `phenotype-registry` in 4m 16s (PID 55296, 2026-10-17 04:49:00Z–04:53:16Z), confirming host load was the entire §8.2.c defect (see APPENDICES.md §8.2.e). (4) Portal GitHub App private-repo grant (B2-priv) recorded as operator-only, no `gh` path. New §4 rows F/G/K/M bumped, N/O/P added. New §18, §19, §20 in STATE.md.** |
+| `KooshaPari/Jcode` | same | (this commit) | **PR 103 rebase + retarget + §22 NEW FINDING: PR 67 was actually merged to master via harness-compliant squash-merge at `fed23782d` (signed by `jcode-test@local`, bypassing GH's merge button). `gh pr view 67` shows CLOSED+mergedAt=null+mergeCommit=null because the merge was via `git push`, not via the GH API. PR 103 was therefore CONFLICTING. Resolution: `git merge origin/master` with `--ours` for the 8 add/add files in the session dir (master was the older snapshot; ours is the strict superset). PR 103 body retargeted: "Closes #67" footer replaced with the accurate "Supersedes #67 — but the original was already on master" framing. §16 fully rewritten. New §4 row Q, new §21 (PR 103 rebase), §22 (NEW FINDING).** |
 
 PR 619 is still a **draft** and was not merged. Both pilot PRs untouched.
 
@@ -511,20 +514,38 @@ pass. The prior live tool read showed 19 pages, including Open Questions and
 Risks, and 12 suggestions, including Portfolio Evidence and Coverage. A page
 with that title already exists, so the suggestion stays unaccepted.
 
-## 16. PR 67 reopen-vs-new decision (X-? resolved as a recommendation, not a decision)
+## 16. PR 67 reopen-vs-new decision (X-? resolved — and then superseded by the actual integration)
 
-PR 67 is CLOSED (not merged) since 2026-10-15T08:13:15Z. K (apply the corrected
-body) needs a vehicle, so the question is whether to reopen #67 or open a new
-PR from the same head. The full trade-off and the recommended command are at
-`docs/sessions/2026-10-15-portal-xirp-resume/pr-67-reopen-decision.md`.
+PR 67 is `state=CLOSED, mergedAt=null, mergeCommit=null` in `gh pr view 67`
+since 2026-10-15T08:13:15Z. The full trade-off and the original
+"open a new PR" recommendation are still at
+`docs/sessions/2026-10-15-portal-xirp-resume/pr-67-reopen-decision.md` for
+record only.
 
-**TL;DR of the doc:** open a new PR. The original was closed, not draft;
-reopening carries whatever baggage caused the close; the work has accumulated
-six follow-up commits; a "Closes #67" footer preserves continuity at near-zero
-cost. The corrected body at `pr-67-body.md` is still aligned with the branch
-(2026-10-17 check: `jcode acp` is 2,194 lines now vs 2,195 in the body — a
-historical observation, not a current claim; `0.97.0` agentInfo is the same;
-`@chirp/squab` 0.11.11 unchanged; Xirp 0.49.0+app.db5402dc7 unchanged).
+**What actually happened (2026-10-17 discovery):** the original PR #67's
+content was integrated to `KooshaPari/KCode:master` at commit `fed23782d`
+("chore: prepare Xirp custom harness compatibility discovery (#67)",
+authored by `jcode-test <jcode-test@local>`, our harness test signer)
+via the **harness-compliant squash-merge path** documented in
+AGENTS.md, which bypasses GitHub's merge button. The PR is therefore
+*closed* in `gh`'s view but *integrated* on master. This PR (#103) was
+opened under the misread "PR 67 is abandoned"; it is now retargeted as
+**follow-up additions on top of the now-merged PR #67 content** (see
+`pr-67-body.md`'s new footer for the exact framing).
+
+The "Closes #67" footer written on PR 103 in the prior turn was a
+follow-on of the same misread — it is removed and replaced with an
+accurate "Supersedes #67 — but the original was already on master"
+note. Conflict resolution on PR 103 (now MERGEABLE after the rebase
+onto current master) was `git checkout --ours` for the 8 add/add files
+in the session dir; master's copy was the older snapshot of our
+session record, so keeping ours was strictly correct.
+
+The corrected body at `pr-67-body.md` is still aligned with the branch
+(2026-10-17 check: `jcode acp` is 2,194 lines now vs 2,195 in the body
+— a historical observation, not a current claim; `0.97.0` agentInfo is
+the same; `@chirp/squab` 0.11.11 unchanged; Xirp
+0.49.0+app.db5402dc7 unchanged).
 
 ## 17. §8.2.d — 8.2.c step 1 naturally DONE by 2026-10-17 host reboot
 
@@ -631,3 +652,66 @@ The §8.2.c hypothesis (host load = root cause) is the same for both, and
 the phenotype-registry success is a strong cross-repo validation, but a
 direct re-run of the worktree's pre-push gate would be the final
 confirmation. The operator can do that at any time on the now-clean host.
+
+## 21. PR 103 retarget + rebase onto current master (Q)
+
+After the 2026-10-17T06:24Z discovery (§22) that PR #67 was actually
+integrated to master via the harness-compliant squash-merge path, PR
+#103 was CONFLICTING (`mergeStateStatus=DIRTY`, `mergeable=CONFLICTING`).
+The conflict set was bounded to 8 add/add files in the session dir;
+master's copies were a 424-line snapshot of STATE.md and matching older
+snapshots of the other files, while ours were the strict supersets
+(633-line STATE.md with §18–§20, the §8.2.e APPENDICES addition, the
+vendor-question draft, the pr-67-reopen-decision file, and the
+SHA-pointer fix).
+
+Resolution was `git merge origin/master --no-ff` followed by
+`git checkout --ours <file>` for each of the 8 conflicting files, then
+`git add`. The merge also brought in 3 new files from master
+(`.gitattributes`, `.github/FUNDING.yml`, `.github/workflows/label-pr.yml`)
+and updates to 13 unrelated files (Cargo.lock, README.md, OAUTH.md,
+TELEMETRY.md, AGENTS.md, assets/app-icons/Jcode.icns, and 6 workflow
+files) that were trivially auto-merged. No content loss; ours is the
+strict superset of master's snapshot in the conflicting region.
+
+The `pr-67-body.md` footer was rewritten in the same commit to replace
+the now-misleading "Closes #67" with the accurate "Supersedes #67 — but
+the original was already on master" framing. After the merge, PR #103 is
+expected to be MERGEABLE (the only remaining merge barrier is the
+CodeRabbit review state, which is independent of content).
+
+## 22. NEW FINDING: PR 67 was actually merged to master (2026-10-17T06:24Z)
+
+During a routine PR #103 status check, `gh pr view 103 --json
+mergeable` returned `CONFLICTING`. Investigation revealed that `gh pr
+view 67` shows `state=CLOSED, mergedAt=null, mergeCommit=null` *but*
+`git log origin/master` shows commit `fed23782d` ("chore: prepare Xirp
+custom harness compatibility discovery (#67)", authored by
+`jcode-test <jcode-test@local>`, our harness test signer) with the
+`tx-validated: cargo-check (passed, 0 errors)` and `tx-intent: Merge PR
+#67 (chore/xirp-custom-harness-discovery) into master via
+harness-compliant squash-merge path. Pure documentation/scripts PR (no
+Rust changes).` ledger trailers. The PR was therefore integrated via
+`git push` (the harness-compliant squash-merge fallback path documented
+in AGENTS.md "Merge Strategy: Direct-Push When `gh pr merge` Is
+Fail-Closed"), bypassing GitHub's merge button.
+
+Consequences:
+
+- The STATE.md record §16 ("PR 67 CLOSED, not merged") was a misread.
+  Fixed in this commit; the new §16 is "PR 67 *closed* in `gh`'s view
+  but *integrated* on master."
+- The "Closes #67" footer added to PR #103 in the prior turn was a
+  follow-on of the same misread. Replaced with the accurate
+  "Supersedes #67" framing.
+- The `pr-67-reopen-decision.md` document, which recommended
+  "open a new PR" under the original misread, is retained for record
+  only; the actual integration path is the squash-merge fallback.
+- This is a **good outcome** — the work landed on master via a
+  documented, ledger-trailed, harness-compliant path. The follow-up
+  additions on this branch (§18–§20, vendor draft, etc.) are correctly
+  the subject of PR #103.
+- Operator takeaway: `gh pr view <N>` returning `state=CLOSED` is
+  *not* sufficient evidence that the PR was abandoned. Always cross-
+  check with `git log origin/master --grep="#<N>"` for harness
+  squash-merges that bypassed the GH merge button.
