@@ -57,7 +57,14 @@ echo ""
 echo "[1/5] Starting stub CIMD server..."
 python3 "$STUB_SCRIPT" > "$WORK_DIR/stub-port.txt" 2>"$STUB_LOG" &
 STUB_PID=$!
-sleep 1
+
+# Wait for the stub to print its port (first line to stdout)
+for i in $(seq 1 10); do
+    if [[ -s "$WORK_DIR/stub-port.txt" ]]; then
+        break
+    fi
+    sleep 0.5
+done
 
 if ! kill -0 "$STUB_PID" 2>/dev/null; then
     echo "FAIL: Stub server exited prematurely"
@@ -65,7 +72,13 @@ if ! kill -0 "$STUB_PID" 2>/dev/null; then
     exit 1
 fi
 
-STUB_PORT=$(head -1 "$WORK_DIR/stub-port.txt")
+STUB_PORT=$(head -1 "$WORK_DIR/stub-port.txt" | tr -d '[:space:]')
+if [[ -z "$STUB_PORT" ]]; then
+    echo "FAIL: Stub server did not report its port"
+    cat "$STUB_LOG" 2>/dev/null || true
+    exit 1
+fi
+
 CIMD_URL="http://127.0.0.1:${STUB_PORT}/cimd.json"
 MCP_URL="http://127.0.0.1:${STUB_PORT}"
 
