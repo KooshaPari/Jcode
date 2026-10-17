@@ -4,9 +4,13 @@
 //!
 //! This crate provides the **gate evaluation** half of auto-dream. It does
 //! **not** perform the consolidation LLM call itself. The crate is the
-//! standalone, side-effect-free gate library; the actual consolidation call
+//! standalone, side-effect-free gate library; the intended consolidation call
 //! lives in `jcode-app-core::ambient::auto_dream`, which uses a real
 //! `jcode_provider_core::Provider` to invoke the model.
+//!
+//! **Production status:** `SessionGate::is_satisfied()` always returns false
+//! outside tests. The app-core caller also uses `evaluate()`, so its provider
+//! call is unreachable. Consolidation remains parked pending session-state wiring.
 //!
 //! ## Three gates
 //!
@@ -30,7 +34,7 @@
 //! The previous `maybe_dream()` entry point in this crate was a stub: it
 //! logged `"gates satisfied, consolidation would run"` and did nothing.
 //! As of the A-2 audit finding (2026-10-16), that stub has been retired.
-//! The crate now only provides the gate library. The live consolidation
+//! The crate now only provides the gate library. The parked consolidation
 //! path lives in `jcode-app-core/src/ambient/auto_dream.rs`, which uses
 //! the real LLM provider.
 //!
@@ -86,7 +90,7 @@ pub enum DreamTrigger {
 /// state instead of being misled by a log line.
 ///
 /// **Parking status:** the consolidation call itself is intentionally **not**
-/// implemented in this crate. The real consolidation path lives in
+/// implemented in this crate. The intended consolidation path lives in
 /// `jcode-app-core::ambient::auto_dream::maybe_dream`, which uses a real
 /// provider. See `docs/plans/MEMORY_GRAPH_PLAN.md` for the design context and
 /// the AUDIT-2026-10-16 comment in `lib.rs` for the audit trail.
@@ -99,8 +103,9 @@ pub enum DreamOutcome {
     /// (`WouldConsolidate`) implied it would run; the renamed variant
     /// honestly states that this crate does not perform the call.
     ///
-    /// The live caller (`jcode-app-core::ambient::auto_dream::maybe_dream`)
-    /// does perform the call, but it does so directly without going through
+    /// The ambient caller (`jcode-app-core::ambient::auto_dream::maybe_dream`)
+    /// contains provider-call code, but cannot reach it while the session gate
+    /// always returns false in production. It does not go through
     /// this function.
     GatesSatisfiedNoLlmCall,
 }
@@ -167,7 +172,7 @@ impl DreamCoordinator {
     /// [`DreamOutcome`].
     ///
     /// **This is a stub entry point.** It does not perform the
-    /// consolidation LLM call. The live consolidation path lives in
+    /// consolidation LLM call. The parked consolidation path lives in
     /// `jcode-app-core::ambient::auto_dream::maybe_dream` and uses a real
     /// provider.
     pub fn run(&self) -> DreamOutcome {
@@ -184,7 +189,7 @@ impl DreamCoordinator {
                 // Design context: docs/plans/MEMORY_GRAPH_PLAN.md.
                 tracing::warn!(
                     "auto-dream: gates satisfied but no LLM call is made by this \
-                     crate; the live consolidation path is in \
+                     crate; the parked consolidation path is in \
                      jcode-app-core::ambient::auto_dream::maybe_dream \
                      (AUDIT-2026-10-16, parked pending Memory Graph Phase A)"
                 );
@@ -210,7 +215,7 @@ impl DreamCoordinator {
 ///
 /// Do not reintroduce silent behavior here. New callers should call
 /// `jcode-app-core::ambient::auto_dream::maybe_dream` instead, which
-/// actually performs the LLM call.
+/// contains the provider call, currently unreachable behind the session gate.
 pub fn maybe_dream(data_dir: impl Into<std::path::PathBuf>, _total_cycles: u64) -> DreamOutcome {
     let coordinator = DreamCoordinator::new(data_dir);
     coordinator.run()
