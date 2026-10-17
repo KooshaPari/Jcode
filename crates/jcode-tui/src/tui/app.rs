@@ -1302,6 +1302,7 @@ pub struct App {
     swarm_rename_active: bool,
     // Text typed into the swarm panel rename input.
     swarm_rename_buffer: String,
+    swarm_rename_target: Option<String>,
     // Pending rename to dispatch: (target_session_id, new_label).
     // Drained by the input handler after handle_swarm_panel_key returns.
     pending_swarm_rename: Option<(String, String)>,

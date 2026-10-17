@@ -617,7 +617,7 @@ impl Request {
             Request::SetPremiumMode { id, .. } => *id,
             Request::SetFeature { id, .. } => *id,
             Request::SetCompactionMode { id, .. } => *id,
-            Request::RenameSession { id, .. } => *id,
+            Request::RenameSession { id, .. } | Request::RenameSwarmSession { id, .. } => *id,
             Request::Split { id } => *id,
             Request::Transfer { id } => *id,
             Request::Compact { id } => *id,

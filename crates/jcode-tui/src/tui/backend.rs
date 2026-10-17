@@ -870,10 +870,16 @@ impl RemoteConnection {
         title: Option<String>,
         target_session_id: Option<String>,
     ) -> Result<()> {
-        let request = Request::RenameSession {
-            id: self.next_request_id,
-            title,
-            target_session_id,
+        let request = match target_session_id {
+            Some(target_session_id) => Request::RenameSwarmSession {
+                id: self.next_request_id,
+                title,
+                target_session_id,
+            },
+            None => Request::RenameSession {
+                id: self.next_request_id,
+                title,
+            },
         };
         self.next_request_id += 1;
         self.send_request(request).await

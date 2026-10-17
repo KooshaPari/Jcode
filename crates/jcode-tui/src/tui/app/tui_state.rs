@@ -2293,6 +2293,7 @@ impl App {
                 }
             }
             Some(SwarmPanelAction::StartRename) => {
+                self.swarm_rename_target = None;
                 let members = self.filtered_swarm_members();
                 if !members.is_empty() {
                     self.swarm_rename_active = true;
@@ -2306,6 +2307,7 @@ impl App {
                     if let Some(session_id) = ordered.get(idx)
                         && let Some(member) = members.iter().find(|m| &m.session_id == session_id)
                     {
+                        self.swarm_rename_target = Some(session_id.clone());
                         self.swarm_rename_buffer = member
                             .friendly_name
                             .clone()
@@ -2326,20 +2328,14 @@ impl App {
                 let new_label = self.swarm_rename_buffer.clone();
                 self.swarm_rename_active = false;
                 self.swarm_rename_buffer.clear();
-                // Resolve the selected swarm member's session_id so the caller
-                // can dispatch Request::RenameSession to the server.
-                let members = self.filtered_swarm_members();
-                let ordered =
-                    crate::tui::info_widget::swarm_gallery::members_display_order(&members);
-                let idx = self
-                    .swarm_panel_selected
-                    .min(ordered.len().saturating_sub(1));
-                if let Some(session_id) = ordered.get(idx).cloned() {
+                // Preserve the identity across live gallery reordering.
+                if let Some(session_id) = self.swarm_rename_target.take() {
                     self.pending_swarm_rename = Some((session_id, new_label));
                 }
                 true
             }
             Some(SwarmPanelAction::RenameEscape) => {
+                self.swarm_rename_target = None;
                 self.swarm_rename_active = false;
                 self.swarm_rename_buffer.clear();
                 true
