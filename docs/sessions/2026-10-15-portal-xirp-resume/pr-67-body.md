@@ -86,3 +86,10 @@ than an honest "not registered" state.
 A vendor answer on whether a custom harness adapter can be registered, ideally
 via a generic ACP client so any ACP-compliant agent works without a bespoke
 adapter. A concrete drafted question is in `docs/XIRP_CUSTOM_HARNESS.md`.
+
+---
+
+**Closes #67** — this PR supersedes the closed PR #67 with the corrected body
+and a 2026-10-17 refresh of the audit-correction arc. The head branch
+(`chore/xirp-custom-harness-discovery-20261014`) is unchanged from the
+original.
