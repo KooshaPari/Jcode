@@ -105,3 +105,42 @@ on master" rewrite). No false-claim footers existed on PRs #64 and
 - PR 103 (the follow-up additions; MERGEABLE + ready-for-review)
 - AGENTS.md "Merge Strategy: Direct-Push When `gh pr merge` Is
   Fail-Closed" (the path that produced the squash-merge commits)
+
+## Cross-fork audit (2026-10-17T07:00Z)
+
+A second subagent was dispatched to check whether the §22 pattern
+generalizes to the other `KooshaPari/` fork, `KooshaPari/Jcode`
+(formerly the upstream-named fork before the KCode rename). The
+audit (`session_daisy_1792220259698_483f4ca0aa2846ee`, Tier 1 M3,
+read-only) scanned 109 PRs on `KooshaPari/Jcode`.
+
+**Result: 3 matches — the SAME three PRs (#64, #67, #75) with the
+SAME master commits and the SAME tx-intent trailers.** This is
+because `KooshaPari/Jcode` and `KooshaPari/KCode` share git history
+up to the brand-split point (PR #33 decollision). The 3 squash-merge
+commits predate the split, so they appear on both forks.
+
+| PR | Master commit (Jcode fork) | Master commit (KCode fork) | Same commit? |
+|----|----------------------------|----------------------------|--------------|
+| #64 | `4d676f097` | `4d676f097` | YES (identical SHA) |
+| #67 | `fed23782d` | `fed23782d` | YES (identical SHA) |
+| #75 | `a1e953097` | `a1e953097` | YES (identical SHA) |
+
+**Implication:** the §22 finding is **not fork-specific.** Any
+`KooshaPari/` fork with a shared pre-2026-10-08 history will have
+the same three squash-merged PRs. The detection heuristic in
+`AGENTS.md` "Merge Strategy" applies equally to all of them.
+
+**Other CLOSED+mergedAt=null PRs on Jcode (16 total):**
+
+| PR | Title | Status |
+|----|-------|--------|
+| #94 | fix(update): fork builds never auto-update from upstream | Likely superseded by **#96** (MERGED 2026-10-17T06:11:17Z) |
+| #73 | chore(ratchet): tighten panic baseline from 140 to 62 after the refactor | Likely superseded by **#74** (MERGED 2026-10-15T06:40:11Z) |
+| #62 | chore: cargo fmt --all + clippy + P30 RUSTSEC remediation | Likely superseded by squash-merged **#75** |
+| #50, #48, #47, #35, #23, #22, #20, #18, #16, #14, #12, #2, #1 | (various) | Genuinely abandoned or merged via a different branch |
+
+**Operator follow-up (out of scope for this audit):** apply the
+same body-scrub + status-note treatment to PRs #64, #67, #75 on the
+Jcode fork if the operator wants a consistent record on both forks.
+This is a `gh pr edit` call; no git push required.
