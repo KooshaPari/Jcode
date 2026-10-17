@@ -99,7 +99,7 @@ than assumed.
 | End-to-end MCP probe | `codex exec` real `auth.who-am-i` | returned Backstage User `kooshapari`; 45,857 tokens, 1m 57s |
 | Grade-gate follow-up | `chore/xirp-custom-harness-discovery-20261014` @ `dd626990a` | §8.2.a/b/c in APPENDICES.md: coverage step is a deterministic hang, 48 leaked cargo/rustc, operator action required to reap before next grade run |
 | Wiki suggestion closure | `chore/xirp-custom-harness-discovery-20261014` @ `7687c630a` | WBS 0.6 closed: 2 PASS, 3 FAIL, 11 IDENTITY-CLEAN + content-unreviewed (B2); WBS 0.9 closed: /tmp worktrees already gone, canonical branch lives in /Users/kooshapari/wt-portal-record-fixes |
-| H verification | `claude mcp list` and `claude mcp get phenotype-portal` (this commit) | 2026-10-17: Claude Connected confirmed at CLI level; phenotype-portal is one of 6 user-scoped MCPs; `tools/list` not CLI-exposable (no `claude mcp tools-list`, no `codex mcp tools-list`, Jcode v0.98.1 only does dynamic client registration). Full 34-tool inventory requires an in-app MCP session. |
+| H verification | `claude mcp list` and `claude mcp get phenotype-portal` @ `d20634bfe` | 2026-10-17: Claude Connected confirmed at CLI level; phenotype-portal is one of 6 user-scoped MCPs; `tools/list` not CLI-exposable (no `claude mcp tools-list`, no `codex mcp tools-list`, Jcode v0.98.1 only does dynamic client registration). Full 34-tool inventory requires an in-app MCP session. |
 
 Gotcha that cost time: inside the jcode checkout, plain `gh pr view 67`
 resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
@@ -297,7 +297,7 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 | `KooshaPari/Jcode` | same | `dd626990a` | **§8.2.a/b/c grade-gate diagnostic: coverage is the deterministic hang, 48 leaked cargo/rustc on host, operator reaps before next run** |
 | `KooshaPari/Jcode` | same | `bee0ae107` | **replace 'this commit' relative pointers with the dd626990a SHA; backfill §9 audit arc (4 missing rows)** |
 | `KooshaPari/Jcode` | same | `7687c630a` | **WBS 0.6 + 0.9 closure: 2 PASS / 3 FAIL / 11 IDENTITY-CLEAN + content-unreviewed (B2); /tmp worktrees already gone** |
-| `KooshaPari/Jcode` | same | (this commit) | **H verification: `claude mcp list` confirms `phenotype-portal: ✔ Connected` (6 user-scoped MCPs); `tools/list` not CLI-exposable; full 34-tool inventory needs an in-app session** |
+| `KooshaPari/Jcode` | same | `d20634bfe` | **H verification: `claude mcp list` confirms `phenotype-portal: ✔ Connected` (6 user-scoped MCPs); `tools/list` not CLI-exposable; full 34-tool inventory needs an in-app session** |
 
 PR 619 is still a **draft** and was not merged. Both pilot PRs untouched.
 
