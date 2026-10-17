@@ -30,7 +30,10 @@ pub(crate) fn cached_live_models_for_namespace(
     let cache_is_stale = jcode_provider_openrouter::current_unix_secs()
         .map(|now| openai_compatible_profile_catalog_cache_is_stale(cache.cached_at, now))
         .unwrap_or(false);
-    let source_api_base = cache.source_api_base.as_deref().and_then(normalize_api_base)?;
+    let source_api_base = cache
+        .source_api_base
+        .as_deref()
+        .and_then(normalize_api_base)?;
     let expected_api_base = normalize_api_base(expected_api_base)?;
     if source_api_base != expected_api_base {
         return None;

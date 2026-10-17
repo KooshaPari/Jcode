@@ -13,12 +13,12 @@
 //! - re-exports of the pure catalog/cache types from
 //!   `jcode-provider-openrouter`.
 
+use super::STANDARD_OPENROUTER_API_BASE as DEFAULT_API_BASE;
 use crate::provider_catalog::{
     OPENAI_COMPAT_PROFILE, is_safe_env_file_name, is_safe_env_key_name,
     load_api_key_from_env_or_config, normalize_api_base, openai_compatible_profiles,
     resolve_openai_compatible_profile,
 };
-use super::STANDARD_OPENROUTER_API_BASE as DEFAULT_API_BASE;
 pub use jcode_provider_openrouter::{
     EndpointInfo, ModelInfo, ModelPricing, ModelTimestampIndex, ProviderRouting,
     all_model_timestamps, load_endpoints_disk_cache_public, load_model_pricing_disk_cache_public,

@@ -151,17 +151,17 @@ pub(crate) const STANDARD_OPENROUTER_API_BASE: &str = "https://openrouter.ai/api
 /// Lives here rather than next to the cache reader so that
 /// `provider_declared_models::cached_live_models_for_namespace` and the
 /// `provider` tests can both reach it without a circular module dependency.
-pub(crate) fn openai_compatible_profile_catalog_cache_is_stale(
-    cached_at: u64,
-    now: u64,
-) -> bool {
+pub(crate) fn openai_compatible_profile_catalog_cache_is_stale(cached_at: u64, now: u64) -> bool {
     now.saturating_sub(cached_at) >= OPENAI_COMPATIBLE_PROFILE_CATALOG_SOFT_REFRESH_SECS
 }
 
 pub(crate) fn cached_live_models_for_openai_compatible_profile(
     resolved: &crate::provider_catalog::ResolvedOpenAiCompatibleProfile,
 ) -> Option<(Vec<String>, bool)> {
-    crate::provider_declared_models::cached_live_models_for_namespace(&resolved.id, &resolved.api_base)
+    crate::provider_declared_models::cached_live_models_for_namespace(
+        &resolved.id,
+        &resolved.api_base,
+    )
 }
 
 fn direct_openai_compatible_profile_routes(
@@ -194,7 +194,8 @@ fn direct_openai_compatible_profile_routes(
     // `MiniMax-M3.1-Flash-Preview`), which otherwise makes the model unusable
     // from the picker. Declared ids are appended after the fetched list, so
     // existing entries and their ordering are untouched.
-    for model in crate::provider_declared_models::config_declared_model_ids_for_profile(&resolved.id)
+    for model in
+        crate::provider_declared_models::config_declared_model_ids_for_profile(&resolved.id)
     {
         if !models.iter().any(|existing| existing == &model) {
             models.push(model);

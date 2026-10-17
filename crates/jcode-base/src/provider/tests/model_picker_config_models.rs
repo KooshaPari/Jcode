@@ -18,8 +18,11 @@ use super::*;
 /// Write `config.toml` into the hermetic test home and invalidate the cache.
 fn write_test_config(contents: &str) {
     let jcode_home = std::env::var_os("JCODE_HOME").expect("test JCODE_HOME should be set");
-    std::fs::write(std::path::PathBuf::from(jcode_home).join("config.toml"), contents)
-        .expect("write test config.toml");
+    std::fs::write(
+        std::path::PathBuf::from(jcode_home).join("config.toml"),
+        contents,
+    )
+    .expect("write test config.toml");
     crate::config::invalidate_config_cache();
 }
 
@@ -143,7 +146,9 @@ id = "minimax-embedding"
             "declared chat model should be listed: {routes:?}"
         );
         assert!(
-            !routes.iter().any(|route| route.model == "minimax-embedding"),
+            !routes
+                .iter()
+                .any(|route| route.model == "minimax-embedding"),
             "declared non-chat model must be filtered like a fetched one: {routes:?}"
         );
     });
