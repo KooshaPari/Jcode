@@ -155,7 +155,7 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 | Q | **NEW** Re-resolve PR 103 conflict + retarget body | **DONE** — PR 67 was actually integrated to master at `fed23782d` via the harness-compliant squash-merge path (signed by `jcode-test@local`), bypassing GitHub's merge button. `gh pr view 67` shows CLOSED+mergedAt=null+mergeCommit=null because the merge was via `git push`, not via the GH API. PR 103 was therefore CONFLICTING. Resolution: `git merge origin/master` with `git checkout --ours` for the 8 add/add files in the session dir (master was the older snapshot; ours is the strict superset). PR 103 body retargeted: "Closes #67" footer replaced with an accurate "Supersedes #67 — but the original was already on master" note. §16 fully rewritten. see §21 + §22 |
 | R | **NEW** XJ-07 spec found verbatim | **DONE — SPEC FOUND** — at `docs/XIRP_CUSTOM_HARNESS.md:132`: "XJ-07 \| Verify failure and rollback \| Missing CLI, expired auth, network loss and malformed events fail clearly; unregister restores prior configuration". Jcode-side, testable, can proceed. see §23 |
 | S | **NEW** Vendor contact channel (subagent investigation) | **DONE — NO PUBLIC CHANNEL** — subagent `session_mizaru_1792219502394_01b378b9830eb204` confirmed Xirp is `com.spotify.xirp`, a Spotify-internal product. Internal codebase at `ghe.spotify.net` (not externally accessible); update CDN `reckless-finch.spotifycdn.com/external/`; `@chirp/*` packages are private (not on npm); no public support email, GitHub repo, or feedback channel in the AppBundle. Operator must use a personal/internal channel. see §19.1 |
-| T | **NEW** XJ-03 bridge config deploy (local + stub CIMD) | **IN FLIGHT** — subagent `session_cactus_1792220247047_449b44b2d6d2e308` (Tier 2 mimo-v2.5-pro, 15m budget) building local `mcp-remote` config + stub CIMD test + unblock-criteria doc. Real deploy awaits operator + vendor (CIMD hosting + Spotify allow-list). |
+| T | **NEW** XJ-03 bridge config deploy (local + stub CIMD) | **DONE — LOCAL DEPLOY READY, REAL DEPLOY BLOCKED** — subagent `session_cactus_1792220247047_449b44b2d6d2e308` (Tier 2 mimo-v2.5-pro, 15m) produced 4 deliverables: `scripts/portal-mcp-bridge.json` (the `mcp-remote@0.15.1` entry for `~/.jcode/mcp.json`), `scripts/stub-cimd-server.py` (local SEP-991 CIMD server), `scripts/test-portal-bridge.sh` (verification test), and `docs/sessions/2026-10-15-portal-xirp-resume/XJ-03-DEPLOY.md` (8-step unblock checklist for operator + vendor). Real deploy awaits: (1) Cloudflare Worker at `auth.kooshapari.com/oauth/client-metadata.json` (currently hosted elsewhere per §E2), (2) Spotify Portal allow-list append `https://auth.kooshapari.com/*`, (3) confirm `redirect_uri` path match (mcp-remote uses `/oauth/callback`; Xirp form uses `/callback`; see §24). |
 | U | **NEW** §22-pattern audit on `KooshaPari/Jcode` fork | **DONE — 3 MATCHES** — subagent `session_daisy_1792220259698_483f4ca0aa2846ee` scanned 109 PRs read-only. Result: PRs #64, #67, #75 are the same 3 §22-pattern PRs on BOTH the Jcode and KCode forks (same SHAs, same parents, same tx-intent trailers). This is because the forks share pre-2026-10-08 history. 16 other CLOSED+mergedAt=null PRs returned 0 commits from `git log origin/master --grep='(#N)'`; several are likely superseded by merged siblings (#94→#96, #73→#74, #62→#75). §22 standalone doc extended with "Cross-fork audit" section. |
 | V | **NEW** KCode open-PR §22 audit | **DONE — 0 MATCHES** — subagent `session_blossom_1792220256689_983dcc32bb422ecd` audited 13 OPEN KCode PRs (live `gh pr list --state open` returned 13, not 9; subagent used the live list per scope). Zero §22-pattern matches: PR #103 is already correctly retargeted with the "Supersedes #67" paragraph; 11 others have no Closes/Fixes footer; PR #25 has "Closes #26" but #26 doesn't exist on this fork (different class of problem, flagged for human review, not edited per stop condition). The §22 finding is **contained to the 3 already-retargeted PRs**. The OPEN set is clean. |
 | W | **NEW** §14+ retarget consistency audit | **DONE** — STATE.md §14, §16, §22 are all in good shape; every "Closes #67" reference is now either a historical commit record (in the §14 commit-tracker rows) or an audit-correction note (in §16/§22). `pr-67-reopen-decision.md` got a 2026-10-17 banner flagging the misread premise. Commit `00c48db59`. |
@@ -856,3 +856,64 @@ XJ-07 produces concrete test evidence that the Jcode side is robust
 to the failure modes the operator is most likely to hit, without
 needing any vendor changes. It is the highest-leverage bounded-work
 item to ship next.
+
+## 24. XJ-03 bridge config + deploy — local ready, real blocked (2026-10-17T07:14Z)
+
+The `xj03-bridge-deploy` subagent
+(`session_cactus_1792220247047_449b44b2d6d2e308`, Tier 2 mimo-v2.5-pro,
+15m) was dispatched to build the local `mcp-remote` bridge config,
+a stub CIMD test, and an unblock-criteria doc for the operator. The
+subagent produced 4 deliverables:
+
+1. **`scripts/portal-mcp-bridge.json`** (1,609 bytes) — the JSON
+   entry for `~/.jcode/mcp.json` `servers.portal-bridge`, pinning
+   `mcp-remote@0.15.1`, pointing at the Portal MCP endpoint
+   `https://phenotype.spotifyportal.com/api/mcp-actions/v1`, with a
+   `PLACEHOLDER_CIMD_URL` that the operator replaces with the
+   production URL after Block 1 is unblocked. Includes a
+   `_deploy_notes` block enumerating the unblock conditions.
+
+2. **`scripts/stub-cimd-server.py`** (5,301 bytes) — a local HTTP
+   server serving a valid SEP-991 CIMD document at `/cimd.json`. Used
+   to verify the bridge locally before the production CIMD is hosted.
+   Derives the loopback callback port deterministically from the
+   server URL + resource + CIMD URL (reproduces `mcp-remote 0.15.1`'s
+   `calculateDefaultPort` logic).
+
+3. **`scripts/test-portal-bridge.sh`** — verification test that
+   starts the stub, runs `mcp-remote` against it, and asserts that
+   the bridge fetched `/cimd.json` and started the OAuth flow.
+   Documents exit codes 0/1/2/3 (success / infra failure / no CIMD
+   fetch / crash).
+
+4. **`docs/sessions/2026-10-15-portal-xirp-resume/XJ-03-DEPLOY.md`**
+   (6,093 bytes) — the operator-facing deploy guide with an 8-step
+   unblock checklist, port derivation explanation, and a documented
+   **open issue: redirect_uri path mismatch** (mcp-remote uses
+   `/oauth/callback`; Xirp allow-list form uses `/callback`). The
+   mismatch is flagged for vendor confirmation before the real
+   deploy.
+
+**Real deploy status (2026-10-17T07:14Z):** blocked on three
+sequential conditions:
+
+| # | Condition | Owner | Status |
+|---|-----------|-------|--------|
+| 1 | Cloudflare Worker at `auth.kooshapari.com/oauth/client-metadata.json` returning HTTP 200 + `application/json` | **OPERATOR** | §E2 says this was previously deployed but the operator has not yet confirmed the current state; check before proceeding |
+| 2 | Spotify Portal allow-list append `https://auth.kooshapari.com/*` (without removing existing patterns) | **OPERATOR + SPOTIFY** | Spotifiable in admin UI; needs operator access + Spotify action |
+| 3 | `redirect_uri` path match confirmation (`/oauth/callback` vs `/callback`) | **OPERATOR + VENDOR** | Send as part of the §19 vendor question; defer if no internal contact |
+
+Once all three are unblocked, the operator can:
+- Edit `scripts/portal-mcp-bridge.json` to replace `PLACEHOLDER_CIMD_URL`
+- Merge the JSON into `~/.jcode/mcp.json` under `servers.portal-bridge`
+- Restart jcode; the `portal-bridge` server should appear and
+  open a browser for OAuth consent
+
+**Why this matters:** the XJ-03 bridge is the only way to get
+OAuth 2.1 + CIMD support on the Jcode Portal MCP. The native `http`
+MCP entry in `~/.jcode/mcp.json` (`phenotype-portal`) cannot do
+OAuth on its own; the `mcp-remote` bridge is the harness-compliant
+path. The local test proves the bridge works; the real deploy
+needs the vendor allow-list. The 4 deliverables shipped today
+are the missing pieces between "decided to use mcp-remote" (§E)
+and "real bridge live".
