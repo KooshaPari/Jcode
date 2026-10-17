@@ -1059,7 +1059,7 @@ fn normalized_login_provider_id(provider_id: &str) -> Option<&'static str> {
             Some("openai-api")
         }
         "openrouter" => Some("openrouter"),
-        "jcode" | "subscription" | "kcode-subscription" => Some("jcode"),
+        "jcode" | "subscription" | "jcode-subscription" => Some("jcode"),
         "grok-build" => Some("grok-build"),
         "bedrock" | "aws-bedrock" | "aws_bedrock" => Some("bedrock"),
         "cursor" => Some("cursor"),
@@ -1897,8 +1897,8 @@ mod tests {
             provider_id: Some("jcode".to_string()),
             provider_label: Some("Jcode Subscription".to_string()),
             activated_model: Some("gpt-5.5".to_string()),
-            expected_runtime: Some("kcode-subscription".to_string()),
-            expected_catalog_namespace: Some("kcode-subscription".to_string()),
+            expected_runtime: Some("jcode-subscription".to_string()),
+            expected_catalog_namespace: Some("jcode-subscription".to_string()),
         };
         let routes = vec![
             route("gpt-5.5", "OpenRouter", "openrouter", true),

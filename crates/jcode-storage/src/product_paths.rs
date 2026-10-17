@@ -9,7 +9,11 @@ pub fn require_kcode_path(path: &Path) -> Result<()> {
                 return false;
             };
             let name = name.to_string_lossy();
-            name.eq_ignore_ascii_case("jcode") || name.to_ascii_lowercase().starts_with(".jcode")
+            let name = name.to_ascii_lowercase();
+            name == "jcode"
+                || name.starts_with(".jcode")
+                || name.starts_with("jcode.")
+                || name.starts_with("jcode-")
         })
     }
     if !path.is_absolute() || belongs_to_jcode(path) {

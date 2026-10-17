@@ -595,7 +595,7 @@ pub const KCODE_LOGIN_PROVIDER: LoginProviderDescriptor = LoginProviderDescripto
     auth_kind: LoginProviderAuthKind::ApiKey,
     auth_state_key: LoginProviderAuthStateKey::Jcode,
     auth_status_method: "API key",
-    aliases: &["subscription", "kcode-subscription"],
+    aliases: &["subscription", "jcode-subscription"],
     menu_detail: "curated jcode subscription models",
     recommended: false,
     target: LoginProviderTarget::Jcode,

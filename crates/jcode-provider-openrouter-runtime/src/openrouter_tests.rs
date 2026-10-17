@@ -2895,7 +2895,7 @@ fn jcode_subscription_runtime_has_explicit_display_and_route_identity() {
         jcode_base::subscription_catalog::KCODE_ENV_FILE,
     );
     let _provider_features = EnvVarGuard::set("KCODE_OPENROUTER_PROVIDER_FEATURES", "0");
-    let _transport = EnvVarGuard::set("KCODE_OPENROUTER_TRANSPORT_STATE", "kcode-subscription");
+    let _transport = EnvVarGuard::set("KCODE_OPENROUTER_TRANSPORT_STATE", "jcode-subscription");
     let _key = EnvVarGuard::set(
         jcode_base::subscription_catalog::KCODE_API_KEY_ENV,
         "jcode_test_subscription_key",
@@ -2909,7 +2909,7 @@ fn jcode_subscription_runtime_has_explicit_display_and_route_identity() {
         provider.direct_openai_compatible_route_parts(),
         Some((
             "Jcode Subscription".to_string(),
-            "kcode-subscription".to_string(),
+            "jcode-subscription".to_string(),
             jcode_base::subscription_catalog::DEFAULT_KCODE_API_BASE.to_string(),
         ))
     );

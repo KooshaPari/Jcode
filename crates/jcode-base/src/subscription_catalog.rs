@@ -6,7 +6,7 @@ pub const KCODE_ACCOUNT_ID_ENV: &str = "KCODE_ACCOUNT_ID";
 pub const KCODE_ACCOUNT_EMAIL_ENV: &str = "KCODE_ACCOUNT_EMAIL";
 pub const KCODE_TIER_ENV: &str = "KCODE_TIER";
 pub const KCODE_ENV_FILE: &str = "kcode-subscription.env";
-pub const KCODE_CACHE_NAMESPACE: &str = "kcode-subscription";
+pub const KCODE_CACHE_NAMESPACE: &str = "jcode-subscription";
 pub const KCODE_SUBSCRIPTION_ACTIVE_ENV: &str = "KCODE_SUBSCRIPTION_ACTIVE";
 pub const DEFAULT_KCODE_API_BASE: &str = "https://api.jcode.sh/v1";
 pub const KCODE_PRICING_URL: &str = "https://jcode.sh/pricing";
@@ -14,7 +14,7 @@ pub const KCODE_ACCOUNT_URL: &str = "https://jcode.sh/account";
 /// User-facing runtime identity. Keep "Subscription" in the name so picker,
 /// header, status, and diagnostics never resemble a generic model host.
 pub const KCODE_PROVIDER_DISPLAY_NAME: &str = "Jcode Subscription";
-pub const KCODE_ROUTE_API_METHOD: &str = "kcode-subscription";
+pub const KCODE_ROUTE_API_METHOD: &str = "jcode-subscription";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum JcodeTier {
@@ -508,7 +508,7 @@ pub fn apply_runtime_env() {
     crate::env::set_var("KCODE_OPENROUTER_ENV_FILE", KCODE_ENV_FILE);
     crate::env::set_var("KCODE_OPENROUTER_CACHE_NAMESPACE", KCODE_CACHE_NAMESPACE);
     crate::env::set_var("KCODE_OPENROUTER_PROVIDER_FEATURES", "0");
-    crate::env::set_var("KCODE_OPENROUTER_TRANSPORT_STATE", "kcode-subscription");
+    crate::env::set_var("KCODE_OPENROUTER_TRANSPORT_STATE", "jcode-subscription");
     crate::env::remove_var("KCODE_OPENROUTER_ALLOW_NO_AUTH");
     crate::env::remove_var("KCODE_OPENROUTER_PROVIDER");
     crate::env::remove_var("KCODE_OPENROUTER_NO_FALLBACK");

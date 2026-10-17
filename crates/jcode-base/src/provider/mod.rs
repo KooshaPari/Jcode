@@ -308,7 +308,7 @@ fn configured_standard_openrouter_profile_routes() -> Vec<ModelRoute> {
 pub(crate) fn jcode_subscription_model_prefix(model: &str) -> Option<&str> {
     let (prefix, rest) = model.split_once(':')?;
     let prefix = prefix.trim();
-    if !(prefix.eq_ignore_ascii_case("jcode") || prefix.eq_ignore_ascii_case("kcode-subscription"))
+    if !(prefix.eq_ignore_ascii_case("jcode") || prefix.eq_ignore_ascii_case("jcode-subscription"))
     {
         return None;
     }

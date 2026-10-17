@@ -430,7 +430,7 @@ fn resolve_voice_with(
 ) -> Result<(JevProvider, String)> {
     match selector.trim().to_ascii_lowercase().as_str() {
         "auto" => resolve_providers(&[JevProvider::Jcode, JevProvider::TypeSafe], load),
-        "typesafe" | "jcode" | "subscription" | "kcode-subscription" => {
+        "typesafe" | "jcode" | "subscription" | "jcode-subscription" => {
             resolve_with(selector, load)
         }
         _ => bail!(
@@ -457,7 +457,7 @@ fn resolve_with(
         "openrouter" => &[JevProvider::OpenRouter],
         "typesafe" => &[JevProvider::TypeSafe],
         "aimlapi" => &[JevProvider::Aimlapi],
-        "jcode" | "subscription" | "kcode-subscription" => &[JevProvider::Jcode],
+        "jcode" | "subscription" | "jcode-subscription" => &[JevProvider::Jcode],
         _ => bail!("Invalid Jev provider. Choose auto, openrouter, typesafe, aimlapi, or jcode"),
     };
     resolve_providers(providers, load)

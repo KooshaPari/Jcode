@@ -163,7 +163,7 @@ impl ProviderActivation {
         crate::env::set_var("KCODE_RUNTIME_PROVIDER", self.runtime_id.key());
         match self.runtime_id {
             RuntimeProviderId::Jcode => {
-                crate::env::set_var("KCODE_OPENROUTER_TRANSPORT_STATE", "kcode-subscription")
+                crate::env::set_var("KCODE_OPENROUTER_TRANSPORT_STATE", "jcode-subscription")
             }
             RuntimeProviderId::OpenRouter => {
                 crate::env::set_var("KCODE_OPENROUTER_TRANSPORT_STATE", "openrouter-api-key")

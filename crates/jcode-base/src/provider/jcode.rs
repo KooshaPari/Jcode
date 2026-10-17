@@ -392,7 +392,7 @@ mod tests {
         );
         assert!(plus_routes.iter().all(|route| {
             route.provider == "Jcode Subscription"
-                && route.api_method == "kcode-subscription"
+                && route.api_method == "jcode-subscription"
                 && route.available
         }));
         assert_eq!(
@@ -409,7 +409,7 @@ mod tests {
             route_selection.runtime_key,
             jcode_provider_core::RuntimeKey::JcodeSubscription
         );
-        assert_eq!(route_selection.api_method, "kcode-subscription");
+        assert_eq!(route_selection.api_method, "jcode-subscription");
         assert_eq!(route_selection.provider_label, "Jcode Subscription");
         assert_eq!(plus_routes, flagship_routes);
         assert_eq!(flagship_routes.len(), 20);

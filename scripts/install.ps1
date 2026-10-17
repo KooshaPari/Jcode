@@ -43,6 +43,25 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+function Assert-KcodeOwnedPath([string]$ProductPath) {
+    if (-not $ProductPath) { return }
+    $probe = [System.IO.Path]::GetFullPath($ProductPath)
+    if ($probe -match '(?i)(^|[\\/])(?:\.jcode[^\\/]*|jcode(?:[.-][^\\/]*)?)(?:[\\/]|$)') {
+        throw 'KCode cannot install into jcode storage or binary directories.'
+    }
+    while ($probe) {
+        if (Test-Path -LiteralPath $probe) {
+            $entry = Get-Item -LiteralPath $probe -Force
+            if (($entry.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw 'KCode installer does not follow reparse points in product paths.'
+            }
+        }
+        $parent = Split-Path -Parent $probe
+        if (-not $parent -or $parent -eq $probe) { break }
+        $probe = $parent
+    }
+}
+
 # No maintained KCode channel exists for this branch. Fail before network,
 # directory creation, executable probing, or PATH changes.
 if (-not $ArtifactExePath -and -not $ArtifactTgzPath) {
@@ -52,9 +71,7 @@ if (-not $Version) {
     throw 'KCode local artifact installs require an explicit -Version.'
 }
 foreach ($productPath in @($InstallDir, $env:KCODE_HOME)) {
-    if ($productPath -and $productPath -match '(?i)(^|[\\/])\.?jcode(?:[\\/]|$)') {
-        throw 'KCode cannot install into jcode storage or binary directories.'
-    }
+    Assert-KcodeOwnedPath $productPath
 }
 
 if ($PSVersionTable.PSVersion.Major -lt 5) {
@@ -72,7 +89,7 @@ $ReleaseMetadataBase = if ($env:KCODE_RELEASE_METADATA_BASE) {
 if (-not $InstallDir) {
     $localAppData = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA } else { [Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData) }
     if (-not $localAppData -and $env:USERPROFILE) { $localAppData = Join-Path $env:USERPROFILE "AppData\Local" }
-    $InstallDir = Join-Path $localAppData "kcode\bin"
+    $InstallDir = if ($env:KCODE_HOME) { Join-Path $env:KCODE_HOME "bin" } else { Join-Path $localAppData "kcode\bin" }
 }
 
 $KcodeHome = if ($env:KCODE_HOME) {
@@ -83,6 +100,8 @@ $KcodeHome = if ($env:KCODE_HOME) {
     Join-Path ([Environment]::GetFolderPath("UserProfile")) ".kcode"
 }
 
+Assert-KcodeOwnedPath $InstallDir
+Assert-KcodeOwnedPath $KcodeHome
 $HotkeyDir = Join-Path $KcodeHome "hotkey"
 $SetupHintsPath = Join-Path $KcodeHome "setup_hints.json"
 
@@ -971,7 +990,8 @@ if (-not $Version) { Write-Err "Failed to determine latest version" }
 $VersionNum = $Version.TrimStart('v')
 $DownloadBases = @() # Local artifacts only: no release metadata or network lookup.
 
-$BuildsDir = Join-Path (Get-KcodeLocalAppDataDir) "kcode\builds"
+$BuildsDir = if ($env:KCODE_HOME) { Join-Path $env:KCODE_HOME "builds" } else { Join-Path (Get-KcodeLocalAppDataDir) "kcode\builds" }
+Assert-KcodeOwnedPath $BuildsDir
 $StableDir = Join-Path $BuildsDir "stable"
 $VersionDir = Join-Path $BuildsDir "versions\$VersionNum"
 $LauncherPath = Join-Path $InstallDir "kcode.exe"

@@ -451,7 +451,7 @@ mod tests {
         let inputs = [
             "Update failed: Update check failed: error sending request for url (https://api.github.com/repos/KooshaPari/KCode/releases/latest)\n\nCaused by:\n    dns error: failed to lookup address information",
             "cargo build failed: error[E0308]: mismatched types\n  --> src/lib.rs:1:1",
-            "Checksum mismatch for jcode-linux-x86_64.tar.gz: expected aaa, got bbb",
+            "Checksum mismatch for kcode-linux-x86_64.tar.gz: expected aaa, got bbb",
             "Failed to install /home/u/.kcode/builds/versions/0.1.0/jcode: Permission denied (os error 13)",
             "a very long single clause with no recognizable cause that just keeps going and going well past any sensible terminal width",
             "",
@@ -483,7 +483,7 @@ mod tests {
             "download failed checksum verification"
         );
         assert_eq!(
-            summarize_update_error("No asset found for platform: jcode-linux-x86_64"),
+            summarize_update_error("No asset found for platform: kcode-linux-x86_64"),
             "no release build for this platform"
         );
     }
@@ -540,8 +540,8 @@ mod tests {
     #[test]
     fn sha256sums_accepts_standard_and_binary_lines() {
         let checksums = parse_sha256sums(
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  jcode-linux-x86_64\n\
-             bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb *jcode-macos-aarch64\n",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  kcode-linux-x86_64\n\
+             bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb *kcode-macos-aarch64\n",
         )
         .unwrap();
         assert_eq!(
@@ -558,13 +558,13 @@ mod tests {
     fn checksum_verification_accepts_matching_digest() {
         let bytes = b"hello world";
         let digest = format!("{:x}", Sha256::digest(bytes));
-        let sums = format!("{}  jcode-linux-x86_64\n", digest);
+        let sums = format!("{}  kcode-linux-x86_64\n", digest);
         verify_asset_checksum_text(&sums, "kcode-linux-x86_64", bytes).unwrap();
     }
 
     #[test]
     fn checksum_verification_rejects_mismatch() {
-        let sums = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  jcode-linux-x86_64\n";
+        let sums = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  kcode-linux-x86_64\n";
         let err = verify_asset_checksum_text(sums, "kcode-linux-x86_64", b"hello")
             .unwrap_err()
             .to_string();

@@ -62,6 +62,29 @@ class ProductIdentityTests(unittest.TestCase):
             self.assertIn("KCode cannot install into jcode", result.stdout + result.stderr)
             self.assertFalse(target.exists())
 
+    @unittest.skipUnless(__import__("os").name == "nt", "Windows junction")
+    def test_windows_installer_cannot_follow_a_junction_into_jcode(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as folder:
+            root = pathlib.Path(folder)
+            source = root / ".jcode"
+            source.mkdir()
+            marker = source / "keep"
+            marker.write_bytes(b"untouched jcode installation")
+            before = (marker.read_bytes(), marker.stat().st_mtime_ns, source.stat().st_mtime_ns)
+            alias = root / ".kcode"
+            link = subprocess.run(["cmd", "/c", "mklink", "/J", str(alias), str(source)],
+                                  capture_output=True, text=True, timeout=30)
+            self.assertEqual(link.returncode, 0, link.stderr)
+            result = subprocess.run(
+                ["pwsh", "-NoProfile", "-File", str(ROOT / "scripts/install.ps1"),
+                 "-InstallDir", str(alias / "bin"), "-ArtifactExePath", "unused.exe", "-Version", "0.93.0-k0.1.0"],
+                capture_output=True, text=True, timeout=30,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("KCode installer does not follow reparse points", result.stdout + result.stderr)
+            self.assertEqual(before, (marker.read_bytes(), marker.stat().st_mtime_ns, source.stat().st_mtime_ns))
+            self.assertFalse((source / "bin").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

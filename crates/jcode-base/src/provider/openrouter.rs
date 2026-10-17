@@ -294,7 +294,7 @@ impl OpenRouterTransportState {
             "openrouter" | "openrouter-api-key" | "openrouter_byok" | "openrouter-byok" => {
                 Some(Self::OpenRouterApiKey)
             }
-            "jcode" | "kcode-subscription" | "subscription" => Some(Self::JcodeSubscription),
+            "jcode" | "jcode-subscription" | "subscription" => Some(Self::JcodeSubscription),
             "direct" | "direct-api-key" | "openai-compatible" | "compatible-api-key" => {
                 Some(Self::DirectApiKey)
             }

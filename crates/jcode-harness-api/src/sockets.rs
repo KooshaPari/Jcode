@@ -12,13 +12,40 @@
 
 use std::path::PathBuf;
 
+fn product_path(path: PathBuf) -> Option<PathBuf> {
+    fn owned(path: &std::path::Path) -> bool {
+        path.is_absolute()
+            && !path.components().any(|part| {
+                let name = part.as_os_str().to_string_lossy().to_ascii_lowercase();
+                name == "jcode"
+                    || name.starts_with(".jcode")
+                    || name.starts_with("jcode.")
+                    || name.starts_with("jcode-")
+            })
+    }
+    if !owned(&path) {
+        return None;
+    }
+    if let Some(existing) = path.ancestors().find(|part| part.exists()) {
+        let canonical = existing.canonicalize().ok()?;
+        if !owned(&canonical) {
+            return None;
+        }
+    }
+    Some(path)
+}
+
 /// Runtime directory holding the daemon and API sockets.
 pub fn runtime_dir() -> PathBuf {
     if let Ok(dir) = std::env::var("KCODE_RUNTIME_DIR") {
-        return PathBuf::from(dir);
+        if let Some(path) = product_path(PathBuf::from(dir)) {
+            return path;
+        }
     }
     if let Ok(dir) = std::env::var("XDG_RUNTIME_DIR") {
-        return PathBuf::from(dir);
+        if let Some(path) = product_path(PathBuf::from(dir)) {
+            return path;
+        }
     }
     #[cfg(target_os = "macos")]
     if let Ok(dir) = std::env::var("TMPDIR") {
@@ -66,7 +93,9 @@ fn sanitize(raw: String) -> String {
 /// Path of the versioned harness API socket. `KCODE_API_SOCKET` overrides it.
 pub fn api_socket_path() -> PathBuf {
     if let Ok(custom) = std::env::var("KCODE_API_SOCKET") {
-        return PathBuf::from(custom);
+        if let Some(path) = product_path(PathBuf::from(custom)) {
+            return path;
+        }
     }
     runtime_dir().join("kcode-api.sock")
 }
@@ -75,7 +104,9 @@ pub fn api_socket_path() -> PathBuf {
 /// `KCODE_SOCKET` overrides it.
 pub fn legacy_socket_path() -> PathBuf {
     if let Ok(custom) = std::env::var("KCODE_SOCKET") {
-        return PathBuf::from(custom);
+        if let Some(path) = product_path(PathBuf::from(custom)) {
+            return path;
+        }
     }
     runtime_dir().join("kcode.sock")
 }
@@ -83,6 +114,21 @@ pub fn legacy_socket_path() -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn overrides_cannot_select_jcode_sockets_or_storage() {
+        let root = std::env::temp_dir();
+        for name in [
+            "jcode.sock",
+            "jcode-api.sock",
+            ".jcode/sessions",
+            "jcode/bin",
+            "jcode-user/run",
+        ] {
+            assert!(product_path(root.join(name)).is_none());
+        }
+        assert!(product_path(root.join("kcode-api.sock")).is_some());
+    }
 
     /// The two sockets must always be siblings. A client that resolves one
     /// directory while the bridge resolves another cannot connect at all,

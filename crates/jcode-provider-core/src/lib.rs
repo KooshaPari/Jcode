@@ -854,7 +854,7 @@ impl RuntimeKey {
 
     pub fn stable_id(&self) -> String {
         match self {
-            Self::JcodeSubscription => "kcode-subscription".to_string(),
+            Self::JcodeSubscription => "jcode-subscription".to_string(),
             Self::ClaudeOAuth => "claude-oauth".to_string(),
             Self::AnthropicApiKey => "anthropic-api-key".to_string(),
             Self::OpenAIOAuth => "openai-oauth".to_string(),
@@ -1020,7 +1020,7 @@ impl ModelRouteApiMethod {
             return Self::from_auth_route(route);
         }
         match lower.as_str() {
-            "kcode-subscription" => Self::JcodeSubscription,
+            "jcode-subscription" => Self::JcodeSubscription,
             "grok-build" | "grok-build-acp" => Self::GrokBuild,
             "openrouter" => Self::OpenRouter,
             "openai-compatible" => Self::OpenAiCompatible { profile_id: None },

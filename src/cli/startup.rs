@@ -21,7 +21,12 @@ pub async fn run() -> Result<()> {
     let args = Args::parse();
     // Explicit session import has no startup hardening, migrations, provider
     // bootstrap, backup pruning, or daemon side effects in either product.
-    if matches!(&args.command, Some(Command::Session(super::args::SessionCommand::ImportJcode { .. }))) {
+    if matches!(
+        &args.command,
+        Some(Command::Session(
+            super::args::SessionCommand::ImportJcode { .. }
+        ))
+    ) {
         return dispatch::run_main(args).await;
     }
     // Snapshot user-supplied provider env before provider init rewrites it.
@@ -39,6 +44,10 @@ pub async fn run() -> Result<()> {
         }
         return dispatch::run_main(args).await;
     }
+    // Reject aliased product roots before logging, cleanup, or migrations can
+    // follow a .kcode junction/symlink into jcode's installation.
+    storage::jcode_dir()?;
+    storage::app_config_dir()?;
     startup_profile::init();
 
     terminal::install_panic_hook();
