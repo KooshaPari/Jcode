@@ -53,18 +53,57 @@ pub fn is_fork_build_for(semver: &str) -> bool {
     semver_has_channel(semver)
 }
 
-/// Whether a build semver carries a fork channel suffix (`1.5.3-k0.1.2`) as
-/// opposed to a bare upstream `1.5.3`.
+/// Whether a build semver carries a known fork prefix (`k`, `p`, `fork-`).
 ///
-/// A bare trailing `-` is not a channel, matching the rule `jcode-build-meta`'s
-/// `parse_semver_with_channel` already applies, so a malformed semver cannot
-/// masquerade as a fork marker.
+/// Fork-versioning scheme per `~/AGENTS.md`:
+///   `BASEVERSION-<first-letter>semver`
+/// where `<first-letter>` is one of:
+///   - `k`  (KooshaPari fork)
+///   - `p`  (Phenotype org fork)
+///   - `fork-` (generic fork marker)
+///
+/// Upstream prereleases such as `1.0.0-alpha.1` or `1.0.0-rc.1` carry
+/// standard SemVer suffixes that are **not** fork prefixes and must NOT
+/// be classified as fork builds.
 pub fn semver_has_channel(semver: &str) -> bool {
-    semver
-        .trim()
-        .trim_start_matches('v')
-        .split_once('-')
-        .is_some_and(|(_, channel)| !channel.trim().is_empty())
+    let trimmed = semver.trim().trim_start_matches('v');
+    match trimmed.split_once('-') {
+        Some((_, channel)) => is_known_fork_prefix(channel.trim()),
+        None => false,
+    }
+}
+
+/// Whether the channel portion of a semver starts with a known fork prefix.
+///
+/// Accepts: `k`, `p`, `fork-` (the official fork markers documented in
+/// `~/AGENTS.md`). Rejects SemVer prerelease suffixes (`alpha.1`, `rc.1`,
+/// `beta`, `nightly`, etc.) and bare dashes.
+fn is_known_fork_prefix(channel: &str) -> bool {
+    // Must start with a known fork prefix letter followed by a digit or dot
+    // (e.g. `k1.1.1`, `p0.4.0`), OR be the `fork-` prefix (followed by
+    // anything non-empty).
+    if channel.is_empty() {
+        return false;
+    }
+    // Check `fork-` prefix first (longest match).
+    if let Some(rest) = channel.strip_prefix("fork-") {
+        return !rest.is_empty();
+    }
+    // Single-letter fork prefixes: the letter must be followed by a digit
+    // (start of a semver), not by a letter (which would be a prerelease
+    // label like `alpha`, `beta`, `rc`).
+    if channel.starts_with('k') || channel.starts_with('p') {
+        let after_prefix = &channel[1..];
+        // Must be followed by a digit (start of fork semver like `k1.1.1`)
+        // or be the channel-only case (e.g. just `k` with nothing after).
+        // Reject `alpha`, `beta.1`, etc.
+        return after_prefix.is_empty()
+            || after_prefix
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_digit());
+    }
+    false
 }
 
 /// Error surfaced when an update is explicitly requested on a build that must
@@ -110,10 +149,59 @@ pub fn is_inside_git_repo(path: &std::path::Path) -> bool {
     false
 }
 
+/// The compile-time semver this binary was built with (immutable).
+///
+/// This is the canonical product identity. A runtime override must not
+/// change a fork build into an upstream build or vice-versa.
+fn compiled_semver() -> &'static str {
+    jcode_build_meta::UPDATE_SEMVER
+}
+
 /// The semver this build uses for update comparisons, honoring the fast-release
-/// wrapper's runtime override exactly as the updater itself does.
+/// wrapper's runtime override only when it preserves product identity.
+///
+/// A runtime override that would change a fork build into an upstream build
+/// (or vice-versa) is rejected with a security warning. This closes the
+/// attack path where `JCODE_RUNTIME_RELEASE_SEMVER` erases fork identity
+/// and causes a fork build to pull upstream binaries.
+///
+/// See Issue 2 from `KooshaPari/KCode#104`.
 fn current_semver() -> &'static str {
-    jcode_build_meta::update_semver()
+    let compiled = compiled_semver();
+    let runtime = jcode_build_meta::runtime_release_semver();
+
+    match runtime {
+        Some(rt) => {
+            // Guard: the runtime override must not change product identity.
+            // If the compiled build is a fork, the override must also carry a
+            // fork prefix. If the compiled build is upstream, the override must
+            // not add a fork prefix.
+            let compiled_is_fork = is_fork_build_for(compiled);
+            let runtime_is_fork = is_fork_build_for(rt);
+
+            if compiled_is_fork != runtime_is_fork {
+                // SECURITY: runtime override would change product identity.
+                // Reject it and use the compiled semver instead.
+                crate::logging::warn(&format!(
+                    "SECURITY: JCODE_RUNTIME_RELEASE_SEMVER={rt} would change \
+                     product identity from {} to {}; override rejected. \
+                     Compiled semver {compiled} is authoritative.",
+                    if compiled_is_fork { "fork" } else { "upstream" },
+                    if runtime_is_fork { "fork" } else { "upstream" },
+                ));
+                return compiled;
+            }
+
+            // Identity preserved; honor the runtime override.
+            // Cast to 'static: runtime_release_semver() returns &'static str.
+            // The match arm above already returns compiled (also 'static),
+            // so the function's return type is satisfied.
+            // SAFETY: runtime_release_semver() holds the value in a OnceLock,
+            // so the str reference is valid for 'static.
+            rt
+        }
+        None => compiled,
+    }
 }
 
 fn log_disabled(semver: &str) {
@@ -188,6 +276,57 @@ mod tests {
         assert!(semver_has_channel("  1.5.3-k0.1.2  "));
         assert!(!semver_has_channel("  1.5.3  "));
         assert!(!semver_has_channel(""));
+    }
+
+    /// Upstream prereleases (alpha, rc, beta, nightly, etc.) carry standard
+    /// SemVer suffixes that are NOT fork prefixes. These must NOT be classified
+    /// as fork builds or their auto-update path is silently broken.
+    ///
+    /// See Issue 1 from `KooshaPari/KCode#104`.
+    #[test]
+    fn upstream_prereleases_are_not_forks() {
+        for semver in [
+            "1.0.0-alpha.1",
+            "1.0.0-rc.1",
+            "1.0.0-beta",
+            "1.0.0-nightly",
+            "2.3.4-alpha.1",
+            "0.91.0-dev.5",
+            "1.5.3-pre.2",
+        ] {
+            assert_eq!(
+                update_repo_for(semver),
+                Some(GITHUB_REPO),
+                "upstream prerelease {semver} must NOT be classified as a fork build"
+            );
+            assert!(
+                !is_fork_build_for(semver),
+                "{semver} must not be treated as a fork build"
+            );
+        }
+    }
+
+    /// `fork-` prefix is a valid fork marker (generic fork convention).
+    #[test]
+    fn fork_prefix_is_recognized() {
+        for semver in ["1.0.0-fork-1", "1.0.0-fork-2.0", "v2.0.0-fork-0.1"] {
+            assert!(
+                is_fork_build_for(semver),
+                "{semver} should be recognized as a fork build via fork- prefix"
+            );
+            assert_eq!(
+                update_repo_for(semver),
+                None,
+                "{semver} must not resolve to upstream"
+            );
+        }
+    }
+
+    /// Bare `fork-` with nothing after it is not a valid fork marker.
+    #[test]
+    fn bare_fork_prefix_is_not_valid() {
+        assert!(!semver_has_channel("1.0.0-fork-"));
+        assert_eq!(update_repo_for("1.0.0-fork-"), Some(GITHUB_REPO));
     }
 
     /// The build this binary was actually compiled with must be classified the
