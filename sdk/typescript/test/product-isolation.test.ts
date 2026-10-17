@@ -6,6 +6,7 @@ import path from "node:path";
 import { bundledJcodeBinary, platformBinaryPackage, resolveKcodeBinary } from "../dist/binary.js";
 import { inheritCredentials, launchInstance, userJcodeHome } from "../dist/launch.js";
 import { assertKcodePath } from "../dist/product.js";
+import { apiSocketPath, legacySocketPath } from "../dist/sockets.js";
 
 test("no platform silently selects an upstream npm runtime", () => {
   for (const platform of ["win32", "darwin", "linux"]) {
@@ -53,6 +54,26 @@ test("credential inheritance cannot create a write-back link to jcode", () => {
     assert.equal(fs.existsSync(destination), false);
     assert.deepEqual([fs.readFileSync(marker), fs.statSync(marker).mtimeMs, fs.statSync(source).mtimeMs], before);
   } finally { fs.rmSync(root, { recursive: true }); }
+});
+
+test("legacy socket overrides cannot attach the SDK to jcode", () => {
+  const keys = ["KCODE_RUNTIME_DIR", "KCODE_API_SOCKET", "KCODE_SOCKET", "JCODE_API_SOCKET", "JCODE_SOCKET"];
+  const saved = new Map(keys.map((key) => [key, process.env[key]]));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "kcode-sdk-boundary-"));
+  try {
+    process.env.KCODE_RUNTIME_DIR = path.join(root, "run");
+    delete process.env.KCODE_API_SOCKET;
+    delete process.env.KCODE_SOCKET;
+    process.env.JCODE_API_SOCKET = path.join(root, ".jcode", "jcode-api.sock");
+    process.env.JCODE_SOCKET = path.join(root, ".jcode", "jcode.sock");
+    assert.equal(apiSocketPath(), path.join(root, "run", "kcode-api.sock"));
+    assert.equal(legacySocketPath(), path.join(root, "run", "kcode.sock"));
+  } finally {
+    for (const [key, value] of saved) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+    fs.rmSync(root, { recursive: true });
+  }
 });
 
 test("a junction alias cannot redirect SDK storage into jcode", () => {

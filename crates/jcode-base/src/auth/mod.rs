@@ -215,7 +215,7 @@ fn log_auth_status_snapshot(event: &str, status: &AuthStatus) {
         event,
         "all",
         &[
-            ("jcode", auth_state_label(status.kcode)),
+            ("jcode", auth_state_label(status.jcode)),
             ("claude", auth_state_label(status.anthropic.state)),
             ("openai", auth_state_label(status.openai)),
             ("openrouter", auth_state_label(status.openrouter)),
@@ -441,7 +441,7 @@ impl AuthStatus {
     /// Returns true if at least one provider has usable credentials.
     pub fn has_any_available(&self) -> bool {
         self.anthropic.state == AuthState::Available
-            || self.kcode == AuthState::Available
+            || self.jcode == AuthState::Available
             || self.openai == AuthState::Available
             || self.openrouter == AuthState::Available
             || self.azure == AuthState::Available
@@ -470,7 +470,7 @@ impl AuthStatus {
             vec![
                 ("surface", surface.to_string()),
                 ("any_available", self.has_any_available().to_string()),
-                ("jcode", self.kcode.label().to_string()),
+                ("jcode", self.jcode.label().to_string()),
                 ("anthropic", self.anthropic.state.label().to_string()),
                 ("anthropic_oauth", self.anthropic.has_oauth.to_string()),
                 ("anthropic_api", self.anthropic.has_api_key.to_string()),
@@ -510,7 +510,7 @@ impl AuthStatus {
                     AuthState::NotConfigured
                 }
             }
-            LoginProviderAuthStateKey::Jcode => self.kcode,
+            LoginProviderAuthStateKey::Jcode => self.jcode,
             LoginProviderAuthStateKey::Anthropic => self.anthropic.state,
             LoginProviderAuthStateKey::OpenAi => self.openai,
             LoginProviderAuthStateKey::Azure => self.azure,
@@ -1124,7 +1124,7 @@ fn refreshable_token_state_with(
 
 fn probe_jcode_status(status: &mut AuthStatus) {
     if crate::subscription_catalog::has_credentials() {
-        status.kcode = AuthState::Available;
+        status.jcode = AuthState::Available;
     }
 }
 

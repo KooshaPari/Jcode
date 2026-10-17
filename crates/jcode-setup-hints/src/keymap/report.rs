@@ -103,10 +103,10 @@ fn render_conflict_block(c: &Conflict) -> String {
     };
     format!(
         "  ⚠ {key}\n      jcode: {action} ({field} = \"{raw}\")\n      taken by {interceptor}\n",
-        key = c.kcode.chord.display(),
-        action = c.kcode.action,
-        field = c.kcode.field,
-        raw = c.kcode.raw,
+        key = c.jcode.chord.display(),
+        action = c.jcode.action,
+        field = c.jcode.field,
+        raw = c.jcode.raw,
         interceptor = interceptor_desc,
     )
 }
@@ -120,7 +120,7 @@ pub fn render_status_line(cfg: &KeybindingsConfig, snapshot: &KeymapSnapshot) ->
     }
     let keys: Vec<String> = conflicts
         .iter()
-        .map(|c| c.kcode.chord.display())
+        .map(|c| c.jcode.chord.display())
         .collect::<std::collections::BTreeSet<_>>()
         .into_iter()
         .collect();

@@ -34,7 +34,8 @@ Build and install a trusted local artifact on Windows:
 
 ```powershell
 cargo build --release --bin kcode
-.\scripts\install.ps1 -ArtifactExePath .\target\release\kcode.exe -Version v0.93.0-k0.1.0
+$artifactVersion = ((& .\target\release\kcode.exe --version) -split '\s+')[1]
+.\scripts\install.ps1 -ArtifactExePath .\target\release\kcode.exe -Version $artifactVersion
 ```
 
 On Unix, use `scripts/install_release.sh --fast` to build and install from this
@@ -62,3 +63,10 @@ paths and verify that no install directory is created.
 The earlier decollision and development-isolation branches supplied the separate
 namespace conventions. Their older wholesale crate rename and Unix-only dev
 importer were not suitable for merging over this newer source tree.
+
+The TypeScript SDK uses KCode binaries, homes, config and sockets. Upstream npm
+runtime dependencies are removed and its fork package is private until a
+maintained channel exists. Existing `JcodeClient` API names remain compatible;
+credential inheritance rejects jcode sources and aliases before creating files
+or links. Build locally with `npm ci --ignore-scripts --omit=optional` and
+`npm run build` from `sdk/typescript`.

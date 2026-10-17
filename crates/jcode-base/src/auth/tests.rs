@@ -171,7 +171,7 @@ fn full_and_fast_auth_status_match_for_shared_probe_fields() {
     let (fast, _) = build_auth_status_uncached(AuthProbeMode::Fast);
 
     assert_auth_status_shared_fields_match(&full, &fast);
-    assert_eq!(full.kcode, AuthState::Available);
+    assert_eq!(full.jcode, AuthState::Available);
     assert_eq!(full.anthropic.state, AuthState::Available);
     assert_eq!(full.openai, AuthState::Available);
     assert_eq!(full.openrouter, AuthState::Available);
@@ -240,7 +240,7 @@ fn full_and_fast_auth_status_document_cursor_cli_exception() {
 }
 
 fn assert_auth_status_shared_fields_match(full: &AuthStatus, fast: &AuthStatus) {
-    assert_eq!(full.kcode, fast.kcode, "jcode");
+    assert_eq!(full.jcode, fast.jcode, "jcode");
     assert_eq!(
         full.anthropic.state, fast.anthropic.state,
         "anthropic.state"
@@ -464,7 +464,7 @@ fn auth_status_check_fast_ignores_expired_full_cache() {
 
     let status = AuthStatus::check_fast();
     assert_ne!(
-        status.kcode,
+        status.jcode,
         AuthState::Expired,
         "check_fast must not reuse an expired full auth cache forever"
     );

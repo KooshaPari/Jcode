@@ -22,7 +22,7 @@ fn macos_launcher_icon_asset_is_valid_icns_container() {
 fn legacy_cli_launchers_and_old_broker_location_are_found() {
     let temp = tempfile::tempdir().expect("tempdir");
     let apps = temp.path();
-    write_bundle(&apps.join("Jcode.app"), "com.kcode.launcher");
+    write_bundle(&apps.join("kcode.app"), "com.kcode.launcher");
     write_bundle(
         &apps.join(MACOS_NOTIFICATION_APP_NAME),
         "com.kcode.notifications",
@@ -31,17 +31,17 @@ fn legacy_cli_launchers_and_old_broker_location_are_found() {
     let found = legacy_macos_bundles(apps);
     assert_eq!(
         found,
-        vec![apps.join("Jcode Notifications.app"), apps.join("Jcode.app")]
+        vec![apps.join("Jcode Notifications.app"), apps.join("kcode.app")]
     );
 }
 
 #[test]
 fn original_lowercase_launcher_is_found() {
     let temp = tempfile::tempdir().expect("tempdir");
-    write_bundle(&temp.path().join("jcode.app"), "com.kcode.app");
+    write_bundle(&temp.path().join("kcode.app"), "com.kcode.app");
     assert_eq!(
         legacy_macos_bundles(temp.path()),
-        vec![temp.path().join("jcode.app")]
+        vec![temp.path().join("kcode.app")]
     );
 }
 
@@ -49,7 +49,7 @@ fn original_lowercase_launcher_is_found() {
 fn desktop_app_in_user_applications_is_never_matched() {
     let temp = tempfile::tempdir().expect("tempdir");
     write_bundle(
-        &temp.path().join("Jcode.app"),
+        &temp.path().join("kcode.app"),
         "dev.solosystems.kcode.desktop",
     );
     assert!(legacy_macos_bundles(temp.path()).is_empty());
@@ -58,7 +58,7 @@ fn desktop_app_in_user_applications_is_never_matched() {
 #[test]
 fn bundles_without_a_readable_identifier_are_left_alone() {
     let temp = tempfile::tempdir().expect("tempdir");
-    let app = temp.path().join("Jcode.app");
+    let app = temp.path().join("kcode.app");
     std::fs::create_dir_all(app.join("Contents")).expect("create bundle");
     // Signed apps may ship a binary plist. Unknown means not ours.
     std::fs::write(app.join("Contents/Info.plist"), b"bplist00\x01\x02").expect("write plist");

@@ -1075,7 +1075,7 @@ pub(super) fn create_windows_desktop_shortcut(state: &mut SetupHintsState) -> Re
     };
 
     let desktop_dir = std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\Users\\Default".into());
-    let shortcut_path = format!("{}\\Desktop\\jcode.lnk", desktop_dir);
+    let shortcut_path = format!("{}\\Desktop\\kcode.lnk", desktop_dir);
 
     let ps_script = format!(
         r#"

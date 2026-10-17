@@ -43,10 +43,10 @@ fn desktop_binary_candidates(
         out.extend(std::env::split_paths(&path_var).map(|dir| dir.join(name)));
     }
     if cfg!(target_os = "macos") {
-        out.push(PathBuf::from("/Applications/Jcode.app/Contents/MacOS").join(name));
+        out.push(PathBuf::from("/Applications/kcode.app/Contents/MacOS").join(name));
         if let Some(home) = &home {
             out.push(
-                home.join("Applications/Jcode.app/Contents/MacOS")
+                home.join("Applications/kcode.app/Contents/MacOS")
                     .join(name),
             );
         }

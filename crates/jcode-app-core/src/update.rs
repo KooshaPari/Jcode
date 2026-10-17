@@ -25,6 +25,9 @@ mod update_metadata;
 mod update_rate_limit;
 #[path = "update_product.rs"]
 mod update_product;
+#[path = "update_display.rs"]
+mod update_display;
+pub use update_display::print_centered;
 pub use update_metadata::UpdateMetadata;
 use update_metadata::{record_release_update_duration, record_source_update_duration};
 pub use update_rate_limit::{RATE_LIMIT_ERROR_PREFIX, is_rate_limit_error};
@@ -60,41 +63,6 @@ const DOWNLOAD_ATTEMPT_TIMEOUT: Duration = Duration::from_secs(120);
 /// connection eventually fails.
 const DOWNLOAD_MAX_ATTEMPTS: usize = 10;
 const DOWNLOAD_PROGRESS_UPDATE_STEP: u64 = 1_048_576;
-pub fn print_centered(msg: &str) {
-    let msg = crate::output_style::terminal_text(msg);
-    let width = crossterm::terminal::size()
-        .map(|(w, _)| w as usize)
-        .unwrap_or(80);
-    for line in msg.lines() {
-        let visible_len = unicode_display_width(line);
-        if visible_len >= width {
-            println!("{}", line);
-        } else {
-            let pad = (width - visible_len) / 2;
-            println!("{:>pad$}{}", "", line, pad = pad);
-        }
-    }
-}
-
-fn unicode_display_width(s: &str) -> usize {
-    use unicode_width::UnicodeWidthChar;
-    let mut w = 0;
-    let mut in_escape = false;
-    for c in s.chars() {
-        if in_escape {
-            if c == 'm' {
-                in_escape = false;
-            }
-            continue;
-        }
-        if c == '\x1b' {
-            in_escape = true;
-            continue;
-        }
-        w += UnicodeWidthChar::width(c).unwrap_or(0);
-    }
-    w
-}
 
 pub fn is_release_build() -> bool {
     jcode_build_meta::is_release_build()

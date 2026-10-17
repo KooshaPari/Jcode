@@ -73,9 +73,10 @@ fn arm_debug_client_parent_death_signal() {}
 
 pub(crate) async fn run_main(mut args: Args) -> Result<()> {
     if let Some(Command::Session(SessionCommand::ImportJcode { session })) = &args.command {
-        let imported = crate::storage::session_import::import_jcode_session(session)?;
-        println!("Imported {} session files into KCode (jcode source unchanged)", imported.len());
-        return Ok(());
+        if args.ssh.is_some() {
+            anyhow::bail!("Session import is local; run it on the machine holding the jcode sessions");
+        }
+        return commands::session_commands::import_jcode_session_command(session);
     }
     arm_debug_client_parent_death_signal();
     if args.ssh.is_some() {
@@ -439,15 +440,7 @@ pub(crate) async fn run_main(mut args: Args) -> Result<()> {
         Some(Command::Memory(subcmd)) => {
             commands::run_memory_command(map_memory_subcommand(subcmd)).await?;
         }
-        Some(Command::Session(subcmd)) => match subcmd {
-            SessionCommand::ImportJcode { .. } => unreachable!("session import handled before bootstrap"),
-            SessionCommand::Rename {
-                session,
-                name,
-                clear,
-                json,
-            } => commands::run_session_rename_command(&session, name.as_deref(), clear, json)?,
-        },
+        Some(Command::Session(subcmd)) => commands::session_commands::run_session_command(subcmd)?,
         Some(Command::Ambient(subcmd)) => {
             commands::run_ambient_command(map_ambient_subcommand(subcmd)).await?;
         }

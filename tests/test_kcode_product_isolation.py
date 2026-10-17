@@ -4,11 +4,29 @@ import subprocess
 import tempfile
 import tomllib
 import unittest
+import shutil
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 class ProductIdentityTests(unittest.TestCase):
+    def test_unix_installer_product_path_guard(self):
+        git_bash = pathlib.Path(r"C:\Program Files\Git\bin\bash.exe")
+        bash = str(git_bash) if git_bash.is_file() else shutil.which("bash")
+        if not bash:
+            self.skipTest("Bash unavailable")
+        rejected = subprocess.run(
+            [bash, "-c", "source scripts/product_paths.sh; require_kcode_owned_path /tmp/.jcode/forbidden"],
+            cwd=ROOT, capture_output=True, text=True, timeout=30,
+        )
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn("cannot use jcode", rejected.stderr)
+        accepted = subprocess.run(
+            [bash, "-c", 'source scripts/product_paths.sh; require_kcode_owned_path "$PWD/.verification/kcode-install"'],
+            cwd=ROOT, capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
     def test_cargo_exposes_kcode_and_no_jcode_launcher(self):
         manifest = tomllib.loads((ROOT / "Cargo.toml").read_text(encoding="utf-8"))
         self.assertEqual(manifest["package"]["name"], "kcode")

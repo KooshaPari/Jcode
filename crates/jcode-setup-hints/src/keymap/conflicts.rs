@@ -46,9 +46,9 @@ impl Conflict {
     pub fn summary(&self) -> String {
         format!(
             "{} (`{}` = \"{}\") is also bound by your {} to {}",
-            self.kcode.action,
-            self.kcode.field,
-            self.kcode.raw,
+            self.jcode.action,
+            self.jcode.field,
+            self.jcode.raw,
             self.interceptor_label(),
             describe_action(&self.interceptor),
         )
@@ -357,8 +357,8 @@ pub fn conflict_signature(conflicts: &[Conflict]) -> String {
         .map(|c| {
             format!(
                 "{}|{}|{}",
-                c.kcode.field,
-                c.kcode.chord.canonical(),
+                c.jcode.field,
+                c.jcode.chord.canonical(),
                 c.interceptor.chord.canonical()
             )
         })
@@ -432,7 +432,7 @@ mod tests {
             term_binding("ctrl+shift+tab", "previous_tab"),
         ]);
         let conflicts = detect_conflicts(&cfg, &snapshot);
-        let fields: Vec<&str> = conflicts.iter().map(|c| c.kcode.field.as_str()).collect();
+        let fields: Vec<&str> = conflicts.iter().map(|c| c.jcode.field.as_str()).collect();
         assert!(fields.contains(&"keybindings.model_switch_next"));
         assert!(fields.contains(&"keybindings.model_switch_prev"));
         let summary = conflicts[0].summary();
@@ -458,7 +458,7 @@ mod tests {
         assert!(
             conflicts
                 .iter()
-                .all(|c| c.kcode.field.contains("built-in fallback")),
+                .all(|c| c.jcode.field.contains("built-in fallback")),
             "prompt-jump fallback fields should be flagged"
         );
     }
@@ -508,7 +508,7 @@ mod tests {
         assert!(
             !conflicts
                 .iter()
-                .any(|c| c.kcode.field == "keybindings.model_switch_next")
+                .any(|c| c.jcode.field == "keybindings.model_switch_next")
         );
     }
 

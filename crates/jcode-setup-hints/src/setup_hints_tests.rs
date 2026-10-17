@@ -179,7 +179,7 @@ fn install_writes_executable_scripts_and_plan() {
 #[test]
 fn mac_hotkey_launch_agent_plist_uses_valid_xml_quotes() {
     let plist = mac_hotkey_launch_agent_plist(
-        "/Applications/Jcode.app/Contents/MacOS/jcode",
+        "/Applications/kcode.app/Contents/MacOS/jcode",
         "/tmp/kcode-hotkey.out.log",
         "/tmp/kcode-hotkey.err.log",
         "ghostty",

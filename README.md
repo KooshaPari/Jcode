@@ -1,3 +1,14 @@
+# KCode fork
+
+KCode uses the `kcode` executable, `KCODE_*` overrides and `.kcode` storage.
+Self-update and bundled npm runtime downloads are disabled for this branch.
+Build and install KCode using [the isolation/install guide](docs/KCODE_ISOLATION.md).
+Import selected jcode sessions with `kcode session import-jcode <id>`; the source
+is never written back. The upstream documentation retained below describes
+jcode; its release installers and npm runtime packages do not install KCode.
+
+---
+
 <div align="center">
 
 # jcode

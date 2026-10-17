@@ -606,7 +606,7 @@ fn version_display_candidates() -> Vec<String> {
 #[cfg(test)]
 fn configured_auth_count(auth: &AuthStatus) -> usize {
     [
-        auth.kcode,
+        auth.jcode,
         auth.anthropic.state,
         auth.openrouter,
         auth.azure,

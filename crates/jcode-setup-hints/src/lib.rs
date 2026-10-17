@@ -2486,7 +2486,7 @@ pub fn run_setup_launcher() -> Result<()> {
         eprintln!();
         match create_windows_desktop_shortcut(&mut state) {
             Ok(()) => {
-                eprintln!("  \x1b[32m✓\x1b[0m Created desktop shortcut: jcode.lnk");
+                eprintln!("  \x1b[32m✓\x1b[0m Created desktop shortcut: kcode.lnk");
                 return Ok(());
             }
             Err(e) => {

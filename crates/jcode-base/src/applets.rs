@@ -262,7 +262,7 @@ fn short_hash(s: &str) -> String {
 }
 
 /// Build the applet document an MCP resource block renders as, if any:
-/// MCP-UI `ui://` HTML or URI lists, or native `application/vnd.kcode.applet+json`.
+/// MCP-UI `ui://` HTML or URI lists, or native `application/vnd.jcode.applet+json`.
 pub fn document_for_mcp_resource(
     uri: &str,
     mime_type: Option<&str>,

@@ -1442,7 +1442,7 @@ impl App {
         let providers: [(&str, &str, AuthState); 8] = [
             ("Anthropic (Claude)", "anthropic", status.anthropic.state),
             ("OpenAI", "openai", status.openai),
-            ("Jcode subscription", "jcode", status.kcode),
+            ("Jcode subscription", "jcode", status.jcode),
             ("Gemini", "gemini", status.gemini),
             ("GitHub Copilot", "copilot", status.copilot),
             ("Cursor", "cursor", status.cursor),
