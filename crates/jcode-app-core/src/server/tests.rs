@@ -607,6 +607,102 @@ async fn wake_turn_holds_reservation_until_terminal_status_is_published() {
 }
 
 #[tokio::test]
+async fn native_receipt_remains_queued_until_exact_target_turn_saves_message() {
+    let _env_guard = crate::storage::lock_test_env();
+    let home = tempfile::TempDir::new().expect("isolated home");
+    let old_home = std::env::var_os("JCODE_HOME");
+    crate::env::set_var("JCODE_HOME", home.path());
+
+    let provider = Arc::new(StreamingMockProvider::default());
+    provider.queue_response(vec![
+        StreamEvent::TextDelta("receipt delivered".to_string()),
+        StreamEvent::MessageEnd { stop_reason: None },
+    ]);
+    let agent = test_agent(provider).await;
+    let session_id = agent.lock().await.session_id().to_string();
+    let receipt_id = "synthetic:receipt:1";
+    let receipt = super::wake_receipts::submit(receipt_id, &session_id, "synthetic wake")
+        .expect("durable queue");
+    assert_eq!(receipt.state, super::wake_receipts::WakeState::Queued);
+
+    let sessions = Arc::new(RwLock::new(HashMap::from([(
+        session_id.clone(),
+        agent.clone(),
+    )])));
+    let (member_event_tx, mut member_event_rx) = mpsc::unbounded_channel();
+    let member = attached_swarm_member(&session_id, member_event_tx);
+    let swarm_members = Arc::new(RwLock::new(HashMap::from([(session_id.clone(), member)])));
+    let (swarms_by_id, event_history, event_counter, swarm_event_tx) = empty_swarm_status_state();
+    let ctx = super::live_turn::LiveTurnSwarmContext::new(
+        &swarm_members,
+        &swarms_by_id,
+        &event_history,
+        &event_counter,
+        &swarm_event_tx,
+    );
+    let reservation = super::live_turn::idle_live_agent(&session_id, &sessions, &swarm_members)
+        .await
+        .expect("reserve synthetic target");
+    assert!(
+        !super::live_turn::run_receipt_turn_if_idle(
+            &session_id,
+            "synthetic wake",
+            receipt_id,
+            &sessions,
+            ctx.clone(),
+        )
+        .await
+    );
+    assert_eq!(
+        super::wake_receipts::get(receipt_id)
+            .expect("status")
+            .expect("receipt")
+            .state,
+        super::wake_receipts::WakeState::Queued
+    );
+    drop(reservation);
+    assert!(
+        super::live_turn::run_receipt_turn_if_idle(
+            &session_id,
+            "synthetic wake",
+            receipt_id,
+            &sessions,
+            ctx,
+        )
+        .await
+    );
+    timeout(Duration::from_secs(5), async {
+        loop {
+            if matches!(
+                member_event_rx.recv().await,
+                Some(ServerEvent::Done { id: 0 })
+            ) {
+                break;
+            }
+        }
+    })
+    .await
+    .expect("receipt turn finishes");
+    assert!(crate::session::session_exists(&session_id));
+    assert_eq!(
+        super::wake_receipts::get(receipt_id)
+            .expect("status")
+            .expect("receipt")
+            .state,
+        super::wake_receipts::WakeState::Awakened
+    );
+    assert!(agent.lock().await.messages().iter().any(|message| {
+        message.role == Role::User && message.content_preview().contains("synthetic wake")
+    }));
+
+    if let Some(old_home) = old_home {
+        crate::env::set_var("JCODE_HOME", old_home);
+    } else {
+        crate::env::remove_var("JCODE_HOME");
+    }
+}
+
+#[tokio::test]
 async fn wake_turn_tracks_member_status_and_emits_terminal_done() {
     let provider = Arc::new(StreamingMockProvider::default());
     provider.queue_response(vec![
