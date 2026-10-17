@@ -226,7 +226,8 @@ fn direct_openai_compatible_profile_routes(
     // `MiniMax-M3.1-Flash-Preview`), which otherwise makes the model unusable
     // from the picker. Declared ids are appended after the fetched list, so
     // existing entries and their ordering are untouched.
-    for model in crate::provider_catalog::config_declared_model_ids_for_profile(&resolved.id) {
+    for model in crate::provider_declared_models::config_declared_model_ids_for_profile(&resolved.id)
+    {
         if !models.iter().any(|existing| existing == &model) {
             models.push(model);
         }
