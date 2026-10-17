@@ -1382,8 +1382,8 @@ impl App {
             app.set_status_notice(format!("SSH: {host} (remote server)"));
             // `/cloud` hands a mid-task session over and asks the new runtime
             // to keep going without the user retyping anything. One-shot.
-            if let Ok(message) = std::env::var("JCODE_CLOUD_CONTINUE_MESSAGE") {
-                crate::env::remove_var("JCODE_CLOUD_CONTINUE_MESSAGE");
+            if let Ok(message) = std::env::var("KCODE_CLOUD_CONTINUE_MESSAGE") {
+                crate::env::remove_var("KCODE_CLOUD_CONTINUE_MESSAGE");
                 if !message.trim().is_empty() {
                     app.hidden_queued_system_messages.push(message);
                     app.set_status_notice(format!("Continuing on {host}"));
@@ -1401,12 +1401,12 @@ impl App {
         // the first frame or two instead of popping in later.
         let _ = super::helpers::gather_git_info();
 
-        let reload_fast_start = std::env::var("JCODE_RELOAD_FAST_START")
+        let reload_fast_start = std::env::var("KCODE_RELOAD_FAST_START")
             .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
             .unwrap_or(false);
         // One-shot handoff flag. A later ordinary resume in the same process
         // must retain the existing eager local-history behavior.
-        crate::env::remove_var("JCODE_RELOAD_FAST_START");
+        crate::env::remove_var("KCODE_RELOAD_FAST_START");
 
         // Load session to get canary status (for "client self-dev" badge)
         if let Some(ref session_id) = resume_session {

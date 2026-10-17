@@ -483,7 +483,7 @@ pub fn is_enabled() -> bool {
 }
 
 /// Marker file recording that the user opted out of anonymous usage telemetry.
-/// Its presence is equivalent to setting `JCODE_NO_TELEMETRY=1`, but persists
+/// Its presence is equivalent to setting `KCODE_NO_TELEMETRY=1`, but persists
 /// across shells so the onboarding "Telemetry settings" screen can honor the
 /// choice without asking the user to edit their environment.
 fn opt_out_marker_path() -> Option<std::path::PathBuf> {
@@ -502,7 +502,7 @@ pub fn opt_out_forced_by_env() -> bool {
             )
         })
     }
-    is_truthy("JCODE_NO_TELEMETRY") || is_truthy("DO_NOT_TRACK")
+    is_truthy("KCODE_NO_TELEMETRY") || is_truthy("DO_NOT_TRACK")
 }
 
 /// Persist the user's anonymous-usage telemetry choice. `enabled == false`
@@ -588,7 +588,7 @@ pub fn content_sharing_enabled() -> bool {
     if !is_enabled() {
         return false;
     }
-    if std::env::var("JCODE_NO_TELEMETRY").is_ok() || std::env::var("DO_NOT_TRACK").is_ok() {
+    if std::env::var("KCODE_NO_TELEMETRY").is_ok() || std::env::var("DO_NOT_TRACK").is_ok() {
         return false;
     }
     share_content_marker_path()
@@ -1310,7 +1310,7 @@ fn post_payload(payload: serde_json::Value, timeout: Duration) -> bool {
     let breaker_exempt = payload_is_breaker_exempt(&payload);
     let client = TELEMETRY_HTTP_CLIENT.get_or_init(|| {
         reqwest::blocking::Client::builder()
-            .user_agent(jcode_provider_core::JCODE_USER_AGENT)
+            .user_agent(jcode_provider_core::KCODE_USER_AGENT)
             .build()
             .expect("telemetry HTTP client should build")
     });
@@ -1364,7 +1364,7 @@ fn post_payload_with_retry(payload: serde_json::Value, timeout: Duration) -> boo
 fn post_transcript_payload(payload: serde_json::Value, timeout: Duration) -> bool {
     let client = TELEMETRY_HTTP_CLIENT.get_or_init(|| {
         reqwest::blocking::Client::builder()
-            .user_agent(jcode_provider_core::JCODE_USER_AGENT)
+            .user_agent(jcode_provider_core::KCODE_USER_AGENT)
             .build()
             .expect("telemetry HTTP client should build")
     });
@@ -1408,7 +1408,7 @@ where
 {
     let (sender, receiver) = sync_channel(capacity);
     std::thread::Builder::new()
-        .name("jcode-telemetry".to_string())
+        .name("kcode-telemetry".to_string())
         .spawn(move || {
             while let Ok(payload) = receiver.recv() {
                 deliver(payload);
@@ -1806,7 +1806,7 @@ pub fn record_install_if_first_run() {
         return;
     }
     // Skip install/onboarding emission under CI. Ephemeral runners start with a
-    // fresh ~/.jcode (so a new telemetry_id) on every job, which would otherwise
+    // fresh ~/.kcode (so a new telemetry_id) on every job, which would otherwise
     // look like a brand-new install and user, inflating install/active counts,
     // the onboarding funnel, and depressing retention. Session/turn/lifecycle
     // events are still emitted (tagged is_ci) so CI crash/error signal stays
@@ -2731,8 +2731,8 @@ fn show_first_run_notice() {
     eprintln!("  jcode collects anonymous usage statistics (install count, version, OS,");
     eprintln!("  session activity, tool counts, and crash/exit reasons). No code, filenames,");
     eprintln!("  prompts, or personal data is sent.");
-    eprintln!("  To opt out: export JCODE_NO_TELEMETRY=1");
-    eprintln!("  Details: https://github.com/1jehuang/jcode/blob/master/TELEMETRY.md");
+    eprintln!("  To opt out: export KCODE_NO_TELEMETRY=1");
+    eprintln!("  Details: https://github.com/KooshaPari/KCode/blob/master/TELEMETRY.md");
     eprintln!("{reset}");
 }
 

@@ -137,7 +137,7 @@ pub(crate) fn has_safe_slash_command_token(input: &str) -> bool {
 pub(crate) const COMMAND_SUGGESTION_VISIBLE_LIMIT: usize = 8;
 
 fn active_runtime_provider_key() -> Option<String> {
-    std::env::var("JCODE_RUNTIME_PROVIDER")
+    std::env::var("KCODE_RUNTIME_PROVIDER")
         .ok()
         .map(|value| value.trim().to_ascii_lowercase())
         .filter(|value| !value.is_empty())

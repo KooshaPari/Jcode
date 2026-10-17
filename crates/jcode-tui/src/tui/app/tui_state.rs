@@ -69,7 +69,7 @@ impl App {
         if crate::tui::is_ssh_remote() {
             return None;
         }
-        std::env::var("JCODE_PROVIDER")
+        std::env::var("KCODE_PROVIDER")
             .ok()
             .or_else(|| crate::config::config().provider.default_provider.clone())
             .map(|provider| provider.trim().to_string())
@@ -81,7 +81,7 @@ impl App {
             return None;
         }
         Self::sanitize_remote_model_hint(
-            std::env::var("JCODE_MODEL")
+            std::env::var("KCODE_MODEL")
                 .ok()
                 .or_else(|| crate::config::config().provider.default_model.clone()),
         )
@@ -98,7 +98,7 @@ impl App {
 
     /// Provider/model identity used for reasoning-effort UI decisions in remote
     /// mode. Prefers the server-reported values, falling back to the same hints
-    /// the header uses (session stub, `JCODE_MODEL`, config default) so effort
+    /// the header uses (session stub, `KCODE_MODEL`, config default) so effort
     /// cycling works during the pre-History bootstrap window instead of
     /// reporting "not available" until the server payload settles.
     pub(super) fn remote_effort_identity(&self) -> (Option<String>, Option<String>) {
@@ -275,7 +275,7 @@ impl App {
     ///   credential the next request will actually use the instant the user
     ///   switches OAuth<->API (model picker, `/account`, header toggle). That
     ///   read is in-memory and cache-free, so it never lingers on a stale
-    ///   [`AuthStatus`] snapshot (cached up to 60s) or a `JCODE_RUNTIME_PROVIDER`
+    ///   [`AuthStatus`] snapshot (cached up to 60s) or a `KCODE_RUNTIME_PROVIDER`
     ///   pin that drifted out of sync with the provider. When the provider is in
     ///   auto mode (no explicit pin) it falls back to
     ///   [`resolve_dual_credential_auth`] -- shared with the header tag and

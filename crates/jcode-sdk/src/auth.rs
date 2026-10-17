@@ -21,7 +21,7 @@ mod callback;
 pub struct AuthOptions {
     /// Trusted local executable. No shell is used.
     pub binary: PathBuf,
-    /// Credential home. None inherits the current JCODE_HOME/default home.
+    /// Credential home. None inherits the current KCODE_HOME/default home.
     pub jcode_home: Option<PathBuf>,
     /// Native daemon socket, NOT the harness API socket.
     pub socket: Option<PathBuf>,
@@ -32,7 +32,7 @@ pub struct AuthOptions {
 impl Default for AuthOptions {
     fn default() -> Self {
         Self {
-            binary: std::env::var_os("JCODE_BIN")
+            binary: std::env::var_os("KCODE_BIN")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| "jcode".into()),
             jcode_home: None,
@@ -480,7 +480,7 @@ impl FlowInner {
             command.arg("--socket").arg(socket);
         }
         if let Some(home) = &self.options.jcode_home {
-            command.env("JCODE_HOME", home);
+            command.env("KCODE_HOME", home);
         }
         command.args([
             "login",

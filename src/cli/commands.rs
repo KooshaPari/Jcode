@@ -1356,7 +1356,7 @@ fn resolve_jade_sessions_helper(override_path: Option<&str>) -> Result<PathBuf> 
         return Ok(PathBuf::from(path));
     }
 
-    if let Some(path) = std::env::var_os("JCODE_JADE_SESSIONS_HELPER")
+    if let Some(path) = std::env::var_os("KCODE_JADE_SESSIONS_HELPER")
         .filter(|path| !path.is_empty())
         .map(PathBuf::from)
     {
@@ -1379,7 +1379,7 @@ fn resolve_jade_sessions_helper(override_path: Option<&str>) -> Result<PathBuf> 
     }
 
     anyhow::bail!(
-        "Could not find Jade session helper. Set --helper PATH or JCODE_JADE_SESSIONS_HELPER. Expected a private helper like ~/jade/scripts/jade_sessions.py"
+        "Could not find Jade session helper. Set --helper PATH or KCODE_JADE_SESSIONS_HELPER. Expected a private helper like ~/jade/scripts/jade_sessions.py"
     );
 }
 
@@ -1867,7 +1867,7 @@ pub fn run_pair_command(list: bool, revoke: Option<String>) -> Result<()> {
     let gw_config = &crate::config::config().gateway;
 
     if !gw_config.enabled {
-        eprintln!("\x1b[33m⚠\x1b[0m  Gateway is disabled. Enable it in ~/.jcode/config.toml:\n");
+        eprintln!("\x1b[33m⚠\x1b[0m  Gateway is disabled. Enable it in ~/.kcode/config.toml:\n");
         eprintln!("    \x1b[2m[gateway]\x1b[0m");
         eprintln!("    \x1b[2menabled = true\x1b[0m");
         eprintln!("    \x1b[2mport = {}\x1b[0m\n", gw_config.port);
@@ -1906,7 +1906,7 @@ pub fn run_pair_command(list: bool, revoke: Option<String>) -> Result<()> {
 
     if connect_host == gateway::UNKNOWN_CONNECT_HOST {
         eprintln!(
-            "\n  \x1b[33mTip:\x1b[0m set JCODE_GATEWAY_HOST to your reachable Tailscale hostname."
+            "\n  \x1b[33mTip:\x1b[0m set KCODE_GATEWAY_HOST to your reachable Tailscale hostname."
         );
     }
 
@@ -1959,7 +1959,7 @@ pub async fn run_browser(action: &str, requested: Option<&str>) -> Result<()> {
             if let Some(saved) = browser::saved_browser_preference() {
                 println!("  configured by setup: {}", saved.id());
             }
-            println!("\nOverride with `jcode browser setup <browser>` or JCODE_BROWSER=<browser>.");
+            println!("\nOverride with `jcode browser setup <browser>` or KCODE_BROWSER=<browser>.");
         }
         "status" => {
             let target = browser::resolve_target_browser(requested)?;
@@ -2532,7 +2532,7 @@ pub async fn run_single_message_command(
         super::provider_init::init_provider_for_run(choice, model, emit_json || emit_ndjson)
             .await?;
     let registry = crate::tool::Registry::new(provider.clone()).await;
-    // Load MCP servers from ~/.jcode/mcp.json so headless `jcode run` has the
+    // Load MCP servers from ~/.kcode/mcp.json so headless `jcode run` has the
     // same `mcp__*` tools as interactive/server sessions. This is non-blocking:
     // `register_mcp_tools` advertises cached tool schemas synchronously (so the
     // first locked tool snapshot already contains MCP tools, for zero
@@ -2624,7 +2624,7 @@ async fn run_single_message_with_agent(
 }
 
 fn run_command_auto_poke_enabled() -> bool {
-    std::env::var("JCODE_RUN_AUTO_POKE")
+    std::env::var("KCODE_RUN_AUTO_POKE")
         .ok()
         .map(|value| {
             let value = value.trim().to_ascii_lowercase();
@@ -2633,11 +2633,11 @@ fn run_command_auto_poke_enabled() -> bool {
         .unwrap_or_else(|| crate::config::config().features.auto_poke)
 }
 
-/// Whether headless `jcode run` should load MCP servers from `~/.jcode/mcp.json`.
-/// Enabled by default; set `JCODE_RUN_MCP=0` (or `false`/`off`/`no`) to skip MCP
+/// Whether headless `jcode run` should load MCP servers from `~/.kcode/mcp.json`.
+/// Enabled by default; set `KCODE_RUN_MCP=0` (or `false`/`off`/`no`) to skip MCP
 /// registration for latency-sensitive scripting. (#390)
 fn run_command_mcp_enabled() -> bool {
-    std::env::var("JCODE_RUN_MCP")
+    std::env::var("KCODE_RUN_MCP")
         .ok()
         .map(|value| {
             let value = value.trim().to_ascii_lowercase();
@@ -2647,10 +2647,10 @@ fn run_command_mcp_enabled() -> bool {
 }
 
 /// Max time `jcode run` waits for cold-cache MCP servers to register their
-/// tools before running the single turn. Override with `JCODE_RUN_MCP_WAIT_MS`
+/// tools before running the single turn. Override with `KCODE_RUN_MCP_WAIT_MS`
 /// (0 disables the wait).
 fn run_command_mcp_cold_wait() -> std::time::Duration {
-    let ms = std::env::var("JCODE_RUN_MCP_WAIT_MS")
+    let ms = std::env::var("KCODE_RUN_MCP_WAIT_MS")
         .ok()
         .and_then(|value| value.trim().parse::<u64>().ok())
         .unwrap_or(5000);
@@ -2719,7 +2719,7 @@ async fn wait_for_cold_cache_mcp_tools(registry: &crate::tool::Registry) {
 }
 
 fn run_command_auto_poke_max_turns() -> Option<usize> {
-    std::env::var("JCODE_RUN_AUTO_POKE_MAX_TURNS")
+    std::env::var("KCODE_RUN_AUTO_POKE_MAX_TURNS")
         .ok()
         .and_then(|value| value.trim().parse::<usize>().ok())
         .filter(|value| *value > 0)
@@ -2910,7 +2910,7 @@ async fn run_single_message_command_plain_with_auto_poke(
                 gate_digest_delivered = true;
                 next_message = message;
                 eprintln!(
-                    "We asked the agent to double-check this turn's weak points. Set JCODE_RUN_AUTO_POKE=0 to disable."
+                    "We asked the agent to double-check this turn's weak points. Set KCODE_RUN_AUTO_POKE=0 to disable."
                 );
                 continue;
             }
@@ -2930,7 +2930,7 @@ async fn run_single_message_command_plain_with_auto_poke(
                 confidence_spike_challenged |= confidence_spike_challenge;
                 next_message = message;
                 eprintln!(
-                    "Todos are done. Asking the agent for a final confidence check. Set JCODE_RUN_AUTO_POKE=0 to disable."
+                    "Todos are done. Asking the agent for a final confidence check. Set KCODE_RUN_AUTO_POKE=0 to disable."
                 );
                 continue;
             }
@@ -2946,7 +2946,7 @@ async fn run_single_message_command_plain_with_auto_poke(
                 }
                 next_message = message;
                 eprintln!(
-                    "{} incomplete todo(s). We poked the agent for you. Set JCODE_RUN_AUTO_POKE=0 to disable.",
+                    "{} incomplete todo(s). We poked the agent for you. Set KCODE_RUN_AUTO_POKE=0 to disable.",
                     count
                 );
             }
@@ -2992,7 +2992,7 @@ async fn run_single_message_command_capture_with_auto_poke(
                 gate_digest_delivered = true;
                 next_message = message;
                 eprintln!(
-                    "We asked the agent to double-check this turn's weak points. Set JCODE_RUN_AUTO_POKE=0 to disable."
+                    "We asked the agent to double-check this turn's weak points. Set KCODE_RUN_AUTO_POKE=0 to disable."
                 );
                 continue;
             }
@@ -3130,7 +3130,7 @@ async fn run_single_message_command_ndjson(
                 gate_digest_delivered = true;
                 next_message = message;
                 eprintln!(
-                    "We asked the agent to double-check this turn's weak points. Set JCODE_RUN_AUTO_POKE=0 to disable."
+                    "We asked the agent to double-check this turn's weak points. Set KCODE_RUN_AUTO_POKE=0 to disable."
                 );
                 continue;
             }

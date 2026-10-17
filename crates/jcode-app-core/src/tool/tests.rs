@@ -14,8 +14,8 @@ struct TestHomeGuard {
 
 impl TestHomeGuard {
     fn new(path: &std::path::Path) -> Self {
-        let previous = std::env::var_os("JCODE_HOME");
-        crate::env::set_var("JCODE_HOME", path);
+        let previous = std::env::var_os("KCODE_HOME");
+        crate::env::set_var("KCODE_HOME", path);
         Self { previous }
     }
 }
@@ -23,9 +23,9 @@ impl TestHomeGuard {
 impl Drop for TestHomeGuard {
     fn drop(&mut self) {
         if let Some(previous) = self.previous.take() {
-            crate::env::set_var("JCODE_HOME", previous);
+            crate::env::set_var("KCODE_HOME", previous);
         } else {
-            crate::env::remove_var("JCODE_HOME");
+            crate::env::remove_var("KCODE_HOME");
         }
     }
 }
@@ -84,7 +84,7 @@ async fn register_empty_mcp_tools(registry: &Registry, working_dir: &std::path::
 #[tokio::test]
 async fn mcp_list_remains_available_while_background_connect_is_handshaking() {
     let _env_lock = crate::storage::lock_test_env();
-    let home = tempfile::tempdir().expect("create isolated JCODE_HOME");
+    let home = tempfile::tempdir().expect("create isolated KCODE_HOME");
     let _home_guard = TestHomeGuard::new(home.path());
     let working_dir = tempfile::tempdir().expect("create isolated MCP working directory");
 
@@ -132,7 +132,7 @@ async fn mcp_list_remains_available_while_background_connect_is_handshaking() {
 #[tokio::test]
 async fn real_mcp_registration_does_not_retain_registry_tool_map() {
     let _env_lock = crate::storage::lock_test_env();
-    let home = tempfile::tempdir().expect("create isolated JCODE_HOME");
+    let home = tempfile::tempdir().expect("create isolated KCODE_HOME");
     let _home_guard = TestHomeGuard::new(home.path());
     let working_dir = tempfile::tempdir().expect("create isolated MCP working directory");
     let registry = Registry::empty();
@@ -152,7 +152,7 @@ async fn real_mcp_registration_does_not_retain_registry_tool_map() {
 #[tokio::test]
 async fn mcp_management_upgrades_registry_through_surviving_clone() {
     let _env_lock = crate::storage::lock_test_env();
-    let home = tempfile::tempdir().expect("create isolated JCODE_HOME");
+    let home = tempfile::tempdir().expect("create isolated KCODE_HOME");
     let _home_guard = TestHomeGuard::new(home.path());
     let working_dir = tempfile::tempdir().expect("create isolated MCP working directory");
     let registry = Registry::empty();
@@ -572,8 +572,8 @@ async fn registry_execute_pre_tool_hook_blocks_and_allows() {
     std::fs::set_permissions(&policy, std::fs::Permissions::from_mode(0o755))
         .expect("chmod policy");
 
-    let prev = std::env::var_os("JCODE_HOOK_PRE_TOOL");
-    crate::env::set_var("JCODE_HOOK_PRE_TOOL", policy.to_string_lossy().to_string());
+    let prev = std::env::var_os("KCODE_HOOK_PRE_TOOL");
+    crate::env::set_var("KCODE_HOOK_PRE_TOOL", policy.to_string_lossy().to_string());
     // jcode-base is compiled without cfg(test) here, so the config cache only
     // re-checks env every 500ms; force a reload so the hook is visible now.
     crate::config::invalidate_config_cache();
@@ -608,8 +608,8 @@ async fn registry_execute_pre_tool_hook_blocks_and_allows() {
         .await;
 
     match prev {
-        Some(value) => crate::env::set_var("JCODE_HOOK_PRE_TOOL", value),
-        None => crate::env::remove_var("JCODE_HOOK_PRE_TOOL"),
+        Some(value) => crate::env::set_var("KCODE_HOOK_PRE_TOOL", value),
+        None => crate::env::remove_var("KCODE_HOOK_PRE_TOOL"),
     }
     crate::config::invalidate_config_cache();
 
@@ -1911,12 +1911,12 @@ async fn post_tool_feedback_hook_appends_stdout_to_tool_result() {
     let script = dir.path().join("feedback.sh");
     std::fs::write(
         &script,
-        "#!/bin/sh\ninput=$(cat)\necho \"call=$JCODE_HOOK_TOOL_CALL_ID tool=$JCODE_HOOK_TOOL_NAME\"\necho \"paths=$JCODE_HOOK_TOUCHED_PATHS\"\ncase \"$input\" in *prose.md*) echo stdin-ok ;; esac\nexit 1\n",
+        "#!/bin/sh\ninput=$(cat)\necho \"call=$KCODE_HOOK_TOOL_CALL_ID tool=$KCODE_HOOK_TOOL_NAME\"\necho \"paths=$KCODE_HOOK_TOUCHED_PATHS\"\ncase \"$input\" in *prose.md*) echo stdin-ok ;; esac\nexit 1\n",
     )
     .expect("write script");
     std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).expect("chmod");
-    let previous = std::env::var_os("JCODE_HOOK_POST_TOOL_FEEDBACK");
-    crate::env::set_var("JCODE_HOOK_POST_TOOL_FEEDBACK", &script);
+    let previous = std::env::var_os("KCODE_HOOK_POST_TOOL_FEEDBACK");
+    crate::env::set_var("KCODE_HOOK_POST_TOOL_FEEDBACK", &script);
 
     let registry = Registry::new(Arc::new(MockProvider) as Arc<dyn Provider>).await;
     let mut ctx = mcp_test_context(dir.path());
@@ -1926,8 +1926,8 @@ async fn post_tool_feedback_hook_appends_stdout_to_tool_result() {
         .await;
 
     match previous {
-        Some(value) => crate::env::set_var("JCODE_HOOK_POST_TOOL_FEEDBACK", value),
-        None => crate::env::remove_var("JCODE_HOOK_POST_TOOL_FEEDBACK"),
+        Some(value) => crate::env::set_var("KCODE_HOOK_POST_TOOL_FEEDBACK", value),
+        None => crate::env::remove_var("KCODE_HOOK_POST_TOOL_FEEDBACK"),
     }
     let output = result.expect("read should succeed").output;
     assert!(output.contains("hello"), "{output}");

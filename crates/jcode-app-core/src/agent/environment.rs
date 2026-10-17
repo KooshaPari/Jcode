@@ -1,4 +1,4 @@
-use super::{Agent, JCODE_REPO_SOURCE_STATE, WORKING_GIT_STATE_CACHE};
+use super::{Agent, KCODE_REPO_SOURCE_STATE, WORKING_GIT_STATE_CACHE};
 use crate::logging;
 use crate::session::{EnvSnapshot, GitState};
 use chrono::Utc;
@@ -69,7 +69,7 @@ impl Agent {
         detail: EnvSnapshotDetail,
     ) -> EnvSnapshot {
         let (jcode_git_hash, jcode_git_dirty) = match detail {
-            EnvSnapshotDetail::Full => JCODE_REPO_SOURCE_STATE.clone(),
+            EnvSnapshotDetail::Full => KCODE_REPO_SOURCE_STATE.clone(),
             EnvSnapshotDetail::Minimal => (None, None),
         };
 
@@ -152,7 +152,7 @@ mod tests {
     #[tokio::test]
     async fn log_context_names_the_profile_not_the_transport_slot() {
         // `Agent::new` only builds in-memory session state, so the test needs
-        // no `JCODE_HOME`, and it must not set one either: the crate's tests
+        // no `KCODE_HOME`, and it must not set one either: the crate's tests
         // run in parallel.
         let provider: Arc<dyn Provider> = Arc::new(MultiplexedSlotProvider);
         let registry = Registry::new(provider.clone()).await;

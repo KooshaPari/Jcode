@@ -1,0 +1,67 @@
+"""Cross-language product boundary regression checks; no real user data used."""
+import pathlib
+import subprocess
+import tempfile
+import tomllib
+import unittest
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+
+
+class ProductIdentityTests(unittest.TestCase):
+    def test_cargo_exposes_kcode_and_no_jcode_launcher(self):
+        manifest = tomllib.loads((ROOT / "Cargo.toml").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["package"]["name"], "kcode")
+        self.assertIn("-k", manifest["package"]["version"])
+        binaries = {target["name"] for target in manifest["bin"]}
+        self.assertIn("kcode", binaries)
+        self.assertNotIn("jcode", binaries)
+
+    def test_runtime_never_reads_legacy_environment_overrides(self):
+        import re
+        forbidden = re.compile(r'(?:var|var_os|getenv)\s*\(\s*"JCODE_')
+        for folder in ("src", "crates"):
+            for source in (ROOT / folder).rglob("*.rs"):
+                self.assertIsNone(forbidden.search(source.read_text(encoding="utf-8")), str(source))
+
+    def test_all_update_entry_points_fail_before_work(self):
+        source = (ROOT / "crates/jcode-app-core/src/update.rs").read_text(encoding="utf-8")
+        for signature in (
+            "pub fn fetch_latest_release_blocking() -> Result<GitHubRelease> {",
+            "fn latest_main_sha_blocking() -> Result<String> {",
+            "pub fn prepare_update_blocking() -> Result<PreparedUpdate> {",
+            "    mut on_progress: impl FnMut(DownloadProgress),\n) -> Result<PathBuf> {",
+        ):
+            body = source.split(signature, 1)[1].lstrip()
+            self.assertTrue(body.startswith("update_product::require_update_channel()?;"), signature)
+        self.assertIn('const GITHUB_REPO: &str = "KooshaPari/KCode";', source)
+
+    @unittest.skipUnless(__import__("os").name == "nt", "Windows installer")
+    def test_windows_installer_rejects_remote_download_before_creating_paths(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as folder:
+            target = pathlib.Path(folder) / "must-not-exist"
+            result = subprocess.run(
+                ["pwsh", "-NoProfile", "-File", str(ROOT / "scripts/install.ps1"),
+                 "-InstallDir", str(target)],
+                capture_output=True, text=True, timeout=30,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("KCode release downloads are disabled", result.stdout + result.stderr)
+            self.assertFalse(target.exists())
+
+    @unittest.skipUnless(__import__("os").name == "nt", "Windows installer")
+    def test_windows_installer_rejects_jcode_destination_before_artifact_access(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as folder:
+            target = pathlib.Path(folder) / "jcode" / "bin"
+            result = subprocess.run(
+                ["pwsh", "-NoProfile", "-File", str(ROOT / "scripts/install.ps1"),
+                 "-InstallDir", str(target), "-ArtifactExePath", "unused.exe", "-Version", "0.93.0-k0.1.0"],
+                capture_output=True, text=True, timeout=30,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("KCode cannot install into jcode", result.stdout + result.stderr)
+            self.assertFalse(target.exists())
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -106,20 +106,20 @@ impl Target {
         if let Some(host) = self.host.clone().filter(|h| !h.trim().is_empty()) {
             return Ok(host);
         }
-        if let Ok(host) = std::env::var("JCODE_CLOUD_HOST")
+        if let Ok(host) = std::env::var("KCODE_CLOUD_HOST")
             && !host.trim().is_empty()
         {
             return Ok(host);
         }
         bail!(
-            "no cloud host configured: pass --host <ssh-alias> or set JCODE_CLOUD_HOST (for example the `jcode-cloud-alpha` alias in ~/.ssh/config)"
+            "no cloud host configured: pass --host <ssh-alias> or set KCODE_CLOUD_HOST (for example the `jcode-cloud-alpha` alias in ~/.ssh/config)"
         )
     }
 
     fn remote_binary(&self) -> String {
         self.remote_binary
             .clone()
-            .or_else(|| std::env::var("JCODE_CLOUD_REMOTE_BINARY").ok())
+            .or_else(|| std::env::var("KCODE_CLOUD_REMOTE_BINARY").ok())
             .filter(|s| !s.trim().is_empty())
             .unwrap_or_else(|| "jcode".to_string())
     }
@@ -133,7 +133,7 @@ impl Target {
                 let text = format!("{error:#}");
                 if text.contains("unrecognized subcommand") || text.contains("unrecognized") {
                     bail!(
-                        "jcode on `{host}` does not support `cloud move` yet. Update jcode on the cloud host (or pass --remote-binary / set JCODE_CLOUD_REMOTE_BINARY to a newer build)"
+                        "jcode on `{host}` does not support `cloud move` yet. Update jcode on the cloud host (or pass --remote-binary / set KCODE_CLOUD_REMOTE_BINARY to a newer build)"
                     );
                 }
                 Err(error.context(format!("could not run jcode on `{host}`")))
@@ -239,7 +239,7 @@ pub(crate) fn run_move(
         .or_else(|| std::env::current_dir().ok())
         .context("session has no working directory")?;
     let staging = tempfile::Builder::new()
-        .prefix("jcode-cloud-move-")
+        .prefix("kcode-cloud-move-")
         .tempdir()?;
     let stage = staging.path();
 
@@ -447,7 +447,7 @@ pub(crate) fn run_return(
         None,
     )?;
     let staging = tempfile::Builder::new()
-        .prefix("jcode-cloud-return-")
+        .prefix("kcode-cloud-return-")
         .tempdir()?;
     let stage = staging.path();
     let tarball = stage.join("return.tar");
@@ -641,7 +641,7 @@ pub(crate) fn run_export(session_id: &str, epoch: u64) -> Result<()> {
     let result = (|| -> Result<Vec<u8>> {
         let sess = session::Session::load(session_id)?;
         let staging = tempfile::Builder::new()
-            .prefix("jcode-cloud-export-")
+            .prefix("kcode-cloud-export-")
             .tempdir()?;
         let stage = staging.path();
         let working_dir = sess
@@ -1185,7 +1185,7 @@ pub(crate) fn run_cli(command: super::args::CloudCommand) -> Result<()> {
         remote_binary: t.remote_binary,
         transport: t
             .transport
-            .or_else(|| std::env::var("JCODE_CLOUD_TRANSPORT").ok())
+            .or_else(|| std::env::var("KCODE_CLOUD_TRANSPORT").ok())
             .filter(|s| !s.trim().is_empty()),
     };
     match command {
@@ -1336,13 +1336,13 @@ fn resolve_session_id(session_ref: Option<&str>) -> Result<String> {
         }
         return session::find_session_by_name_or_id(reference);
     }
-    if let Ok(id) = std::env::var("JCODE_SESSION_ID")
+    if let Ok(id) = std::env::var("KCODE_SESSION_ID")
         && !id.trim().is_empty()
     {
         return Ok(id);
     }
     bail!(
-        "no session given: pass --session <id> (inside a jcode agent shell JCODE_SESSION_ID is used)"
+        "no session given: pass --session <id> (inside a jcode agent shell KCODE_SESSION_ID is used)"
     )
 }
 
@@ -1483,7 +1483,7 @@ fn arrival_notice(manifest: &MoveManifest) -> String {
 
 fn describe_local_only_state(session_id: &str) -> Vec<String> {
     let mut items = Vec::new();
-    let dir = std::env::temp_dir().join("jcode-bg-tasks");
+    let dir = std::env::temp_dir().join("kcode-bg-tasks");
     if let Ok(entries) = std::fs::read_dir(dir) {
         for entry in entries.flatten() {
             let path = entry.path();
@@ -1556,7 +1556,7 @@ fn configured_mcp_servers() -> Vec<String> {
 }
 
 fn local_host_label() -> String {
-    std::env::var("JCODE_CLOUD_HOST_LABEL")
+    std::env::var("KCODE_CLOUD_HOST_LABEL")
         .ok()
         .filter(|s| !s.is_empty())
         .or_else(|| {
@@ -1635,7 +1635,7 @@ fn shell_quote(value: &str) -> String {
 }
 
 fn step(phase: &str, detail: &str) {
-    if std::env::var_os("JCODE_CLOUD_QUIET").is_none() {
+    if std::env::var_os("KCODE_CLOUD_QUIET").is_none() {
         eprintln!("[cloud {phase}] {detail}");
     }
 }
@@ -1666,11 +1666,11 @@ pub(crate) fn exec_handoff(handoff: crate::tui::CloudHandoff) -> Result<()> {
     let mut command = Command::new(&exe);
     // Never inherit the previous SSH attach identity.
     for var in [
-        "JCODE_SSH_REMOTE",
-        "JCODE_SSH_BINARY",
-        "JCODE_SSH_WORKING_DIR",
-        "JCODE_SSH_SERVER_SOCKET",
-        "JCODE_SOCKET",
+        "KCODE_SSH_REMOTE",
+        "KCODE_SSH_BINARY",
+        "KCODE_SSH_WORKING_DIR",
+        "KCODE_SSH_SERVER_SOCKET",
+        "KCODE_SOCKET",
     ] {
         command.env_remove(var);
     }
@@ -1681,7 +1681,7 @@ pub(crate) fn exec_handoff(handoff: crate::tui::CloudHandoff) -> Result<()> {
             working_dir,
         } => {
             command.arg("--ssh").arg(&host);
-            if let Ok(binary) = std::env::var("JCODE_CLOUD_REMOTE_BINARY") {
+            if let Ok(binary) = std::env::var("KCODE_CLOUD_REMOTE_BINARY") {
                 command.arg("--ssh-binary").arg(binary);
             }
             if let Some(dir) = working_dir {
@@ -1689,7 +1689,7 @@ pub(crate) fn exec_handoff(handoff: crate::tui::CloudHandoff) -> Result<()> {
             }
             command.arg("--resume").arg(&session_id);
             command.env(
-                "JCODE_CLOUD_CONTINUE_MESSAGE",
+                "KCODE_CLOUD_CONTINUE_MESSAGE",
                 "[jcode cloud] This session just moved to the cloud host. Read the migration notice above, verify the environment you need is here, then continue the task exactly where you left off.",
             );
         }

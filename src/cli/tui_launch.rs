@@ -101,13 +101,13 @@ pub async fn run_tui_client(
     if let Some(ref session_id) = resume_session {
         set_current_session(session_id);
     }
-    let native_ssh = std::env::var_os("JCODE_SSH_REMOTE").is_some();
+    let native_ssh = std::env::var_os("KCODE_SSH_REMOTE").is_some();
     if !native_ssh {
         spawn_session_signal_watchers();
     }
 
     if native_ssh {
-        let host = std::env::var("JCODE_SSH_REMOTE").unwrap_or_default();
+        let host = std::env::var("KCODE_SSH_REMOTE").unwrap_or_default();
         let label = resume_session.as_deref().unwrap_or("new session");
         crate::process_title::set_client_remote_display_title(
             &host,

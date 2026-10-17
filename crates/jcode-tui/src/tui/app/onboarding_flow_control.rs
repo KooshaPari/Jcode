@@ -954,7 +954,7 @@ impl App {
     ///
     /// Resolving the most active Git repository requires a full session-list
     /// scan, which is a cold multi-hundred-millisecond disk walk on machines
-    /// with a large `~/.jcode/sessions` directory. Doing it inline on Enter made
+    /// with a large `~/.kcode/sessions` directory. Doing it inline on Enter made
     /// the suggested repository review action feel laggy, so run it
     /// off-thread as soon as the choice is displayed and have the key handler
     /// consume the cached answer.
@@ -1442,7 +1442,7 @@ impl App {
         let providers: [(&str, &str, AuthState); 8] = [
             ("Anthropic (Claude)", "anthropic", status.anthropic.state),
             ("OpenAI", "openai", status.openai),
-            ("Jcode subscription", "jcode", status.jcode),
+            ("Jcode subscription", "jcode", status.kcode),
             ("Gemini", "gemini", status.gemini),
             ("GitHub Copilot", "copilot", status.copilot),
             ("Cursor", "cursor", status.cursor),

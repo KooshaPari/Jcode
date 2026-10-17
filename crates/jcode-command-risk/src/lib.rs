@@ -135,7 +135,7 @@ impl RiskContext {
         Self {
             working_dir,
             home_dir: dirs_home(),
-            scratch_dir: std::env::var_os("JCODE_SCRATCH_DIR")
+            scratch_dir: std::env::var_os("KCODE_SCRATCH_DIR")
                 .filter(|value| !value.is_empty())
                 .map(std::path::PathBuf::from),
         }
@@ -206,7 +206,7 @@ pub fn assess(command: &str, ctx: &RiskContext) -> RiskAssessment {
     let mut findings = Vec::new();
     // Keep the trusted context for literal protected paths, but never approve
     // commands whose own assignments can invalidate known-variable expansion.
-    if command.contains("HOME=") || command.contains("JCODE_SCRATCH_DIR=") {
+    if command.contains("HOME=") || command.contains("KCODE_SCRATCH_DIR=") {
         findings.push(RiskFinding {
             level: RiskLevel::Confirm,
             reason: "command reassigns a path variable used by risk assessment".into(),

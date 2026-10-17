@@ -727,14 +727,14 @@ pub(super) fn handle_dev_command(app: &mut App, trimmed: &str) -> bool {
                 PremiumMode::OnePerSession => "one premium per session",
                 PremiumMode::Zero => "zero premium requests",
             };
-            let env = std::env::var("JCODE_COPILOT_PREMIUM").ok();
+            let env = std::env::var("KCODE_COPILOT_PREMIUM").ok();
             let env_label = match env.as_deref() {
                 Some("0") => "0 (zero)",
                 Some("1") => "1 (one per session)",
                 _ => "unset (normal)",
             };
             app.push_display_message(DisplayMessage::system(format!(
-                "Premium mode: {}\nEnv JCODE_COPILOT_PREMIUM: {}",
+                "Premium mode: {}\nEnv KCODE_COPILOT_PREMIUM: {}",
                 label, env_label,
             )));
             return true;

@@ -55,7 +55,7 @@ pub use jcode_provider_core::cli_provider_arg_for_session_key;
 pub use jcode_provider_core::{
     ALL_CLAUDE_MODELS, ALL_OPENAI_MODELS, CHATGPT_WEB_MODEL, CHEAPNESS_REFERENCE_INPUT_TOKENS,
     CHEAPNESS_REFERENCE_OUTPUT_TOKENS, CredentialMode, DEFAULT_CONTEXT_LIMIT, EventStream,
-    JCODE_USER_AGENT, ModelCapabilities, ModelCatalogRefreshSummary, ModelRoute,
+    KCODE_USER_AGENT, ModelCapabilities, ModelCatalogRefreshSummary, ModelRoute,
     ModelRouteApiMethod, NativeCompactionResult, NativeToolResult, NativeToolResultSender,
     PremiumMode, Provider, RouteBillingKind, RouteCheapnessEstimate, RouteCostConfidence,
     RouteCostSource, RouteSelection, RuntimeKey, dedupe_model_routes,
@@ -308,7 +308,7 @@ fn configured_standard_openrouter_profile_routes() -> Vec<ModelRoute> {
 pub(crate) fn jcode_subscription_model_prefix(model: &str) -> Option<&str> {
     let (prefix, rest) = model.split_once(':')?;
     let prefix = prefix.trim();
-    if !(prefix.eq_ignore_ascii_case("jcode") || prefix.eq_ignore_ascii_case("jcode-subscription"))
+    if !(prefix.eq_ignore_ascii_case("jcode") || prefix.eq_ignore_ascii_case("kcode-subscription"))
     {
         return None;
     }
@@ -563,9 +563,9 @@ impl MultiProvider {
         .join(",");
         format!(
             "{}|{}|{}|{:?}|{}|{}|{}",
-            // Scope by home so sandboxes (tests, JCODE_HOME switches) never
+            // Scope by home so sandboxes (tests, KCODE_HOME switches) never
             // share catalogs that were built from different credential files.
-            std::env::var("JCODE_HOME").unwrap_or_default(),
+            std::env::var("KCODE_HOME").unwrap_or_default(),
             Self::provider_key(active),
             self.model(),
             credential_mode,
@@ -912,7 +912,7 @@ impl MultiProvider {
                     .active_openrouter_execution_provider()
                     .map(|execution| execution.runtime_display_name())
                     .unwrap_or_else(|| "OpenRouter".to_string());
-                let runtime = std::env::var("JCODE_RUNTIME_PROVIDER").ok();
+                let runtime = std::env::var("KCODE_RUNTIME_PROVIDER").ok();
                 crate::provider_activity::source_key_for_provider_label(&label, runtime.as_deref())
             }
             other => Self::provider_key(other).to_string(),
@@ -1142,7 +1142,7 @@ impl MultiProvider {
 
         match provider {
             ActiveProvider::Claude => {
-                let switching_from_named_anthropic = std::env::var("JCODE_NAMED_PROVIDER_PROFILE")
+                let switching_from_named_anthropic = std::env::var("KCODE_NAMED_PROVIDER_PROFILE")
                     .ok()
                     .and_then(|name| crate::config::config().providers.get(&name))
                     .is_some_and(|profile| {
@@ -1152,12 +1152,12 @@ impl MultiProvider {
                         )
                     });
                 if switching_from_named_anthropic {
-                    crate::env::remove_var("JCODE_NAMED_PROVIDER_PROFILE");
-                    crate::env::remove_var("JCODE_PROVIDER_PROFILE_ACTIVE");
-                    crate::env::remove_var("JCODE_PROVIDER_PROFILE_NAME");
+                    crate::env::remove_var("KCODE_NAMED_PROVIDER_PROFILE");
+                    crate::env::remove_var("KCODE_PROVIDER_PROFILE_ACTIVE");
+                    crate::env::remove_var("KCODE_PROVIDER_PROFILE_NAME");
                     crate::provider_catalog::clear_anthropic_profile_env();
                     crate::env::set_var(
-                        "JCODE_RUNTIME_PROVIDER",
+                        "KCODE_RUNTIME_PROVIDER",
                         match anthropic_credential_mode {
                             Some(mode) => match mode {
                                 anthropic::AnthropicCredentialMode::ApiKey => "anthropic-api",
@@ -3106,9 +3106,9 @@ mod bedrock_placeholder_default_tests {
         let _guard = crate::storage::lock_test_env();
         let temp = tempfile::tempdir().expect("tempdir");
         let keys = [
-            "JCODE_HOME",
-            "JCODE_BEDROCK_MODEL",
-            "JCODE_BEDROCK_REGION",
+            "KCODE_HOME",
+            "KCODE_BEDROCK_MODEL",
+            "KCODE_BEDROCK_REGION",
             "AWS_REGION",
             "AWS_DEFAULT_REGION",
         ];
@@ -3116,7 +3116,7 @@ mod bedrock_placeholder_default_tests {
         for key in &keys[1..] {
             crate::env::remove_var(key);
         }
-        crate::env::set_var("JCODE_HOME", temp.path());
+        crate::env::set_var("KCODE_HOME", temp.path());
 
         let fresh = new_bedrock_provider();
         assert_eq!(
@@ -3147,7 +3147,7 @@ mod bedrock_placeholder_default_tests {
         let promoted = new_bedrock_provider().model();
 
         crate::env::set_var(
-            "JCODE_BEDROCK_MODEL",
+            "KCODE_BEDROCK_MODEL",
             "anthropic.claude-3-5-haiku-20241022-v1:0",
         );
         let pinned = new_bedrock_provider().model();
