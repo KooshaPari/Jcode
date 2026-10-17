@@ -1,8 +1,25 @@
 # PR 67 reopen-vs-new decision
 
+> **Banner — 2026-10-17:** The premise of this document ("PR 67 is CLOSED, not
+> merged, reopen-vs-new needed") was a **misread**. On 2026-10-17T06:24Z we
+> discovered that PR 67 was integrated to `KooshaPari/KCode:master` at commit
+> `fed23782d` via the **harness-compliant squash-merge path** documented in
+> AGENTS.md, which bypasses GitHub's merge button. `gh pr view 67` still
+> returns `state=CLOSED, mergedAt=null` because the merge was via `git push`,
+> not via the GH API. See `STATE.md` §16 (rewritten), §22 (NEW FINDING),
+> §22.1 (full audit, 3 PRs), and the standalone doc
+> `22-NEW-FINDING-gh-pr-view-closed-vs-merged.md`.
+>
+> **What this means for the recommendation below:** Option B (open a new PR)
+> was executed — PR #103 was opened with the corrected body. PR #103's
+> original "Closes #67" footer was a follow-on of the same misread and was
+> retargeted to "Supersedes #67 — but the original was already on master" at
+> commit `abf024199`. This document is retained for record only.
+
 **Date:** 2026-10-17
-**Repo:** `KooshaPari/Jcode`
-**State of PR 67:** CLOSED (not merged) since 2026-10-15T08:13:15Z
+**Repo:** `KooshaPari/Jcode` (decision text; the actual PR was opened on `KooshaPari/KCode`)
+**State of PR 67 at time of writing:** CLOSED (not merged) since 2026-10-15T08:13:15Z
+**State of PR 67 as of 2026-10-17T06:24Z:** **integrated to master at `fed23782d` via harness squash-merge** (see banner)
 **Trigger:** §4 row K (apply the corrected PR 67 description) requires a vehicle.
 
 ## TL;DR
