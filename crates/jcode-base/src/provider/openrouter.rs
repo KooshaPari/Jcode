@@ -45,7 +45,10 @@ pub use jcode_provider_openrouter::{
 /// authoritative "OpenRouter does not serve this model".
 pub fn standard_catalog_lists_model(model_id: &str) -> Option<bool> {
     let (models, _cache_is_stale) =
-        super::cached_live_models_for_namespace("openrouter", DEFAULT_API_BASE)?;
+        crate::provider_declared_models::cached_live_models_for_namespace(
+            "openrouter",
+            DEFAULT_API_BASE,
+        )?;
     Some(models.iter().any(|model| model == model_id))
 }
 

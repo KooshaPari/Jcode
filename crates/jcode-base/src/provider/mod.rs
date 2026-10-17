@@ -146,54 +146,22 @@ pub(crate) const OPENAI_COMPATIBLE_PROFILE_CATALOG_SOFT_REFRESH_SECS: u64 = 15 *
 /// fetched from this endpoint for its catalog to be trusted as OpenRouter's.
 pub(crate) const STANDARD_OPENROUTER_API_BASE: &str = "https://openrouter.ai/api/v1";
 
-fn openai_compatible_profile_catalog_cache_is_stale(cached_at: u64, now: u64) -> bool {
+/// Whether a cached profile catalog has aged past the soft-refresh window.
+///
+/// Lives here rather than next to the cache reader so that
+/// `provider_declared_models::cached_live_models_for_namespace` and the
+/// `provider` tests can both reach it without a circular module dependency.
+pub(crate) fn openai_compatible_profile_catalog_cache_is_stale(
+    cached_at: u64,
+    now: u64,
+) -> bool {
     now.saturating_sub(cached_at) >= OPENAI_COMPATIBLE_PROFILE_CATALOG_SOFT_REFRESH_SECS
 }
 
 pub(crate) fn cached_live_models_for_openai_compatible_profile(
     resolved: &crate::provider_catalog::ResolvedOpenAiCompatibleProfile,
 ) -> Option<(Vec<String>, bool)> {
-    cached_live_models_for_namespace(&resolved.id, &resolved.api_base)
-}
-
-/// Cached `/models` ids for `namespace`, accepted only when the cache records
-/// the same `api_base` the requesting profile actually talks to.
-///
-/// The cache namespace is process-global (`JCODE_OPENROUTER_CACHE_NAMESPACE`,
-/// defaulting to `openrouter`), so a namespace file can be left holding another
-/// endpoint's catalog: a stale profile cache, or a direct compatible profile
-/// that never set the namespace var. Trusting such a file makes every picker row
-/// carry the wrong provider's models (issue #1824). A mismatch is reported as
-/// "no usable cache" so callers fall back to their static list and the
-/// background catalog sweeper schedules a refetch.
-fn cached_live_models_for_namespace(
-    namespace: &str,
-    expected_api_base: &str,
-) -> Option<(Vec<String>, bool)> {
-    let cache = jcode_provider_openrouter::load_disk_cache_entry_for_namespace(namespace)?;
-    let cache_is_stale = jcode_provider_openrouter::current_unix_secs()
-        .map(|now| openai_compatible_profile_catalog_cache_is_stale(cache.cached_at, now))
-        .unwrap_or(false);
-    let source_api_base = cache
-        .source_api_base
-        .as_deref()
-        .and_then(crate::provider_catalog::normalize_api_base)?;
-    let expected_api_base = crate::provider_catalog::normalize_api_base(expected_api_base)?;
-    if source_api_base != expected_api_base {
-        return None;
-    }
-
-    let models = cache
-        .models
-        .into_iter()
-        .map(|model| model.id.trim().to_string())
-        .filter(|model| !model.is_empty())
-        .collect::<Vec<_>>();
-    if models.is_empty() {
-        None
-    } else {
-        Some((models, cache_is_stale))
-    }
+    crate::provider_declared_models::cached_live_models_for_namespace(&resolved.id, &resolved.api_base)
 }
 
 fn direct_openai_compatible_profile_routes(
@@ -285,7 +253,10 @@ fn configured_standard_openrouter_profile_routes() -> Vec<ModelRoute> {
     // namespace that was fetched from a different endpoint is not evidence about
     // the public OpenRouter catalog (issue #1824).
     let Some((models, _cache_is_stale)) =
-        cached_live_models_for_namespace("openrouter", STANDARD_OPENROUTER_API_BASE)
+        crate::provider_declared_models::cached_live_models_for_namespace(
+            "openrouter",
+            STANDARD_OPENROUTER_API_BASE,
+        )
     else {
         return Vec::new();
     };

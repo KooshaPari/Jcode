@@ -1,17 +1,17 @@
-//! Regression tests for issue #1824: the `/model` picker for an
-//! OpenAI-compatible provider must union the models declared in config.toml
-//! (`[[providers.<name>.models]]`) with the endpoint's fetched `/models`
-//! catalog, and must never trust a disk cache that was fetched from a different
-//! endpoint.
-//!
-//! Two failure modes are covered:
-//!
-//! 1. MiniMax serves `MiniMax-M3.1-Flash-Preview` on chat completions but omits
-//!    it from `GET /v1/models`, so a declared model was invisible in the picker
-//!    even though the config explicitly names it.
-//! 2. The cache namespace is process-global, so `~/.jcode/cache/minimax_models.json`
-//! could hold another provider's catalog (the report found NVIDIA NIM models
-//! under `source_api_base`) and silently decide the picker.
+// Regression tests for issue #1824: the `/model` picker for an
+// OpenAI-compatible provider must union the models declared in config.toml
+// (`[[providers.<name>.models]]`) with the endpoint's fetched `/models`
+// catalog, and must never trust a disk cache that was fetched from a different
+// endpoint.
+//
+// Two failure modes are covered:
+//
+// 1. MiniMax serves `MiniMax-M3.1-Flash-Preview` on chat completions but omits
+//    it from `GET /v1/models`, so a declared model was invisible in the picker
+//    even though the config explicitly names it.
+// 2. The cache namespace is process-global, so `~/.jcode/cache/minimax_models.json`
+// could hold another provider's catalog (the report found NVIDIA NIM models
+// under `source_api_base`) and silently decide the picker.
 
 use super::*;
 
@@ -55,7 +55,7 @@ fn config_declared_model_absent_from_fetched_list_reaches_the_picker() {
 
         let profile = crate::provider_catalog::openai_compatible_profile_by_id("minimax")
             .expect("MiniMax profile exists");
-        let routes = super::super::direct_openai_compatible_profile_routes(profile);
+        let routes = direct_openai_compatible_profile_routes(profile);
         let declared = routes
             .iter()
             .find(|route| route.model == "MiniMax-M3.1-Flash-Preview")
@@ -98,7 +98,7 @@ fn config_declared_model_duplicate_of_fetched_model_is_not_listed_twice() {
 
         let profile = crate::provider_catalog::openai_compatible_profile_by_id("minimax")
             .expect("MiniMax profile exists");
-        let routes = super::super::direct_openai_compatible_profile_routes(profile);
+        let routes = direct_openai_compatible_profile_routes(profile);
         let occurrences = routes
             .iter()
             .filter(|route| route.model == "MiniMax-M3.1-Flash-Preview")
@@ -135,7 +135,7 @@ id = "minimax-embedding"
 
         let profile = crate::provider_catalog::openai_compatible_profile_by_id("minimax")
             .expect("MiniMax profile exists");
-        let routes = super::super::direct_openai_compatible_profile_routes(profile);
+        let routes = direct_openai_compatible_profile_routes(profile);
         assert!(
             routes
                 .iter()
@@ -168,15 +168,15 @@ fn profile_cache_from_a_different_endpoint_is_rejected() {
         );
 
         assert!(
-            super::super::cached_live_models_for_openai_compatible_profile(&resolved).is_none(),
+            cached_live_models_for_openai_compatible_profile(&resolved).is_none(),
             "a cache fetched from another endpoint must not be usable for this profile"
         );
         assert!(
-            super::super::catalog_scheduler::profile_catalog_cache_needs_refresh(profile),
+            catalog_scheduler::profile_catalog_cache_needs_refresh(profile),
             "an unusable cache must leave the profile due for a refresh"
         );
 
-        let routes = super::super::direct_openai_compatible_profile_routes(profile);
+        let routes = direct_openai_compatible_profile_routes(profile);
         assert!(
             !routes.iter().any(|route| route.model == "yi-large"),
             "another provider's models must never be relabeled as this profile: {routes:?}"
@@ -202,7 +202,7 @@ fn native_openrouter_namespace_rejects_a_foreign_source_api_base() {
             "a cross-provider-polluted cache must not answer OpenRouter catalog questions"
         );
         assert!(
-            super::super::configured_standard_openrouter_profile_routes().is_empty(),
+            configured_standard_openrouter_profile_routes().is_empty(),
             "a cross-provider-polluted cache must not produce standard OpenRouter routes"
         );
 
