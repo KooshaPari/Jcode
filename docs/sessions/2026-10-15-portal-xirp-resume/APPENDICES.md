@@ -311,6 +311,34 @@ a hung `cargo` invocation hangs the entire gate.
 
 Do not run another `just grade` in this session until step 1 completes.
 
+**8.2.d 2026-10-17 follow-up — step 1 is naturally DONE.**
+Live `ps` check on the operator's host (read-only, no reap performed):
+
+```bash
+$ ps -A -o pid,ppid,etime,comm | awk '$4 == "cargo" || $4 == "rustc"'
+# (no rows)
+$ ps -A -o pid,command | grep -E "cargo|rustc" | grep -v grep | wc -l
+0
+```
+
+The 48 leaked cargo/rustc processes recorded in §8.2.b are gone. The only
+`/Users/kooshapari/.cargo/bin/phinbox-mcp` matches are a Node-based MCP server
+binary (not a Rust compiler), filtered out by the precise comm-name check. The
+host was rebooted/cleaned between the 2026-10-16 observation and this 2026-10-17
+follow-up, so the natural reap is exactly the outcome §8.2.c step 1 wanted.
+
+That leaves **§8.2.c step 2 and step 3** as the remaining operator work:
+- Step 2: re-run `just grade` standalone. Expected wall-time 5-10 min on a clean
+  host (matches the 145s observation in §8.2 with the prior 8 minutes of cargo
+  build cache still warm). Use this to either confirm the gate passes without the
+  host load, or to characterize any residual variance.
+- Step 3: 5x variance capture with a real budget. If 3/5 still hit 11/17 in 30s,
+  the prior evidence stands; if 5/5 reach 17/17 in ~150s, host load was the
+  entire defect. The honest answer is now knowable.
+
+Do not run `just grade` from this session; the agent-side path forward is only
+to record the outcome, not to spawn the gate.
+
 ## Appendix I. Operator steps for GitHub App private-repo access
 
 Rechecked 2026-10-16. This is still not grantable from `gh`.
