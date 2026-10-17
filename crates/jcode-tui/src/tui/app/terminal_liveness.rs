@@ -86,7 +86,11 @@ pub(crate) fn terminal_abandoned() -> bool {
 
     #[cfg(windows)]
     {
-        return windows_console_abandoned(initial, current_tty_nr());
+        // The Windows probe always yields a value (`0` is its lost-terminal
+        // sentinel), so the `unwrap_or` arm is unreachable today. If a future
+        // refactor ever makes it None again, `1` means "some console is still
+        // there" so we assume alive: the conservative choice.
+        windows_console_abandoned(initial, current_tty_nr().unwrap_or(1))
     }
 
     #[cfg(not(windows))]
@@ -127,13 +131,15 @@ fn current_tty_nr() -> Option<u64> {
 /// Probe the console window that currently hosts this process.
 ///
 /// Windows has no `tty_nr`, so the console window `HWND` stands in for it and is
-/// mapped onto the same convention the Unix platforms use:
+/// mapped onto the same convention the Unix implementations use, so that
+/// `Some(0)` means "lost terminal" everywhere in this module:
 ///
 ///   * `Some(hwnd)` -> attached to a console whose window handle is `hwnd`,
 ///     nonzero and stable while that console is alive;
 ///   * `Some(0)`    -> no console window to identify (no console attached, or a
-///     pseudoconsole, which has no visible window), which
-///     `terminal_abandoned` reads as the lost-tty sentinel.
+///     pseudoconsole, which has no visible window), the lost-tty sentinel;
+///   * `None`       -> not produced here; kept total to match the signature the
+///     Unix implementations share.
 ///
 /// `HWND` is a pointer, so the cast to `u64` is lossless on both 32- and
 /// 64-bit Windows.
@@ -146,8 +152,8 @@ fn current_tty_nr() -> Option<u64> {
 /// handle when a console is attached *and* has a window identity:
 ///
 ///   * `Some(hwnd)` -> attached to a console with a resolvable window handle,
-///   * `None`       -> no console attached, or a pseudoconsole (ConPTY child)
-///                     which has no visible window handle.
+///   * `None` -> no console attached, or a pseudoconsole (ConPTY child) which
+///     has no visible window handle.
 ///
 /// All of the abandon/not-abandon *decision* lives in the pure
 /// [`windows_console_abandoned`] helper so that logic is unit-testable on any
@@ -192,11 +198,12 @@ fn windows_console_identity() -> Option<u64> {
 /// Compiled on every platform so the cross-platform semantics are exercised by
 /// unit tests on whichever host CI runs, rather than only on Windows. `initial`
 /// is the value captured at startup (a console window `HWND` as `u64`, or `0`
-/// when the process never had a console window) and `now` is a fresh probe.
+/// when the process never had a console window) and `now` is a fresh probe in
+/// the same convention, where `0` is the lost-tty sentinel that `current_tty_nr`
+/// returns when no console window can be identified.
 ///
 /// The rule deliberately matches the Unix implementations exactly: fire only
-/// on an *explicit* loss signal (no console attached any more), and assume
-/// alive in every ambiguous case.
+/// on an *explicit* loss signal, and assume alive in every ambiguous case.
 ///
 /// In particular, a nonzero handle that merely *differs* from the startup one
 /// is treated as ALIVE, not abandoned. Treating it as abandoned would depend on
@@ -208,14 +215,14 @@ fn windows_console_identity() -> Option<u64> {
 /// without a Windows console, the safe reading is the one that cannot kill a
 /// live session.
 #[cfg_attr(not(windows), allow(dead_code))]
-fn windows_console_abandoned(initial: u64, now: Option<u64>) -> bool {
+fn windows_console_abandoned(initial: u64, now: u64) -> bool {
     // Never had a console window (headless/piped, or a ConPTY pseudoconsole):
     // nothing to lose, stay quiet.
     if initial == 0 {
         return false;
     }
-    // Explicit loss only: no console attached any more, or the lost sentinel.
-    matches!(now, None | Some(0))
+    // Explicit loss only: the probe found no console window at all.
+    now == 0
 }
 
 #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
@@ -260,15 +267,14 @@ mod tests {
     #[test]
     fn windows_console_still_attached_is_not_abandoned() {
         // Same console window handle as at startup: alive.
-        assert!(!windows_console_abandoned(0x1234, Some(0x1234)));
+        assert!(!windows_console_abandoned(0x1234, 0x1234));
     }
 
     #[test]
     fn windows_console_lost_is_abandoned() {
-        // No console attached any more: explicit loss.
-        assert!(windows_console_abandoned(0x1234, None));
-        // Lost-tty sentinel: explicit loss.
-        assert!(windows_console_abandoned(0x1234, Some(0)));
+        // Lost-tty sentinel: no console window could be identified any more,
+        // which is the explicit loss signal.
+        assert!(windows_console_abandoned(0x1234, 0));
     }
 
     #[test]
@@ -276,15 +282,14 @@ mod tests {
         // A nonzero handle that differs from the startup one is ambiguous: we
         // have no verified evidence the console went away, so we assume alive
         // rather than risk terminating a live user session on a false positive.
-        assert!(!windows_console_abandoned(0x1234, Some(0x5678)));
+        assert!(!windows_console_abandoned(0x1234, 0x5678));
     }
 
     #[test]
     fn windows_never_had_console_is_not_abandoned() {
         // Headless/piped or a ConPTY pseudoconsole: never had a console
         // window, so there is nothing to lose and we never report abandoned.
-        assert!(!windows_console_abandoned(0, None));
-        assert!(!windows_console_abandoned(0, Some(0)));
-        assert!(!windows_console_abandoned(0, Some(0x5678)));
+        assert!(!windows_console_abandoned(0, 0));
+        assert!(!windows_console_abandoned(0, 0x5678));
     }
 }
