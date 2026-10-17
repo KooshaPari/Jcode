@@ -28,7 +28,9 @@ use update_metadata::{record_release_update_duration, record_source_update_durat
 pub use update_rate_limit::{RATE_LIMIT_ERROR_PREFIX, is_rate_limit_error};
 use update_rate_limit::{clear_rate_limit_backoff, rate_limit_error};
 
-const GITHUB_REPO: &str = "1jehuang/jcode";
+#[path = "update_product.rs"]
+mod update_product;
+const GITHUB_REPO: &str = update_product::UPDATE_REPO;
 /// Minimum gap between *automatic* update checks.
 ///
 /// Every automatic check costs one or two unauthenticated `api.github.com`
@@ -138,6 +140,9 @@ fn source_build_repo_dir() -> Result<PathBuf> {
 }
 
 pub fn should_auto_update() -> bool {
+    if update_product::ensure_update_allowed().is_err() {
+        return false;
+    }
     should_auto_update_with(
         std::env::var("JCODE_NO_AUTO_UPDATE").is_ok(),
         is_release_build(),
@@ -236,6 +241,7 @@ fn release_url_override_with(value: Option<String>, sandboxed_home: bool) -> Opt
 }
 
 pub fn fetch_latest_release_blocking() -> Result<GitHubRelease> {
+    update_product::ensure_update_allowed().map_err(anyhow::Error::msg)?;
     let override_url = release_url_override();
     let url = override_url.clone().unwrap_or_else(|| {
         format!(
@@ -295,6 +301,7 @@ fn github_api_request(
 }
 
 fn latest_main_sha_blocking() -> Result<String> {
+    update_product::ensure_update_allowed().map_err(anyhow::Error::msg)?;
     let url = format!("https://api.github.com/repos/{}/commits/main", GITHUB_REPO);
     let client = reqwest::blocking::Client::builder()
         .timeout(UPDATE_CHECK_TIMEOUT)
@@ -372,6 +379,7 @@ fn synthetic_main_release(latest_sha: &str) -> GitHubRelease {
 }
 
 fn install_main_source_update_blocking(latest_sha: &str) -> Result<PathBuf> {
+    update_product::ensure_update_allowed().map_err(anyhow::Error::msg)?;
     let path = build_from_source()?;
     crate::logging::info(&format!(
         "Main channel: built successfully at {}",
@@ -511,6 +519,7 @@ fn prepare_main_update_blocking() -> Result<PreparedUpdate> {
 }
 
 pub fn prepare_update_blocking() -> Result<PreparedUpdate> {
+    update_product::ensure_update_allowed().map_err(anyhow::Error::msg)?;
     let channel = crate::config::config().features.update_channel;
     match channel {
         crate::config::UpdateChannel::Main => prepare_main_update_blocking(),
@@ -623,6 +632,7 @@ pub fn spawn_background_session_update(session_id: String) {
 }
 
 pub fn check_for_update_blocking() -> Result<Option<GitHubRelease>> {
+    update_product::ensure_update_allowed().map_err(anyhow::Error::msg)?;
     let channel = crate::config::config().features.update_channel;
     match channel {
         crate::config::UpdateChannel::Main => check_for_main_update_blocking(),
@@ -725,6 +735,7 @@ fn has_cargo() -> bool {
 
 /// Build jcode from source by cloning/pulling the repo and running cargo build
 fn build_from_source() -> Result<PathBuf> {
+    update_product::ensure_update_allowed().map_err(anyhow::Error::msg)?;
     let started = Instant::now();
     let build_dir = source_build_root()?;
     fs::create_dir_all(&build_dir)?;
@@ -1006,6 +1017,7 @@ pub fn download_and_install_blocking_with_progress(
     release: &GitHubRelease,
     mut on_progress: impl FnMut(DownloadProgress),
 ) -> Result<PathBuf> {
+    update_product::ensure_update_allowed().map_err(anyhow::Error::msg)?;
     let started = Instant::now();
     let asset_name = get_asset_name();
     let asset = release
@@ -1341,3 +1353,7 @@ mod tests;
 #[cfg(test)]
 #[path = "update_github_auth_tests.rs"]
 mod github_auth_tests;
+
+#[cfg(test)]
+#[path = "update_product_entry_tests.rs"]
+mod update_product_entry_tests;
