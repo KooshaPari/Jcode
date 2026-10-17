@@ -153,6 +153,12 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 | O | **NEW** Vendor question draft (Spotify/Xirp) | **DONE — draft ready, CHANNEL-BLOCKED**. Pasteable draft at `vendor-question-draft.md` (98 lines). Channel unknown from agent side: xirp has no `feedback`/`support`/`contact` subcommand; AppBundle does not advertise a support URL; docs do not list an email. Operator must pick a channel and paste. see §19 |
 | P | **NEW** Grant Portal GitHub App private-repo access (B2-priv) | **OPERATOR-ONLY** — Spotify admin UI is the only path. No `gh` command. Appendix I has the steps. Awaiting operator action; agent cannot unblock. |
 | Q | **NEW** Re-resolve PR 103 conflict + retarget body | **DONE** — PR 67 was actually integrated to master at `fed23782d` via the harness-compliant squash-merge path (signed by `jcode-test@local`), bypassing GitHub's merge button. `gh pr view 67` shows CLOSED+mergedAt=null+mergeCommit=null because the merge was via `git push`, not via the GH API. PR 103 was therefore CONFLICTING. Resolution: `git merge origin/master` with `git checkout --ours` for the 8 add/add files in the session dir (master was the older snapshot; ours is the strict superset). PR 103 body retargeted: "Closes #67" footer replaced with an accurate "Supersedes #67 — but the original was already on master" note. §16 fully rewritten. see §21 + §22 |
+| R | **NEW** XJ-07 spec found verbatim | **DONE — SPEC FOUND** — at `docs/XIRP_CUSTOM_HARNESS.md:132`: "XJ-07 \| Verify failure and rollback \| Missing CLI, expired auth, network loss and malformed events fail clearly; unregister restores prior configuration". Jcode-side, testable, can proceed. see §23 |
+| S | **NEW** Vendor contact channel (subagent investigation) | **DONE — NO PUBLIC CHANNEL** — subagent `session_mizaru_1792219502394_01b378b9830eb204` confirmed Xirp is `com.spotify.xirp`, a Spotify-internal product. Internal codebase at `ghe.spotify.net` (not externally accessible); update CDN `reckless-finch.spotifycdn.com/external/`; `@chirp/*` packages are private (not on npm); no public support email, GitHub repo, or feedback channel in the AppBundle. Operator must use a personal/internal channel. see §19.1 |
+| T | **NEW** XJ-03 bridge config deploy (local + stub CIMD) | **IN FLIGHT** — subagent `session_cactus_1792220247047_449b44b2d6d2e308` (Tier 2 mimo-v2.5-pro, 15m budget) building local `mcp-remote` config + stub CIMD test + unblock-criteria doc. Real deploy awaits operator + vendor (CIMD hosting + Spotify allow-list). |
+| U | **NEW** §22-pattern audit on `KooshaPari/Jcode` fork | **IN FLIGHT** — subagent `session_daisy_1792220259698_483f4ca0aa2846ee` (Tier 1 M3, 8m budget) read-only identifying §22-pattern PRs on the Jcode fork. |
+| V | **NEW** KCode open-PR §22 audit | **IN FLIGHT** — subagent `session_blossom_1792220256689_983dcc32bb422ecd` (Tier 1 M3, 10m budget) auditing 9 OPEN KCode PRs for the same "Closes #N" misleading-footer pattern. Will retarget any matches. |
+| W | **NEW** §14+ retarget consistency audit | **DONE** — STATE.md §14, §16, §22 are all in good shape; every "Closes #67" reference is now either a historical commit record (in the §14 commit-tracker rows) or an audit-correction note (in §16/§22). `pr-67-reopen-decision.md` got a 2026-10-17 banner flagging the misread premise. Commit `00c48db59`. |
 
 ## 5. Blockers (explicit)
 
@@ -757,3 +763,96 @@ shortly after). Future agents and operators will hit this pattern
 again on the same fork, and the standalone NEW-FINDING doc
 (`22-NEW-FINDING-gh-pr-view-closed-vs-merged.md`) is now anchored
 to the concrete 3-PR set as evidence rather than a single example.
+
+## 19.1 Vendor contact channel — subagent investigation (2026-10-17T06:45Z)
+
+The `vendor-contact-search` subagent
+(`session_mizaru_1792219502394_01b378b9830eb204`, Tier 1 M3) was
+dispatched to find a real contact channel for Spotify / Xirp developer
+support so the §19 vendor question draft can be sent. The
+investigation exhausted the following channels:
+
+| Channel | Result | Evidence |
+|---------|--------|----------|
+| Xirp CLI `feedback`/`support`/`contact` subcommand | NOT FOUND | `xirp --help` enumerates `session`, `project`, `api`, `features`, `skill`, `update`, `edition` only |
+| Xirp.app AppBundle support URL | NOT ADVERTISED | `Info.plist` has no `NSHumanReadableCopyright` support URL, no `LSApplicationCategory` hint |
+| Spotify Developer portal (`developer.spotify.com`) | NO XIRP SECTION | The portal does not list Xirp as a developer product |
+| GitHub `KooshaPari/xirp`, `KooshaPari/portal`, `KooshaPari/chirp`, `KooshaPari/squab`, `KooshaPari/spotify` | NONE EXIST | `gh repo list` returns 0 results |
+| npm `@chirp/*` (squab, daemon, etc.) | NOT PUBLIC | `npm view @chirp/squab` returns 404 (`"@chirp/squab@*"` not in registry) |
+| Web search (DuckDuckGo + Bing) for "Spotify Xirp developer support" | NO RELEVANT HITS | The first 20 results are Spotify Music / Podcasts / general Spotify support, not developer channels |
+| The Xirp app's bundled docs (`chirp-skill/xirp/SKILL.md`) | NO CONTACT INFO | SKILL.md describes CLI usage only |
+| `Backstage Spotify docs` (`backstage.spotify.com/docs/xirp`) | NO EMAIL LISTED | Docs describe product; no contact form |
+| Direct test of `ghe.spotify.net` | UNREACHABLE EXTERNALLY | This is Spotify's internal GitHub Enterprise instance |
+
+**Conclusion: no public contact channel exists.** Xirp is a Spotify-internal product. The `Info.plist` confirms: `CFBundleIdentifier = "com.spotify.xirp"`, `author = "Spotify"`, multiple editions exist (`core`/`external`/`internal`). The codebase lives at `ghe.spotify.net` (internal, not accessible externally). Update CDN at `https://reckless-finch.spotifycdn.com/external/`.
+
+**Operator channel options (operator must pick one):**
+1. **Personal Slack/email to a Spotify contact** (Xirp team, Portal team, or developer-relations). The operator is a `Portal Admins` member per §B6, so internal channels are accessible. **This is the recommended path.**
+2. **GitHub issue on a public squab/Xirp repo** — but no public repo exists, so this is not a real option.
+3. **Direct email to a guessed-but-not-verified address** — the operator must verify before sending; the agent will not fabricate an address.
+
+The §19 vendor question draft (`vendor-question-draft.md`) is pre-staged, ready to paste, and waits only for the operator's channel decision. Once a channel is chosen, paste the "Short version" section verbatim.
+
+## 23. XJ-07 spec found verbatim (2026-10-17T06:57Z)
+
+The `xj07-spec-discovery` subagent
+(`session_hibiscus_1792220251438_efbb4341b158c97e`, Tier 1 M3) was
+dispatched to find the definition of "XJ-07". The subagent located
+the verbatim definition at `docs/XIRP_CUSTOM_HARNESS.md:132` (the
+single occurrence in the entire `docs/` tree):
+
+> **XJ-07 | Verify failure and rollback | Missing CLI, expired auth,
+> network loss and malformed events fail clearly; unregister
+> restores prior configuration**
+
+This is from the "Bounded work" table (lines 123–138) that defines
+all XJ-* items. XJ-07 is one of two Jcode-side items (the other is
+XJ-03, the Portal MCP bridge).
+
+**Acceptance evidence (literal from the table):**
+- **Missing CLI** fails clearly (e.g. when `xirp` is not on PATH)
+- **Expired auth** fails clearly (e.g. when the Portal token is revoked)
+- **Network loss** fails clearly (e.g. when the Portal endpoint is unreachable)
+- **Malformed events** fail clearly (e.g. when an unexpected message arrives from squab)
+- **Unregister** restores prior configuration (the Jcode registration can be torn down cleanly)
+
+**Implication:** the work is **testable on the Jcode side** without
+vendor changes. The agent can write tests that simulate each failure
+mode and assert that Jcode's Xirp integration fails clearly. The
+"unregister restores prior configuration" requirement implies a
+teardown path that returns the system to a clean state.
+
+**Status change from §1.2:** RESUME.md §1.2 (line 69) said
+*"XJ-03 and XJ-07 can proceed on the Jcode side"* but did not give
+the spec. The spec is now known; XJ-07 moves from "unstarted,
+deliberately not pursued" to "ready-to-implement, awaiting operator
+go".
+
+**Implementation sketch (for operator review before subagent dispatch):**
+
+1. **Test scaffolding** — under `tests/` add a new file
+   `test_xj07_failure_modes.py` (or `xj07_failure_modes.rs` if the
+   Jcode integration is in Rust) with 5 test cases, one per
+   acceptance bullet. Each test should:
+   - Set up the failure mode (e.g. `chmod 0` on the `xirp` binary;
+     revoke the token via `~/.config/.../credentials`; `iptables -A
+     OUTPUT -d phenotype.spotifyportal.com -j DROP`; inject a
+     malformed message via a stub)
+   - Run the Jcode Xirp integration
+   - Assert that the failure is reported clearly (exit code, log
+     message, or user-visible error)
+2. **Unregister command** — verify that an existing
+   `jcode xirp unregister` (or equivalent) command restores the
+   prior configuration. If the command doesn't exist, implement it.
+3. **CI integration** — wire the tests into the existing test
+   runner; ensure they run on every PR.
+4. **Documentation** — update `docs/XIRP_CUSTOM_HARNESS.md` §"Bounded
+   work" to mark XJ-07 as **DONE** with the test count and run
+   timestamp.
+
+**Why this matters:** XJ-07 is the only bounded-work item that is
+**fully Jcode-side** (XJ-03 needs vendor allow-listing). Implementing
+XJ-07 produces concrete test evidence that the Jcode side is robust
+to the failure modes the operator is most likely to hit, without
+needing any vendor changes. It is the highest-leverage bounded-work
+item to ship next.

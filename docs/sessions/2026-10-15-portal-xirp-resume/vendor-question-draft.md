@@ -96,3 +96,43 @@ The operator should:
 
 Or, if the operator has a prior contact at Spotify, paste the short
 version into a reply to that thread.
+
+---
+
+## Channel options (2026-10-17 subagent investigation)
+
+The `vendor-contact-search` subagent
+(`session_mizaru_1792219502394_01b378b9830eb204`) was dispatched to find
+a real contact channel and exhausted the following paths. **No public
+contact channel exists for Xirp.** The product is Spotify-internal:
+
+- `CFBundleIdentifier = "com.spotify.xirp"`, author = "Spotify"
+- Internal codebase: `ghe.spotify.net` (Spotify's GitHub Enterprise;
+  not externally accessible)
+- Update CDN: `https://reckless-finch.spotifycdn.com/external/`
+- `@chirp/*` packages (squab, daemon, etc.) are private (not on npm)
+- No public GitHub repo for any `@chirp` package
+- The Xirp CLI has no `feedback`/`support`/`contact` subcommand
+- The Xirp AppBundle does not advertise a support URL
+- `backstage.spotify.com/docs/xirp` does not list a contact email
+- Web search for "Spotify Xirp developer support" returns no relevant hits
+
+**Operator channel options, ranked by practicality:**
+
+1. **Personal Slack/email to a Spotify contact** (Xirp team, Portal
+   team, developer-relations, or any colleague with Xirp visibility).
+   The operator is a `Portal Admins` member per STATE.md §B6, so
+   internal channels are accessible. **This is the recommended path.**
+2. **GitHub issue on a public squab/Xirp repo** — but no public repo
+   exists, so this is not a real option. (Documented for completeness.)
+3. **Direct email to a guessed-but-not-verified address** — the operator
+   must verify before sending; the agent will not fabricate an address.
+4. **Xirp app's built-in `update` flow** — the app has a built-in
+   updater; the operator could in principle include a message with an
+   update log. Not a real support channel, but documents the
+   investigation exhaustively.
+
+**Once a channel is chosen, paste the "Short version" verbatim from
+the section above. Do not edit the questions — they were tuned against
+the XJ-01 negative result and the 5-line proof in
+`docs/XIRP_CUSTOM_HARNESS.md`.**
