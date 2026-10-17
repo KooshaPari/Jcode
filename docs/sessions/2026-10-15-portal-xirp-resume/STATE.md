@@ -98,7 +98,7 @@ than assumed.
 | Audit correction | `chore/xirp-custom-harness-discovery-20261014` @ `2652bc65a` | applied 2026-10-16; 6 record defects + 1 deleted stub |
 | End-to-end MCP probe | `codex exec` real `auth.who-am-i` | returned Backstage User `kooshapari`; 45,857 tokens, 1m 57s |
 | Grade-gate follow-up | `chore/xirp-custom-harness-discovery-20261014` @ `dd626990a` | §8.2.a/b/c in APPENDICES.md: coverage step is a deterministic hang, 48 leaked cargo/rustc, operator action required to reap before next grade run |
-| Wiki suggestion closure | `chore/xirp-custom-harness-discovery-20261014` (this commit) | WBS 0.6 closed: 2 PASS, 3 FAIL, 11 IDENTITY-CLEAN + content-unreviewed (B2); WBS 0.9 closed: /tmp worktrees already gone, canonical branch lives in /Users/kooshapari/wt-portal-record-fixes |
+| Wiki suggestion closure | `chore/xirp-custom-harness-discovery-20261014` @ `7687c630a` | WBS 0.6 closed: 2 PASS, 3 FAIL, 11 IDENTITY-CLEAN + content-unreviewed (B2); WBS 0.9 closed: /tmp worktrees already gone, canonical branch lives in /Users/kooshapari/wt-portal-record-fixes |
 
 Gotcha that cost time: inside the jcode checkout, plain `gh pr view 67`
 resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
@@ -295,7 +295,7 @@ resolves against **upstream `1jehuang/jcode`**, not the fork. Always pass
 | `KooshaPari/Jcode` | same | `4de538618` | **bump 2 historical branch-tip pins from 7c52f8d to 26a8aadb3 after re-audit found the same defect shape** |
 | `KooshaPari/Jcode` | same | `dd626990a` | **§8.2.a/b/c grade-gate diagnostic: coverage is the deterministic hang, 48 leaked cargo/rustc on host, operator reaps before next run** |
 | `KooshaPari/Jcode` | same | `bee0ae107` | **replace 'this commit' relative pointers with the dd626990a SHA; backfill §9 audit arc (4 missing rows)** |
-| `KooshaPari/Jcode` | same | (this commit) | **WBS 0.6 + 0.9 closure: 2 PASS / 3 FAIL / 11 IDENTITY-CLEAN + content-unreviewed (B2); /tmp worktrees already gone** |
+| `KooshaPari/Jcode` | same | `7687c630a` | **WBS 0.6 + 0.9 closure: 2 PASS / 3 FAIL / 11 IDENTITY-CLEAN + content-unreviewed (B2); /tmp worktrees already gone** |
 
 PR 619 is still a **draft** and was not merged. Both pilot PRs untouched.
 
