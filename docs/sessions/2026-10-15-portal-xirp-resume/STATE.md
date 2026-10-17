@@ -715,3 +715,45 @@ Consequences:
   *not* sufficient evidence that the PR was abandoned. Always cross-
   check with `git log origin/master --grep="#<N>"` for harness
   squash-merges that bypassed the GH merge button.
+
+### 22.1 Full audit on `KooshaPari/KCode` — 3 PRs match (PRs #64, #67, #75)
+
+A targeted audit was run on 2026-10-17T06:43Z against all 100 most
+recent KCode PRs (open + closed). The refined heuristic was: PR is
+`state=CLOSED, mergedAt=null` AND a commit on `origin/master` exists
+whose trailer block contains the literal string
+`harness-compliant squash-merge`. The first-pass heuristic (any
+commit with a `tx-` trailer) over-matched 18 PRs because it conflated
+harness squash-merges with regular commits and cherry-picks; the
+refined heuristic narrows to the 3 true cases:
+
+| PR | Title | Master commit | Parent |
+|----|-------|---------------|--------|
+| #64 | Fix unused deps + Tokio-runtime guard for herdr report_state | `4d676f097` | `8cd6d0e44` |
+| #67 | chore: prepare Xirp custom harness compatibility discovery | `fed23782d` | `4d676f097` |
+| #75 | chore(fmt): cargo fmt cleanup + clippy followup (122 files) | `a1e953097` | `fed23782d` |
+
+The parent chain is **linear**: PR #64's parent (`8cd6d0e44`) is the
+upstream baseline; PR #67 was squash-merged on top of `4d676f097` (PR
+#64's squash-merge); PR #75 was squash-merged on top of `fed23782d`
+(PR #67's squash-merge). All three are real, ordered, harness-
+trailed integrations — not abandoned PRs, not stray branches.
+
+**Action taken:** PR #64 and PR #75's bodies were edited via
+`gh pr edit` to add a "Status note (2026-10-17)" paragraph that
+points to the master commit, names the harness-compliant path,
+quotes the `tx-intent` trailer verbatim, and cross-refs the
+standalone NEW-FINDING doc. PR #67's body was already retargeted
+in the prior turn (the "Closes #67" → "Supersedes #67 — but the
+original was already on master" rewrite). No false-claim footers
+existed on PRs #64 and #75, so the edit was purely a clarifying
+note, not a retarget.
+
+**Why this matters:** the §22 finding was originally framed as a
+"PR 67 misread" — a one-off. The full audit shows it is a
+**systemic pattern** with at least 3 instances on this fork, all
+in the same window (PRs closed 2026-10-15T08:13Z, all integrated
+shortly after). Future agents and operators will hit this pattern
+again on the same fork, and the standalone NEW-FINDING doc
+(`22-NEW-FINDING-gh-pr-view-closed-vs-merged.md`) is now anchored
+to the concrete 3-PR set as evidence rather than a single example.

@@ -69,12 +69,39 @@ re-written in this same work arc.
 8. `gh pr edit 103 --body-file pr-67-body.md` (retargeted the body)
 9. `gh pr ready 103` (DRAFT → ready-for-review)
 
+## Full audit on `KooshaPari/KCode` (2026-10-17T06:43Z)
+
+A targeted audit was run against all 100 most recent KCode PRs
+(open + closed). The refined heuristic was: PR is
+`state=CLOSED, mergedAt=null` AND a commit on `origin/master` exists
+whose trailer block contains the literal string
+`harness-compliant squash-merge`. **3 PRs match** (full set):
+
+| PR | Title | Master commit | Parent |
+|----|-------|---------------|--------|
+| #64 | Fix unused deps + Tokio-runtime guard for herdr report_state | `4d676f097` | `8cd6d0e44` |
+| #67 | chore: prepare Xirp custom harness compatibility discovery | `fed23782d` | `4d676f097` |
+| #75 | chore(fmt): cargo fmt cleanup + clippy followup (122 files) | `a1e953097` | `fed23782d` |
+
+The parent chain is **linear** and ordered: PR #64 → PR #67 → PR #75.
+All three were closed in `gh` at 2026-10-15T08:13Z and integrated
+shortly after, all via the same harness-compliant path. The §22
+finding is therefore a **systemic pattern**, not a one-off.
+
+**Action taken (2026-10-17):** PR #64 and PR #75's bodies were
+edited via `gh pr edit` to add a "Status note (2026-10-17)"
+paragraph pointing to the master commit, naming the harness-compliant
+path, quoting the `tx-intent` trailer verbatim, and cross-referencing
+this doc. PR #67's body was already retargeted in the prior turn
+(the "Closes #67" → "Supersedes #67 — but the original was already
+on master" rewrite). No false-claim footers existed on PRs #64 and
+#75, so those edits were clarifying notes, not retargets.
+
 ## Cross-references
 
-- Session STATE.md §22 (this same finding, in session context)
+- Session STATE.md §22 + §22.1 (this same finding, in session context)
 - Session STATE.md §21 (PR 103 rebase onto current master)
-- PR 67 (the integrated PR; visible as `state=CLOSED` in `gh`, real
-  commit on master as `fed23782d`)
-- PR 103 (the follow-up additions; now MERGEABLE+CLEAN+ready)
+- PR #64, #67, #75 (the three §22-pattern PRs)
+- PR 103 (the follow-up additions; MERGEABLE + ready-for-review)
 - AGENTS.md "Merge Strategy: Direct-Push When `gh pr merge` Is
-  Fail-Closed" (the path that produced `fed23782d`)
+  Fail-Closed" (the path that produced the squash-merge commits)
