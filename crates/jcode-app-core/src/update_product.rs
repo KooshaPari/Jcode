@@ -118,6 +118,30 @@ pub fn fork_update_disallowed_error() -> anyhow::Error {
     )
 }
 
+/// Whether this product maintains a self-update channel at all.
+///
+/// KCode has no maintained release channel compatible with this branch, so
+/// self-update is disabled unconditionally — independently of semver, of
+/// environment overrides, and of whether the executable was renamed. This is
+/// the fail-closed switch the updater consults before any network call.
+pub(super) const SELF_UPDATE_ENABLED: bool = false;
+
+/// Guard the auto-updater call sites use to refuse self-update entirely.
+///
+/// [`resolve_update_repo`] already refuses fork builds, but that refusal is
+/// derived from semver heuristics. This guard is the independent, unconditional
+/// block: with no maintained release channel, there is nothing for even an
+/// upstream-identified build of this product to update itself to.
+pub(super) fn require_update_channel() -> anyhow::Result<()> {
+    if !SELF_UPDATE_ENABLED {
+        anyhow::bail!(
+            "KCode self-update is disabled: install a verified KCode build from \
+             KooshaPari/KCode; jcode releases and install paths are never used"
+        );
+    }
+    Ok(())
+}
+
 /// Resolve the repo slug for a network update call, or fail with
 /// [`fork_update_disallowed_error`].
 ///
@@ -335,5 +359,28 @@ mod tests {
     fn live_resolver_agrees_with_pure_resolver() {
         assert_eq!(update_repo(), update_repo_for(current_semver()));
         assert_eq!(is_fork_build(), is_fork_build_for(current_semver()));
+    }
+
+    /// Self-update must stay disabled even for an upstream-identified build of
+    /// this product. A regression here would let the updater reach the network
+    /// for a product with no maintained release channel.
+    #[test]
+    fn kcode_self_update_is_disabled_even_without_a_fork_version_suffix() {
+        assert!(!SELF_UPDATE_ENABLED);
+        assert!(
+            require_update_channel()
+                .unwrap_err()
+                .to_string()
+                .contains("KCode self-update is disabled")
+        );
+    }
+
+    /// The channel guard must refuse updates even when the semver heuristic
+    /// would otherwise resolve to upstream, so a semver-spoofed build cannot
+    /// reach a release endpoint.
+    #[test]
+    fn channel_guard_refuses_even_for_upstream_semver() {
+        assert_eq!(update_repo_for("1.5.3"), Some(GITHUB_REPO));
+        assert!(require_update_channel().is_err());
     }
 }
