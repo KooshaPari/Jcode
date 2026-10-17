@@ -2,10 +2,10 @@ use super::idle_animation_repaint::{copy_cells_in, idle_animation_partial_repain
 use super::*;
 
 fn report_reload_interaction_gap() {
-    let Ok(started) = std::env::var("JCODE_RELOAD_GAP_STARTED_MS") else {
+    let Ok(started) = std::env::var("KCODE_RELOAD_GAP_STARTED_MS") else {
         return;
     };
-    crate::env::remove_var("JCODE_RELOAD_GAP_STARTED_MS");
+    crate::env::remove_var("KCODE_RELOAD_GAP_STARTED_MS");
     let Some(started_ms) = started.parse::<u128>().ok() else {
         return;
     };

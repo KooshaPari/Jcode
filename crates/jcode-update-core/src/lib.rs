@@ -141,27 +141,27 @@ pub fn update_estimate(summary: String, duration: Duration) -> UpdateEstimate {
 pub fn get_asset_name() -> &'static str {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     {
-        "jcode-linux-x86_64"
+        "kcode-linux-x86_64"
     }
     #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
     {
-        "jcode-linux-aarch64"
+        "kcode-linux-aarch64"
     }
     #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
     {
-        "jcode-macos-x86_64"
+        "kcode-macos-x86_64"
     }
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     {
-        "jcode-macos-aarch64"
+        "kcode-macos-aarch64"
     }
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
     {
-        "jcode-windows-x86_64.exe"
+        "kcode-windows-x86_64.exe"
     }
     #[cfg(all(target_os = "windows", target_arch = "aarch64"))]
     {
-        "jcode-windows-aarch64.exe"
+        "kcode-windows-aarch64.exe"
     }
     #[cfg(not(any(
         all(target_os = "linux", target_arch = "x86_64"),
@@ -172,7 +172,7 @@ pub fn get_asset_name() -> &'static str {
         all(target_os = "windows", target_arch = "aarch64"),
     )))]
     {
-        "jcode-unknown"
+        "kcode-unknown"
     }
 }
 
@@ -449,10 +449,10 @@ mod tests {
     #[test]
     fn summarize_update_error_is_always_one_short_line() {
         let inputs = [
-            "Update failed: Update check failed: error sending request for url (https://api.github.com/repos/1jehuang/jcode/releases/latest)\n\nCaused by:\n    dns error: failed to lookup address information",
+            "Update failed: Update check failed: error sending request for url (https://api.github.com/repos/KooshaPari/KCode/releases/latest)\n\nCaused by:\n    dns error: failed to lookup address information",
             "cargo build failed: error[E0308]: mismatched types\n  --> src/lib.rs:1:1",
             "Checksum mismatch for jcode-linux-x86_64.tar.gz: expected aaa, got bbb",
-            "Failed to install /home/u/.jcode/builds/versions/0.1.0/jcode: Permission denied (os error 13)",
+            "Failed to install /home/u/.kcode/builds/versions/0.1.0/jcode: Permission denied (os error 13)",
             "a very long single clause with no recognizable cause that just keeps going and going well past any sensible terminal width",
             "",
         ];
@@ -515,7 +515,7 @@ mod tests {
 
     #[test]
     fn asset_name_is_supported() {
-        assert_ne!(get_asset_name(), "jcode-unknown");
+        assert_ne!(get_asset_name(), "kcode-unknown");
     }
 
     #[test]
@@ -545,11 +545,11 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            checksums.get("jcode-linux-x86_64").map(String::as_str),
+            checksums.get("kcode-linux-x86_64").map(String::as_str),
             Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         );
         assert_eq!(
-            checksums.get("jcode-macos-aarch64").map(String::as_str),
+            checksums.get("kcode-macos-aarch64").map(String::as_str),
             Some("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
         );
     }
@@ -559,13 +559,13 @@ mod tests {
         let bytes = b"hello world";
         let digest = format!("{:x}", Sha256::digest(bytes));
         let sums = format!("{}  jcode-linux-x86_64\n", digest);
-        verify_asset_checksum_text(&sums, "jcode-linux-x86_64", bytes).unwrap();
+        verify_asset_checksum_text(&sums, "kcode-linux-x86_64", bytes).unwrap();
     }
 
     #[test]
     fn checksum_verification_rejects_mismatch() {
         let sums = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  jcode-linux-x86_64\n";
-        let err = verify_asset_checksum_text(sums, "jcode-linux-x86_64", b"hello")
+        let err = verify_asset_checksum_text(sums, "kcode-linux-x86_64", b"hello")
             .unwrap_err()
             .to_string();
         assert!(err.contains("Checksum mismatch"));
@@ -574,7 +574,7 @@ mod tests {
     #[test]
     fn checksum_verification_requires_asset_entry() {
         let sums = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  other\n";
-        let err = verify_asset_checksum_text(sums, "jcode-linux-x86_64", b"hello")
+        let err = verify_asset_checksum_text(sums, "kcode-linux-x86_64", b"hello")
             .unwrap_err()
             .to_string();
         assert!(err.contains("does not list"));

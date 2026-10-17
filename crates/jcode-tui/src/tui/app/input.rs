@@ -3899,7 +3899,7 @@ impl App {
             // daemon-side `skill_manage reload_all` can update a different process.
             // On a slash miss, synchronously refresh from the active session working
             // directory before reporting Unknown skill so project-local skills such
-            // as .jcode/skills/optimization work immediately after reload/build.
+            // as .kcode/skills/optimization work immediately after reload/build.
             if skill.is_none() {
                 self.refresh_skills_snapshot();
                 skill = self.current_skills_snapshot().get(&skill_name).cloned();
@@ -3933,7 +3933,7 @@ impl App {
                             skill_name, install
                         ),
                         None => format!(
-                            "Skill /{} is endorsed but not installed (source: {}). Install it into ~/.jcode/skills/{}/SKILL.md.",
+                            "Skill /{} is endorsed but not installed (source: {}). Install it into ~/.kcode/skills/{}/SKILL.md.",
                             skill_name, endorsed.source, skill_name
                         ),
                     });

@@ -4,7 +4,7 @@ use std::process::Command;
 
 // Build metadata generator for the jcode workspace.
 //
-// This is the single source of truth for the JCODE_* compile-time values that
+// This is the single source of truth for the KCODE_* compile-time values that
 // previously lived in the root `jcode` crate's build.rs. It is hosted in the
 // leaf `jcode-build-meta` crate so every workspace crate can read identical
 // values (via `jcode_build_meta::*`) without duplicating this script.
@@ -32,7 +32,7 @@ fn main() {
 
     let git_hash = env_or_metadata_or_git(
         &repo_root,
-        "JCODE_BUILD_GIT_HASH",
+        "KCODE_BUILD_GIT_HASH",
         "git_hash",
         ["rev-parse", "--short", "HEAD"],
     )
@@ -42,14 +42,14 @@ fn main() {
     // Get git commit date (full datetime with timezone for accurate age calculation)
     let git_date = env_or_metadata_or_git(
         &repo_root,
-        "JCODE_BUILD_GIT_DATE",
+        "KCODE_BUILD_GIT_DATE",
         "git_date",
         ["log", "-1", "--format=%ci"],
     )
     .filter(|value| !value.is_empty())
     .unwrap_or_else(|| "unknown".to_string());
 
-    let dirty = match std::env::var("JCODE_BUILD_GIT_DIRTY") {
+    let dirty = match std::env::var("KCODE_BUILD_GIT_DIRTY") {
         Ok(value) => matches!(
             value.trim().to_ascii_lowercase().as_str(),
             "1" | "true" | "yes" | "dirty"
@@ -70,7 +70,7 @@ fn main() {
     // Get git tag (e.g., "v0.1.2" if HEAD is tagged, or "v0.1.2-3-gabc1234" if ahead)
     let git_tag = env_or_metadata_or_git(
         &repo_root,
-        "JCODE_BUILD_GIT_TAG",
+        "KCODE_BUILD_GIT_TAG",
         "git_tag",
         ["describe", "--tags", "--always"],
     )
@@ -79,7 +79,7 @@ fn main() {
     // Get recent commit messages with commit timestamps and version tag decorations.
     // Format: "hash|timestamp|decorations|subject" per line.
     // We embed a deeper window so /changelog can cover many more releases.
-    let raw_log = std::env::var("JCODE_BUILD_CHANGELOG_RAW")
+    let raw_log = std::env::var("KCODE_BUILD_CHANGELOG_RAW")
         .ok()
         .or_else(|| metadata_value("changelog_raw"))
         .or_else(|| git_output(&repo_root, ["log", "-700", "--format=%h|%ct|%D|%s"]))
@@ -114,7 +114,7 @@ fn main() {
     //   Release: v0.2.17 (abc1234)
     //   Dev:     v0.2.17-dev (abc1234)
     //   Dirty:   v0.2.17-dev (abc1234, dirty)
-    let is_release = std::env::var("JCODE_RELEASE_BUILD").is_ok();
+    let is_release = std::env::var("KCODE_RELEASE_BUILD").is_ok();
     let version = if is_release {
         format!("v{}.{}.{} ({})", major, minor, patch, git_hash)
     } else if dirty {
@@ -124,19 +124,19 @@ fn main() {
     };
 
     // Set environment variables for compilation
-    println!("cargo:rustc-env=JCODE_GIT_HASH={}", git_hash);
-    println!("cargo:rustc-env=JCODE_GIT_DATE={}", git_date);
-    println!("cargo:rustc-env=JCODE_VERSION={}", version);
-    println!("cargo:rustc-env=JCODE_SEMVER={}", build_semver);
-    println!("cargo:rustc-env=JCODE_BASE_SEMVER={}", base_semver);
-    println!("cargo:rustc-env=JCODE_UPDATE_SEMVER={}", update_semver);
-    println!("cargo:rustc-env=JCODE_GIT_TAG={}", git_tag);
-    println!("cargo:rustc-env=JCODE_CHANGELOG={}", changelog);
-    println!("cargo:rustc-env=JCODE_PKG_VERSION={}", pkg_version);
+    println!("cargo:rustc-env=KCODE_GIT_HASH={}", git_hash);
+    println!("cargo:rustc-env=KCODE_GIT_DATE={}", git_date);
+    println!("cargo:rustc-env=KCODE_VERSION={}", version);
+    println!("cargo:rustc-env=KCODE_SEMVER={}", build_semver);
+    println!("cargo:rustc-env=KCODE_BASE_SEMVER={}", base_semver);
+    println!("cargo:rustc-env=KCODE_UPDATE_SEMVER={}", update_semver);
+    println!("cargo:rustc-env=KCODE_GIT_TAG={}", git_tag);
+    println!("cargo:rustc-env=KCODE_CHANGELOG={}", changelog);
+    println!("cargo:rustc-env=KCODE_PKG_VERSION={}", pkg_version);
 
-    // Forward JCODE_RELEASE_BUILD env var if set (CI sets this for release binaries)
-    if std::env::var("JCODE_RELEASE_BUILD").is_ok() {
-        println!("cargo:rustc-env=JCODE_RELEASE_BUILD=1");
+    // Forward KCODE_RELEASE_BUILD env var if set (CI sets this for release binaries)
+    if std::env::var("KCODE_RELEASE_BUILD").is_ok() {
+        println!("cargo:rustc-env=KCODE_RELEASE_BUILD=1");
     }
 
     // Re-run only on inputs that should genuinely change the embedded metadata.
@@ -154,7 +154,7 @@ fn main() {
     // `resolve_build_semver` for the companion fix.
     //
     // Correctness is preserved where it matters:
-    //   * Release/dist builds set JCODE_RELEASE_BUILD=1 and JCODE_BUILD_SEMVER,
+    //   * Release/dist builds set KCODE_RELEASE_BUILD=1 and KCODE_BUILD_SEMVER,
     //     both of which DO force a rerun (declared below), so released binaries
     //     always embed the exact version/hash.
     //   * A `[package].version` bump touches Cargo.toml (declared below), which
@@ -167,14 +167,14 @@ fn main() {
         "cargo:rerun-if-changed={}",
         repo_root.join("Cargo.toml").display()
     );
-    println!("cargo:rerun-if-env-changed=JCODE_RELEASE_BUILD");
-    println!("cargo:rerun-if-env-changed=JCODE_BUILD_SEMVER");
+    println!("cargo:rerun-if-env-changed=KCODE_RELEASE_BUILD");
+    println!("cargo:rerun-if-env-changed=KCODE_BUILD_SEMVER");
     // Allow callers to force a metadata refresh (e.g. install scripts) without a
     // full clean, by bumping this env var.
-    println!("cargo:rerun-if-env-changed=JCODE_BUILD_GIT_HASH");
-    println!("cargo:rerun-if-env-changed=JCODE_BUILD_GIT_DATE");
-    println!("cargo:rerun-if-env-changed=JCODE_BUILD_GIT_DIRTY");
-    println!("cargo:rerun-if-env-changed=JCODE_BUILD_GIT_TAG");
+    println!("cargo:rerun-if-env-changed=KCODE_BUILD_GIT_HASH");
+    println!("cargo:rerun-if-env-changed=KCODE_BUILD_GIT_DATE");
+    println!("cargo:rerun-if-env-changed=KCODE_BUILD_GIT_DIRTY");
+    println!("cargo:rerun-if-env-changed=KCODE_BUILD_GIT_TAG");
 }
 
 /// Workspace root, derived from this crate's manifest dir (`crates/jcode-build-meta`).
@@ -223,7 +223,7 @@ fn parse_semver(value: &str) -> Option<(u32, u32, u32)> {
 }
 
 fn explicit_build_semver_override() -> Option<String> {
-    std::env::var("JCODE_BUILD_SEMVER")
+    std::env::var("KCODE_BUILD_SEMVER")
         .ok()
         .map(|value| value.trim().trim_start_matches('v').to_string())
         .filter(|value| parse_semver(value).is_some())
@@ -236,7 +236,7 @@ fn resolve_build_semver(base_version: (u32, u32, u32)) -> Result<String, String>
 
     // Dev builds derive the patch number deterministically from committed git
     // state: `base.patch + <commits since the base-version tag>`. This is a pure
-    // function of HEAD, so the emitted JCODE_SEMVER/JCODE_VERSION only change when
+    // function of HEAD, so the emitted KCODE_SEMVER/KCODE_VERSION only change when
     // an actual commit lands, NOT on every build-script rerun.
     //
     // The previous implementation incremented a persistent counter on every
@@ -288,7 +288,7 @@ fn git_output<const N: usize>(repo_root: &Path, args: [&str; N]) -> Option<Strin
 }
 
 fn metadata_value(key: &str) -> Option<String> {
-    let path = std::env::var("JCODE_BUILD_METADATA_FILE").ok()?;
+    let path = std::env::var("KCODE_BUILD_METADATA_FILE").ok()?;
     let data = fs::read_to_string(path).ok()?;
     let mut lines = data.lines();
     while let Some(line) = lines.next() {

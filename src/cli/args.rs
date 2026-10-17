@@ -25,7 +25,7 @@ pub(crate) enum ProviderAuthArg {
 }
 
 #[derive(Parser, Debug)]
-#[command(name = "jcode")]
+#[command(name = "kcode")]
 #[command(version = jcode_build_meta::version())]
 #[command(about = "J-Code: A coding agent using Claude Max or ChatGPT Pro subscriptions")]
 pub(crate) struct Args {
@@ -569,7 +569,7 @@ pub(crate) enum Command {
 
     /// Serve the stable harness API on a Unix socket, for SDK clients.
     ///
-    /// This is the endpoint the TypeScript SDK (`@1jehuang/jcode-sdk`) connects to. It
+    /// This is the endpoint the TypeScript SDK (`@KooshaPari/KCode-sdk`) connects to. It
     /// ships in the released binary on purpose: the API is only "generally
     /// available" if reaching it does not require a Rust toolchain and a
     /// source checkout.
@@ -781,7 +781,7 @@ pub(crate) enum CloudCommand {
 #[derive(Parser, Debug, Clone, Default)]
 pub(crate) struct CloudMoveTarget {
     /// SSH host alias for the cloud machine. Defaults to [cloud] host in config
-    /// or $JCODE_CLOUD_HOST.
+    /// or $KCODE_CLOUD_HOST.
     #[arg(long)]
     pub(crate) host: Option<String>,
     /// Remote jcode binary (name or path). Defaults to `jcode`.
@@ -789,7 +789,7 @@ pub(crate) struct CloudMoveTarget {
     pub(crate) remote_binary: Option<String>,
     /// Local command used in place of `ssh <host>` (for tests and custom
     /// transports). Receives the remote shell command as its final argument.
-    /// Also read from $JCODE_CLOUD_TRANSPORT.
+    /// Also read from $KCODE_CLOUD_TRANSPORT.
     #[arg(long, hide = true)]
     pub(crate) transport: Option<String>,
 }
@@ -850,7 +850,7 @@ pub(crate) enum CloudSessionsCommand {
     /// Upload the newest local Jcode session to Jade cloud storage
     UploadLatest {
         /// Directory containing local Jcode session JSON files
-        #[arg(long, default_value = "~/.jcode/sessions")]
+        #[arg(long, default_value = "~/.kcode/sessions")]
         sessions_dir: String,
 
         /// Upload without Jade's redaction pass
@@ -863,7 +863,7 @@ pub(crate) enum CloudSessionsCommand {
 
     /// Sync new or changed local sessions to Jade cloud storage (idempotent; safe to schedule)
     Sync {
-        /// Directory containing local Jcode session JSON files (default: ~/.jcode/sessions)
+        /// Directory containing local Jcode session JSON files (default: ~/.kcode/sessions)
         #[arg(long)]
         sessions_dir: Option<String>,
 
@@ -984,7 +984,7 @@ pub(crate) struct JadeCloudOptions {
     #[arg(long)]
     pub(crate) region: Option<String>,
 
-    /// Path to the private Jade session helper. Defaults to $JCODE_JADE_SESSIONS_HELPER or ~/jade/scripts/jade_sessions.py.
+    /// Path to the private Jade session helper. Defaults to $KCODE_JADE_SESSIONS_HELPER or ~/jade/scripts/jade_sessions.py.
     #[arg(long)]
     pub(crate) helper: Option<String>,
 }
@@ -1038,6 +1038,11 @@ pub(crate) enum ModelCommand {
 
 #[derive(Subcommand, Debug)]
 pub(crate) enum SessionCommand {
+    /// Copy a selected jcode session into KCode; never modifies the source
+    ImportJcode {
+        /// Session ID in ~/.jcode/sessions (no paths or credentials imported)
+        session: String,
+    },
     /// Rename a saved session's human-readable name/title
     Rename {
         /// Session ID or memorable short name, e.g. fox

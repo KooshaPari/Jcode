@@ -494,9 +494,9 @@ pub trait TuiState {
     fn available_skills(&self) -> Vec<String>;
     /// Authoritative active credential (OAuth vs API key) for a dual-auth
     /// provider, as resolved from the live provider / remote server rather than
-    /// from the `JCODE_RUNTIME_PROVIDER` env var. The header must prefer this
+    /// from the `KCODE_RUNTIME_PROVIDER` env var. The header must prefer this
     /// over its own env-based heuristic: the TUI client process often does not
-    /// inherit `JCODE_RUNTIME_PROVIDER` (it is set inside the agent/server
+    /// inherit `KCODE_RUNTIME_PROVIDER` (it is set inside the agent/server
     /// process), so the env heuristic silently falls back to "auto prefers
     /// OAuth" and the header claimed OAuth while the info widget correctly
     /// reported an API key. Returns `None` when the credential cannot be
@@ -1225,7 +1225,7 @@ pub struct LoginImportPrompt {
     /// `Some` while the telemetry settings sub-page is open, holding the
     /// highlighted choice.
     pub telemetry: Option<TelemetryChoice>,
-    /// Whether the environment (JCODE_NO_TELEMETRY / DO_NOT_TRACK) already
+    /// Whether the environment (KCODE_NO_TELEMETRY / DO_NOT_TRACK) already
     /// forces telemetry off, so the sub-page should say so.
     pub telemetry_env_forced_off: bool,
     /// How many rows are currently checked for import.
@@ -1782,7 +1782,7 @@ pub struct PickerOption {
 /// An SSH-backed socket is not a shared-filesystem local daemon. Keep this
 /// distinct from `App::is_remote`, which also describes ordinary local clients.
 pub(crate) fn ssh_remote_host() -> Option<String> {
-    std::env::var("JCODE_SSH_REMOTE")
+    std::env::var("KCODE_SSH_REMOTE")
         .ok()
         .filter(|host| !host.trim().is_empty())
 }

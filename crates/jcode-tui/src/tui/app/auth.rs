@@ -17,7 +17,7 @@ use std::sync::Arc;
 
 impl App {
     pub(super) fn open_auth_browser(url: &str) -> bool {
-        // Honors --no-browser/NO_BROWSER/JCODE_NO_BROWSER and never opens real
+        // Honors --no-browser/NO_BROWSER/KCODE_NO_BROWSER and never opens real
         // browser windows from test binaries (login flows are exercised by TUI
         // tests; without this guard a test run pops OAuth pages on the
         // developer's desktop).
@@ -69,7 +69,7 @@ impl App {
     pub(super) fn show_jcode_subscription_status(&mut self) {
         let configured_key = crate::subscription_catalog::configured_api_key().is_some();
         let configured_base = crate::subscription_catalog::configured_api_base()
-            .unwrap_or_else(|| crate::subscription_catalog::DEFAULT_JCODE_API_BASE.to_string());
+            .unwrap_or_else(|| crate::subscription_catalog::DEFAULT_KCODE_API_BASE.to_string());
         let runtime_mode = crate::subscription_catalog::is_runtime_mode_enabled();
 
         let mut message = String::from("Jcode Hosted Model Status\n\n");
@@ -373,18 +373,18 @@ impl App {
             &mut summary,
             &mut errors,
             "jcode subscription API key",
-            crate::subscription_catalog::JCODE_API_KEY_ENV,
-            crate::subscription_catalog::JCODE_ENV_FILE,
+            crate::subscription_catalog::KCODE_API_KEY_ENV,
+            crate::subscription_catalog::KCODE_ENV_FILE,
         );
         for env_key in [
-            crate::subscription_catalog::JCODE_API_BASE_ENV,
-            crate::subscription_catalog::JCODE_ACCOUNT_ID_ENV,
-            crate::subscription_catalog::JCODE_ACCOUNT_EMAIL_ENV,
-            crate::subscription_catalog::JCODE_TIER_ENV,
+            crate::subscription_catalog::KCODE_API_BASE_ENV,
+            crate::subscription_catalog::KCODE_ACCOUNT_ID_ENV,
+            crate::subscription_catalog::KCODE_ACCOUNT_EMAIL_ENV,
+            crate::subscription_catalog::KCODE_TIER_ENV,
         ] {
             if let Err(err) = crate::provider_catalog::save_env_value_to_env_file(
                 env_key,
-                crate::subscription_catalog::JCODE_ENV_FILE,
+                crate::subscription_catalog::KCODE_ENV_FILE,
                 None,
             ) {
                 errors.push(format!("jcode subscription {}: {}", env_key, err));
@@ -781,7 +781,7 @@ impl App {
     }
 
     pub(super) fn open_jcode_account_management(&mut self) {
-        let url = crate::subscription_catalog::JCODE_ACCOUNT_URL;
+        let url = crate::subscription_catalog::KCODE_ACCOUNT_URL;
         let opened = Self::open_auth_browser(url);
         self.push_display_message(DisplayMessage::system(format!(
             "Jcode Account Management\n\n{}{}",
@@ -1618,7 +1618,7 @@ impl App {
         let provider_id = openai_compatible_profile
             .map(|profile| profile.id.to_string())
             .unwrap_or_else(|| match key_name {
-                crate::subscription_catalog::JCODE_API_KEY_ENV => "jcode".to_string(),
+                crate::subscription_catalog::KCODE_API_KEY_ENV => "jcode".to_string(),
                 "OPENROUTER_API_KEY" => "openrouter".to_string(),
                 _ => provider.to_ascii_lowercase().replace(' ', "-"),
             });
@@ -2327,13 +2327,13 @@ impl App {
                             }
                         }
                     })()
-                } else if key_name == crate::subscription_catalog::JCODE_API_KEY_ENV {
+                } else if key_name == crate::subscription_catalog::KCODE_API_KEY_ENV {
                     (|| {
                         let mut content = format!("{}={}\n", key_name, key);
                         if let Some(base) = crate::subscription_catalog::configured_api_base() {
                             content.push_str(&format!(
                                 "{}={}\n",
-                                crate::subscription_catalog::JCODE_API_BASE_ENV,
+                                crate::subscription_catalog::KCODE_API_BASE_ENV,
                                 base
                             ));
                         }
@@ -2381,7 +2381,7 @@ impl App {
                                 "bedrock",
                             );
                             if let Some(default_model) = default_model.as_deref() {
-                                crate::env::set_var("JCODE_BEDROCK_MODEL", default_model);
+                                crate::env::set_var("KCODE_BEDROCK_MODEL", default_model);
                             }
                         }
 
@@ -2402,7 +2402,7 @@ impl App {
                         let model_hint = effective_default_model
                             .map(|m| format!("\nSuggested default model: {}", m))
                             .unwrap_or_default();
-                        let guidance = if key_name == crate::subscription_catalog::JCODE_API_KEY_ENV
+                        let guidance = if key_name == crate::subscription_catalog::KCODE_API_KEY_ENV
                         {
                             format!(
                                 "Use /login jcode to access curated models via your router. If the model list looks stale, run /refresh-model-list.\nDocs: {}",
@@ -2509,7 +2509,7 @@ impl App {
                         }
                     };
                     if let Err(err) = crate::provider_catalog::save_env_value_to_env_file(
-                        "JCODE_OPENAI_COMPAT_API_BASE",
+                        "KCODE_OPENAI_COMPAT_API_BASE",
                         crate::provider_catalog::OPENAI_COMPAT_PROFILE.env_file,
                         Some(&normalized),
                     ) {
@@ -2748,7 +2748,7 @@ impl App {
                 .default_model
                 .as_deref()
                 .is_some_and(|model| !model.trim().is_empty());
-        let runtime_provider_explicit = std::env::var("JCODE_INITIAL_PROVIDER_EXPLICIT")
+        let runtime_provider_explicit = std::env::var("KCODE_INITIAL_PROVIDER_EXPLICIT")
             .ok()
             .is_some_and(|value| {
                 let value = value.trim().to_ascii_lowercase();
@@ -3452,7 +3452,7 @@ fn save_tui_openai_compatible_api_base(
             anyhow::anyhow!("OpenAI-compatible API base must be https://... or http://localhost.")
         })?;
         crate::provider_catalog::save_env_value_to_env_file(
-            "JCODE_OPENAI_COMPAT_API_BASE",
+            "KCODE_OPENAI_COMPAT_API_BASE",
             crate::provider_catalog::OPENAI_COMPAT_PROFILE.env_file,
             Some(&normalized),
         )?;

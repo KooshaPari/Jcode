@@ -1,6 +1,6 @@
 [package]
-name = "jcode"
-version = "0.93.0"
+name = "kcode"
+version = "0.93.0-k0.1.0"
 description = "Possibly the greatest coding agent ever built — blazing-fast TUI, multi-model, swarm coordination, 30+ tools"
 edition = "2024"
 autobins = false
@@ -98,7 +98,7 @@ name = "jcode"
 path = "src/lib.rs"
 
 [[bin]]
-name = "jcode"
+name = "kcode"
 path = "src/main.rs"
 
 [[bin]]
@@ -106,7 +106,7 @@ name = "test_api"
 path = "src/bin/test_api.rs"
 
 [[bin]]
-name = "jcode-harness"
+name = "kcode-harness"
 path = "src/bin/harness.rs"
 
 [[bin]]

@@ -2426,7 +2426,7 @@ impl BridgeState {
     /// Path of a session's persisted record, or `None` if the id is not a
     /// plain session id.
     ///
-    /// One funnel for three reasons. It honours `JCODE_HOME`, without which a
+    /// One funnel for three reasons. It honours `KCODE_HOME`, without which a
     /// launched instance reads the *user's* sessions: `peek_session` served
     /// the real transcripts of the jcode the user runs interactively, which
     /// defeats the isolation an embedded instance exists to provide. It
@@ -2446,9 +2446,9 @@ impl BridgeState {
         {
             return None;
         }
-        let home = match std::env::var_os("JCODE_HOME") {
+        let home = match std::env::var_os("KCODE_HOME") {
             Some(home) => std::path::PathBuf::from(home),
-            None => std::path::Path::new(&std::env::var_os("HOME")?).join(".jcode"),
+            None => std::path::Path::new(&std::env::var_os("HOME")?).join(".kcode"),
         };
         Some(home.join("sessions").join(format!("{session_id}.json")))
     }
@@ -2563,10 +2563,10 @@ impl BridgeState {
     }
 
     fn jcode_home() -> Option<std::path::PathBuf> {
-        std::env::var_os("JCODE_HOME")
+        std::env::var_os("KCODE_HOME")
             .map(std::path::PathBuf::from)
             .or_else(|| {
-                std::env::var_os("HOME").map(|home| std::path::Path::new(&home).join(".jcode"))
+                std::env::var_os("HOME").map(|home| std::path::Path::new(&home).join(".kcode"))
             })
     }
 
@@ -2950,7 +2950,7 @@ impl BridgeState {
     }
 
     fn app_config_dir() -> Option<std::path::PathBuf> {
-        if let Some(home) = std::env::var_os("JCODE_HOME") {
+        if let Some(home) = std::env::var_os("KCODE_HOME") {
             return Some(std::path::Path::new(&home).join("config/jcode"));
         }
         #[cfg(target_os = "macos")]
@@ -2959,7 +2959,7 @@ impl BridgeState {
                 .join("Library/Application Support/jcode"),
         );
         #[cfg(target_os = "windows")]
-        return Some(std::path::Path::new(&std::env::var_os("APPDATA")?).join("jcode"));
+        return Some(std::path::Path::new(&std::env::var_os("APPDATA")?).join("kcode"));
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         Some(
             std::env::var_os("XDG_CONFIG_HOME")
@@ -2968,7 +2968,7 @@ impl BridgeState {
                     std::path::Path::new(&std::env::var_os("HOME").unwrap_or_default())
                         .join(".config")
                 })
-                .join("jcode"),
+                .join("kcode"),
         )
     }
 
@@ -2989,8 +2989,8 @@ impl BridgeState {
                 &["GEMINI_API_KEY", "GOOGLE_API_KEY"],
                 "gemini.env",
             )),
-            "jcode" | "subscription" | "jcode-subscription" => {
-                Some(("jcode", &["JCODE_API_KEY"], "jcode-subscription.env"))
+            "jcode" | "subscription" | "kcode-subscription" => {
+                Some(("jcode", &["KCODE_API_KEY"], "kcode-subscription.env"))
             }
             _ => None,
         }

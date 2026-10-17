@@ -21,12 +21,12 @@ use jcode_provider_antigravity_runtime::AntigravityProvider;
 /// Resolve the per-request timeout for an OpenAI-compatible smoke probe.
 ///
 /// Defaults to `default_secs` (the historical hard-coded values), but callers can
-/// raise it via `JCODE_LIVE_SMOKE_TIMEOUT_SECS` for slow reasoning models (e.g.
+/// raise it via `KCODE_LIVE_SMOKE_TIMEOUT_SECS` for slow reasoning models (e.g.
 /// NVIDIA's 550B Nemotron Ultra, which emits long hidden reasoning and can take
 /// well over a minute to return a single completion). The override applies a floor
 /// so it can only extend, never shorten, the built-in deadline.
 fn smoke_timeout(default_secs: u64) -> std::time::Duration {
-    let secs = std::env::var("JCODE_LIVE_SMOKE_TIMEOUT_SECS")
+    let secs = std::env::var("KCODE_LIVE_SMOKE_TIMEOUT_SECS")
         .ok()
         .and_then(|raw| raw.trim().parse::<u64>().ok())
         .map(|override_secs| override_secs.max(default_secs))

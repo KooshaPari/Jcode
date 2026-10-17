@@ -86,8 +86,8 @@ impl MultiProvider {
         let initial_provider = Self::initial_provider_from_env();
         let mut default_named_provider_profile: Option<String> = None;
         if initial_provider.is_none()
-            && std::env::var_os("JCODE_PROVIDER_PROFILE_ACTIVE").is_none()
-            && std::env::var_os("JCODE_NAMED_PROVIDER_PROFILE").is_none()
+            && std::env::var_os("KCODE_PROVIDER_PROFILE_ACTIVE").is_none()
+            && std::env::var_os("KCODE_NAMED_PROVIDER_PROFILE").is_none()
             && let Some(pref) = provider_state.default_provider_key()
         {
             if let Some(profile) =
@@ -99,8 +99,8 @@ impl MultiProvider {
                     pref, cfg,
                 ) {
                     Ok(profile_name) => {
-                        crate::env::set_var("JCODE_PROVIDER_PROFILE_NAME", &profile_name);
-                        crate::env::set_var("JCODE_PROVIDER_PROFILE_ACTIVE", "1");
+                        crate::env::set_var("KCODE_PROVIDER_PROFILE_NAME", &profile_name);
+                        crate::env::set_var("KCODE_PROVIDER_PROFILE_ACTIVE", "1");
                         default_named_provider_profile = Some(profile_name);
                     }
                     Err(err) => crate::logging::warn(&format!(
@@ -124,16 +124,16 @@ impl MultiProvider {
         let has_bedrock_creds = bedrock::BedrockProvider::has_credentials();
         let has_openrouter_creds = openrouter::has_credentials();
 
-        if std::env::var_os("JCODE_USE_CLAUDE_CLI").is_some() {
+        if std::env::var_os("KCODE_USE_CLAUDE_CLI").is_some() {
             crate::logging::warn(
-                "JCODE_USE_CLAUDE_CLI has been removed and is ignored. Claude uses the direct Anthropic transport.",
+                "KCODE_USE_CLAUDE_CLI has been removed and is ignored. Claude uses the direct Anthropic transport.",
             );
         }
 
         let anthropic = if has_claude_creds {
             let provider =
                 external::instantiate_expected_external_provider(external::ANTHROPIC_RUNTIME);
-            let active_profile_is_anthropic = std::env::var("JCODE_NAMED_PROVIDER_PROFILE")
+            let active_profile_is_anthropic = std::env::var("KCODE_NAMED_PROVIDER_PROFILE")
                 .ok()
                 .and_then(|name| cfg.providers.get(&name))
                 .is_some_and(|profile| {
@@ -199,7 +199,7 @@ impl MultiProvider {
             None
         };
 
-        let active_named_profile_is_anthropic = std::env::var("JCODE_NAMED_PROVIDER_PROFILE")
+        let active_named_profile_is_anthropic = std::env::var("KCODE_NAMED_PROVIDER_PROFILE")
             .ok()
             .or_else(|| default_named_provider_profile.clone())
             .and_then(|name| cfg.providers.get(&name))
@@ -210,7 +210,7 @@ impl MultiProvider {
                 )
             });
         let openrouter = if has_openrouter_creds && !active_named_profile_is_anthropic {
-            let named_profile = std::env::var("JCODE_NAMED_PROVIDER_PROFILE")
+            let named_profile = std::env::var("KCODE_NAMED_PROVIDER_PROFILE")
                 .ok()
                 .or_else(|| default_named_provider_profile.clone());
             let spec = named_profile
@@ -236,7 +236,7 @@ impl MultiProvider {
         };
 
         let copilot_premium_zero = matches!(
-            std::env::var("JCODE_COPILOT_PREMIUM").ok().as_deref(),
+            std::env::var("KCODE_COPILOT_PREMIUM").ok().as_deref(),
             Some("0")
         );
         let availability = ProviderAvailability {

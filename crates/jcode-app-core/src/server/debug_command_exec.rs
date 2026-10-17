@@ -77,7 +77,7 @@ pub(super) async fn resolve_debug_session(
 }
 
 pub(super) fn debug_message_timeout_secs() -> Option<u64> {
-    let raw = std::env::var("JCODE_DEBUG_MESSAGE_TIMEOUT_SECS").ok()?;
+    let raw = std::env::var("KCODE_DEBUG_MESSAGE_TIMEOUT_SECS").ok()?;
     let trimmed = raw.trim();
     if trimmed.is_empty() {
         return None;
@@ -662,7 +662,7 @@ mod tests {
     /// Env vars are per-process, so a private mutex here would only exclude
     /// other tests in this module while racing every other test that mutates
     /// the environment (notably the `IsolatedHome` users in `reload_recovery`,
-    /// which set `JCODE_HOME` under `storage::lock_test_env`). Two mutexes
+    /// which set `KCODE_HOME` under `storage::lock_test_env`). Two mutexes
     /// guarding one global serialize nothing, which showed up as a rotating set
     /// of failures under `cargo test` that all passed with `--test-threads=1`
     /// (issue #593). Everything touching the environment must share one lock.
@@ -722,7 +722,7 @@ mod tests {
     async fn debug_agent_context_inspects_modes_without_inference_or_locking() {
         let _env_lock = lock_env();
         let home = tempfile::tempdir().unwrap();
-        let _home = EnvGuard::set("JCODE_HOME", home.path().to_str().unwrap());
+        let _home = EnvGuard::set("KCODE_HOME", home.path().to_str().unwrap());
         let provider: Arc<dyn Provider> = Arc::new(TestProvider);
         let registry = Registry::new(provider.clone()).await;
         let mut agent =
@@ -770,12 +770,12 @@ mod tests {
         std::fs::create_dir_all(desktop.join("crates/jcode-desktop-ui/src")).unwrap();
         std::fs::write(
             desktop.join("Cargo.toml"),
-            "[package]\nname = \"jcode-desktop\"\n",
+            "[package]\nname = \"kcode-desktop\"\n",
         )
         .unwrap();
         std::fs::write(
             desktop.join("crates/jcode-desktop-ui/Cargo.toml"),
-            "[package]\nname = \"jcode-desktop-ui\"\n",
+            "[package]\nname = \"kcode-desktop-ui\"\n",
         )
         .unwrap();
         agent
@@ -793,8 +793,8 @@ mod tests {
     #[tokio::test]
     async fn debug_tool_selfdev_reload_returns_promptly_for_direct_execution() {
         let _env_lock = lock_env();
-        let _test_session = EnvGuard::set("JCODE_TEST_SESSION", "1");
-        let _debug_control = EnvGuard::set("JCODE_DEBUG_CONTROL", "1");
+        let _test_session = EnvGuard::set("KCODE_TEST_SESSION", "1");
+        let _debug_control = EnvGuard::set("KCODE_DEBUG_CONTROL", "1");
 
         let mut reload_rx = crate::server::subscribe_reload_signal_for_tests();
 

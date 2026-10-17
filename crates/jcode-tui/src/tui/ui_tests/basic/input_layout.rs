@@ -1,7 +1,7 @@
 #[test]
 fn first_prompt_preserves_welcome_header_spacing() {
     // Hold the env lock (before the render lock, matching the env-then-render
-    // order) so a sibling test's JCODE_IDLE_ANIMATION override cannot turn the
+    // order) so a sibling test's KCODE_IDLE_ANIMATION override cannot turn the
     // idle donut on for the welcome frame only.
     let _env = crate::storage::lock_test_env();
     crate::config::invalidate_config_cache();
